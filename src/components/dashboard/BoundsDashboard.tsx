@@ -1,283 +1,387 @@
-import { useState, useEffect } from 'react';
-import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2 } from 'lucide-react';
 import { getQuests, deleteQuest, saveQuest, cacheQuestResources } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
-import { Quest } from '../../types';
+import { usePlan } from '../../hooks/usePlan';
+import type { Quest } from '../../types';
 
 interface BoundsDashboardProps {
   onCreateNew: () => void;
 }
 
+type FilterStatus = 'all' | 'public' | 'secret';
+
 export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const { user } = useAuth();
-  const [quests, setQuests] = useState<Quest[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [downloadedQuests, setDownloadedQuests] = useState<string[]>([]);
-  const [editModalQuest, setEditModalQuest] = useState<Quest | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
+  const { limits } = usePlan();
 
+  const [quests, setQuests]               = useState<Quest[]>([]);
+  const [loading, setLoading]             = useState(true);
+  const [search, setSearch]               = useState('');
+  const [filterStatus, setFilterStatus]   = useState<FilterStatus>('all');
+  const [favorites, setFavorites]         = useState<Set<string>>(new Set());
+  const [downloaded, setDownloaded]       = useState<Set<string>>(new Set());
+  const [editModalQuest, setEditModalQuest] = useState<Quest | null>(null);
+  const [editTitle, setEditTitle]         = useState('');
+  const [editDesc, setEditDesc]           = useState('');
+  const [saving, setSaving]               = useState(false);
+
+  // Load persisted favourites/downloads from localStorage
   useEffect(() => {
-    // Basic mobile detection
-    setIsMobile(/Mobi|Android|iPhone/i.test(navigator.userAgent) || window.innerWidth < 768);
-    
-    const favs = localStorage.getItem('actionbound_fav_dashboard');
-    if (favs) setFavorites(JSON.parse(favs));
-    
-    const downloads = localStorage.getItem('actionbound_downloaded');
-    if (downloads) setDownloadedQuests(JSON.parse(downloads));
+    try {
+      const favs = JSON.parse(localStorage.getItem('ak_favs') ?? '[]') as string[];
+      const dls  = JSON.parse(localStorage.getItem('ak_dls')  ?? '[]') as string[];
+      setFavorites(new Set(favs));
+      setDownloaded(new Set(dls));
+    } catch { /* ignore */ }
   }, []);
+
+  const loadQuests = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const data = await getQuests(user.uid);
+      setQuests(data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadQuests(); }, [user]);
+
+  // Client-side filtering
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return quests.filter(quest => {
+      const matchSearch = !q || quest.title.toLowerCase().includes(q) || quest.description.toLowerCase().includes(q);
+      const matchStatus = filterStatus === 'all' || quest.visibility === filterStatus;
+      return matchSearch && matchStatus;
+    });
+  }, [quests, search, filterStatus]);
+
+  const atLimit = limits.maxQuests !== -1 && quests.length >= limits.maxQuests;
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newFavs = favorites.includes(id) 
-      ? favorites.filter(favId => favId !== id)
-      : [...favorites, id];
-    setFavorites(newFavs);
-    localStorage.setItem('actionbound_fav_dashboard', JSON.stringify(newFavs));
+    setFavorites(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('ak_favs', JSON.stringify([...next]));
+      return next;
+    });
   };
 
   const toggleDownload = (quest: Quest, e: React.MouseEvent) => {
     e.stopPropagation();
-    const isDownloaded = downloadedQuests.includes(quest.id);
-    const newDownloads = isDownloaded
-      ? downloadedQuests.filter(dlId => dlId !== quest.id)
-      : [...downloadedQuests, quest.id];
-    setDownloadedQuests(newDownloads);
-    localStorage.setItem('actionbound_downloaded', JSON.stringify(newDownloads));
-    
-    if (!isDownloaded) {
-      cacheQuestResources(quest);
-    }
+    setDownloaded(prev => {
+      const next = new Set(prev);
+      if (next.has(quest.id)) {
+        next.delete(quest.id);
+      } else {
+        next.add(quest.id);
+        cacheQuestResources(quest).catch(() => {});
+      }
+      localStorage.setItem('ak_dls', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Дали сте сигурни дека сакате да ја избришете оваа авантура?')) return;
+    await deleteQuest(id);
+    setQuests(prev => prev.filter(q => q.id !== id));
   };
 
   const handleEditSave = async () => {
     if (!editModalQuest) return;
-    const updatedQuest = { ...editModalQuest, title: editTitle, description: editDesc, updatedAt: new Date().toISOString() };
-    await saveQuest(updatedQuest);
-    setEditModalQuest(null);
-    loadQuests();
-  };
-  
-  const loadQuests = async () => {
-    if (!user) return;
-    const data = await getQuests(user.uid);
-    setQuests(data);
-  };
-
-  useEffect(() => {
-    loadQuests();
-  }, [user]);
-
-  const handleDelete = async (id: string) => {
-    if (confirm('Дали сте сигурни дека сакате да ја избришете оваа авантура?')) {
-      await deleteQuest(id);
-      loadQuests();
+    const title = editTitle.trim();
+    const description = editDesc.trim();
+    if (!title) return;
+    setSaving(true);
+    try {
+      const updated: Quest = { ...editModalQuest, title, description, updatedAt: new Date().toISOString() };
+      await saveQuest(updated);
+      setQuests(prev => prev.map(q => q.id === updated.id ? updated : q));
+      setEditModalQuest(null);
+    } finally {
+      setSaving(false);
     }
   };
 
+  const openEdit = (quest: Quest) => {
+    setEditModalQuest(quest);
+    setEditTitle(quest.title);
+    setEditDesc(quest.description);
+  };
+
   return (
-    <div className="space-y-6 mx-auto max-w-6xl w-full p-4 md:p-8">
-      {/* Install PWA Banner */}
-      {isMobile && (
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-2xl px-5 py-4 text-white flex items-center justify-between shadow-lg mb-6">
-          <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/20">
-               <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-               </svg>
-             </div>
-             <div>
-               <h3 className="font-bold">АПП ЗА МОБИЛЕН</h3>
-               <p className="text-xs text-indigo-100 font-medium">Кликнете тука за инсталација</p>
-             </div>
-          </div>
-          <button className="bg-white text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:scale-105 transition-transform active:scale-95">
-             Инсталирај
-          </button>
-        </div>
-      )}
+    <div className="max-w-6xl mx-auto w-full p-4 md:p-8 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight dark:text-slate-100 text-slate-900">Мои Авантури</h2>
-          <p className="text-sm dark:text-slate-400 text-slate-600 mt-1">Управувајте со вашите квестови, уредувајте или креирајте нови.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Мои Авантури</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            {quests.length} / {limits.maxQuests === -1 ? '∞' : limits.maxQuests} авантури
+          </p>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onCreateNew}
-            className="inline-flex items-center justify-center rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-colors"
-          >
-            <Plus className="-ml-1 mr-2 h-5 w-5" />
-            Нова Авантура
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onCreateNew}
+          disabled={atLimit}
+          title={atLimit ? 'Го достигнавте лимитот на вашиот план' : undefined}
+          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus className="h-5 w-5" />
+          Нова Авантура
+        </button>
       </div>
 
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center dark:bg-slate-800 bg-slate-50 p-4 rounded-xl shadow-sm border dark:border-slate-700 border-slate-200">
-        <div className="relative w-full sm:max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-4 w-4 dark:text-slate-400 text-slate-600" />
-          </div>
+      {/* Search & Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
           <input
-            type="text"
-            className="block w-full rounded-md border-0 dark:bg-slate-900 bg-white py-2 pl-9 pr-3 dark:text-slate-200 text-slate-800 ring-1 ring-inset ring-slate-700 placeholder:dark:text-slate-400 text-slate-600 focus:ring-2 focus:ring-inset focus:ring-emerald-600 sm:text-sm sm:leading-6"
+            type="search"
+            aria-label="Пребарај авантури"
             placeholder="Пребарај авантури..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
           />
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <select aria-label="Филтрирај по статус" className="block w-full sm:w-auto rounded-md border-0 dark:bg-slate-900 bg-white py-2 pl-3 pr-10 dark:text-slate-200 text-slate-800 ring-1 ring-inset ring-slate-700 focus:ring-2 focus:ring-emerald-600 sm:text-sm sm:leading-6">
-            <option>Сите статуси</option>
-            <option>Објавени</option>
-            <option>Нацрт</option>
-          </select>
-        </div>
+        <select
+          aria-label="Филтрирај по видливост"
+          value={filterStatus}
+          onChange={e => setFilterStatus(e.target.value as FilterStatus)}
+          className="py-2.5 px-4 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="all">Сите статуси</option>
+          <option value="public">Јавни</option>
+          <option value="secret">Приватни</option>
+        </select>
       </div>
 
-      {/* Grid of bounds */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quests.map((quest) => (
-          <div key={quest.id} className={`group flex flex-col overflow-hidden rounded-xl dark:bg-slate-800 bg-slate-50 shadow-sm border transition-all hover:shadow-emerald-500/10 hover:border-slate-600 ${favorites.includes(quest.id) ? 'border-emerald-500/50' : 'dark:border-slate-700 border-slate-200'} relative`}>
-            {/* Absolute icons on top */}
-            <div className="absolute top-3 right-3 z-10 flex gap-2">
-              <button 
-                onClick={(e) => toggleDownload(quest, e)}
-                title={downloadedQuests.includes(quest.id) ? "Преземено (офлајн)" : "Зачувај офлајн"}
-                className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all ${
-                  downloadedQuests.includes(quest.id) 
-                    ? 'bg-emerald-500/90 text-white hover:bg-emerald-600' 
-                    : 'dark:bg-slate-900 bg-white/60 dark:text-slate-300 text-slate-700 hover:dark:bg-slate-800 bg-slate-50'
-                }`}
-              >
-                {downloadedQuests.includes(quest.id) ? <Cloud className="w-4 h-4 fill-current" /> : <CloudOff className="w-4 h-4" />}
-              </button>
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center mb-6">
+            <MapPin className="w-10 h-10 text-indigo-400" />
+          </div>
+          {quests.length === 0 ? (
+            <>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-2">
+                Нема авантури уште
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
+                Создај ја твојата прва интерактивна GPS авантура. Можеш да додадеш GPS локации, QR кодови, квизови и мисии.
+              </p>
               <button
                 type="button"
-                aria-label={favorites.includes(quest.id) ? 'Отстрани од омилени' : 'Додај во омилени'}
-                onClick={(e) => toggleFavorite(quest.id, e)}
-                className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all ${
-                  favorites.includes(quest.id)
-                    ? 'bg-rose-500/90 text-white hover:bg-rose-600'
-                    : 'dark:bg-slate-900 bg-white/60 dark:text-slate-300 text-slate-700 hover:dark:bg-slate-800 bg-slate-50 hover:text-rose-400'
-                }`}
+                onClick={onCreateNew}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20"
               >
-                <Heart className={`w-4 h-4 ${favorites.includes(quest.id) ? 'fill-current' : ''}`} />
+                <Plus className="h-5 w-5" />
+                Создај прва авантура
               </button>
-            </div>
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-2">
+                Нема резултати за „{search}"
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400">
+                Пробај поинаков термин за пребарување.
+              </p>
+            </>
+          )}
+        </div>
+      )}
 
-            <div className="aspect-[16/9] w-full overflow-hidden dark:bg-slate-900 bg-white relative">
-              {quest.coverImage && (
-                <img src={quest.coverImage} alt={quest.title} className="absolute inset-0 w-full h-full object-cover opacity-80" />
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60 to-transparent"></div>
-              <div className="absolute bottom-3 left-3 z-10 w-full pr-8">
-                 <h3 className="text-xl font-bold dark:text-slate-100 text-slate-900 line-clamp-1">{quest.title}</h3>
-                 <p className="dark:text-slate-300 text-slate-700 text-sm line-clamp-1">{quest.description}</p>
+      {/* Quest grid */}
+      {!loading && filtered.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(quest => (
+            <article
+              key={quest.id}
+              className={`group relative flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-slate-800 border transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 ${
+                favorites.has(quest.id)
+                  ? 'border-rose-400/50 dark:border-rose-500/40'
+                  : 'border-slate-200 dark:border-slate-700'
+              }`}
+            >
+              {/* Cover */}
+              <div className="aspect-video w-full relative bg-gradient-to-br from-indigo-900 to-slate-900 overflow-hidden">
+                {quest.coverImage && (
+                  <img
+                    src={quest.coverImage}
+                    alt={quest.title}
+                    className="absolute inset-0 w-full h-full object-cover opacity-70"
+                    loading="lazy"
+                  />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                {/* Visibility badge */}
+                <div className="absolute top-3 left-3">
+                  <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full backdrop-blur-sm ${
+                    quest.visibility === 'public'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'bg-slate-500/20 text-slate-300 border border-slate-500/30'
+                  }`}>
+                    {quest.visibility === 'public' ? 'Јавна' : 'Приватна'}
+                  </span>
+                </div>
+
+                {/* Action buttons top-right */}
+                <div className="absolute top-3 right-3 flex gap-1.5">
+                  <button
+                    type="button"
+                    aria-label={downloaded.has(quest.id) ? 'Офлајн зачувано' : 'Зачувај офлајн'}
+                    onClick={e => toggleDownload(quest, e)}
+                    className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${
+                      downloaded.has(quest.id)
+                        ? 'bg-emerald-500/80 text-white'
+                        : 'bg-black/30 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    {downloaded.has(quest.id) ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={favorites.has(quest.id) ? 'Отстрани од омилени' : 'Додај во омилени'}
+                    onClick={e => toggleFavorite(quest.id, e)}
+                    className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${
+                      favorites.has(quest.id)
+                        ? 'bg-rose-500/80 text-white'
+                        : 'bg-black/30 text-white/70 hover:text-white'
+                    }`}
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${favorites.has(quest.id) ? 'fill-current' : ''}`} />
+                  </button>
+                </div>
+
+                {/* Title overlay */}
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <h2 className="text-white font-bold text-lg leading-tight line-clamp-1">{quest.title}</h2>
+                  <p className="text-white/70 text-sm line-clamp-1 mt-0.5">{quest.description}</p>
+                </div>
               </div>
-              <div className="absolute top-3 left-3 z-10">
-                <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-bold uppercase shadow-sm backdrop-blur-sm bg-emerald-500/20 text-emerald-400`}>
-                  Активно
+
+              {/* Meta */}
+              <div className="px-4 py-3 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700/50">
+                <span><strong className="text-slate-700 dark:text-slate-200">{quest.stages?.length ?? 0}</strong> етапи</span>
+                <span className="text-xs text-slate-400 dark:text-slate-500">
+                  {new Date(quest.updatedAt).toLocaleDateString('mk-MK')}
                 </span>
               </div>
-            </div>
-            
-            <div className="flex flex-1 flex-col p-5">
-              <div className="flex items-center justify-between text-sm dark:text-slate-400 text-slate-600 mb-4">
-                <div className="flex items-center">
-                  <span className="font-bold dark:text-slate-200 text-slate-800">{quest.stages?.length || 0}</span>
-                  <span className="ml-1">етапи</span>
-                </div>
-                <div className="flex items-center">
-                  <span className="font-bold dark:text-slate-200 text-slate-800">0</span>
-                  <span className="ml-1">играња</span>
-                </div>
+
+              {/* Actions */}
+              <div className="px-4 py-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.open(`/play/${quest.id}`, '_blank')}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-sm font-semibold transition-colors"
+                >
+                  <Play className="h-4 w-4" /> Играј
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openEdit(quest)}
+                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold transition-colors"
+                >
+                  <Edit2 className="h-4 w-4" /> Уреди
+                </button>
+                <button
+                  type="button"
+                  aria-label="Избриши авантура"
+                  onClick={() => handleDelete(quest.id)}
+                  className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
-              
-              <div className="pt-4 border-t dark:border-slate-700 border-slate-200 flex items-center justify-between text-xs text-slate-500">
-                <span>ИД: {quest.id}</span>
-              </div>
-            </div>
-            
-            <div className="absolute inset-x-0 bottom-0 translate-y-full dark:bg-slate-800 bg-slate-50/95 backdrop-blur-sm border-t dark:border-slate-700 border-slate-200 p-4 transition-transform duration-300 ease-in-out group-hover:translate-y-0 flex justify-around">
-              <button 
-                onClick={() => window.location.href = `/play/${quest.id}`}
-                className="flex flex-col items-center justify-center p-2 text-emerald-400 hover:text-emerald-300 transition-colors"
-              >
-                <Play className="h-5 w-5 mb-1" />
-                <span className="text-xs font-bold">Играј</span>
-              </button>
-              <button 
-                onClick={() => {
-                  setEditModalQuest(quest);
-                  setEditTitle(quest.title);
-                  setEditDesc(quest.description);
-                }}
-                className="flex flex-col items-center justify-center p-2 dark:text-slate-400 text-slate-600 hover:text-indigo-400 transition-colors"
-              >
-                <Edit2 className="h-5 w-5 mb-1" />
-                <span className="text-xs font-bold">Брзо Уреди</span>
-              </button>
-              <button 
-                onClick={() => handleDelete(quest.id)}
-                className="flex flex-col items-center justify-center p-2 dark:text-slate-400 text-slate-600 hover:text-red-400 transition-colors"
-              >
-                <Trash2 className="h-5 w-5 mb-1" />
-                <span className="text-xs font-bold">Избриши</span>
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+            </article>
+          ))}
+        </div>
+      )}
 
       {/* Quick Edit Modal */}
       {editModalQuest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center dark:bg-slate-950 bg-slate-100/80 backdrop-blur-sm p-4">
-           <div className="dark:bg-slate-900 bg-white rounded-2xl w-full max-w-lg shadow-2xl border dark:border-slate-700 border-slate-200 overflow-hidden flex flex-col">
-             <div className="flex items-center justify-between p-6 border-b dark:border-slate-800 border-slate-200">
-                <h3 className="text-xl font-bold dark:text-slate-100 text-slate-900">Брзо Уредување</h3>
-                <button type="button" aria-label="Затвори" onClick={() => setEditModalQuest(null)} className="dark:text-slate-400 text-slate-600 hover:dark:text-slate-200 text-slate-800 dark:bg-slate-800 bg-slate-50 hover:bg-slate-700 p-2 rounded-full transition-colors">
-                  <X className="w-5 h-5" />
-                </button>
-             </div>
-             <div className="p-6 space-y-6">
-                <div>
-                  <label className="block text-sm font-bold dark:text-slate-400 text-slate-600 mb-2">Наслов на авантурата</label>
-                  <input 
-                    type="text" 
-                    value={editTitle}
-                    onChange={(e) => setEditTitle(e.target.value)}
-                    className="w-full dark:bg-slate-800 bg-slate-50 border dark:border-slate-700 border-slate-200 rounded-xl px-4 py-3 dark:text-slate-100 text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold dark:text-slate-400 text-slate-600 mb-2">Опис</label>
-                  <textarea 
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    rows={4}
-                    className="w-full dark:bg-slate-800 bg-slate-50 border dark:border-slate-700 border-slate-200 rounded-xl px-4 py-3 dark:text-slate-100 text-slate-900 focus:outline-none focus:border-indigo-500 transition-colors resize-none"
-                  />
-                </div>
-             </div>
-             <div className="p-6 dark:bg-slate-900 bg-white/50 border-t dark:border-slate-800 border-slate-200 flex gap-4">
-                <button 
-                  onClick={() => setEditModalQuest(null)}
-                  className="flex-1 py-3 dark:bg-slate-800 bg-slate-50 hover:bg-slate-700 dark:text-slate-300 text-slate-700 rounded-xl font-bold transition-colors"
-                >
-                  Откажи
-                </button>
-                <button 
-                  onClick={handleEditSave}
-                  className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
-                >
-                  <Check className="w-5 h-5" /> Зачувај
-                </button>
-             </div>
-           </div>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-modal-title"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
+              <h2 id="edit-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">Брзо Уредување</h2>
+              <button
+                type="button"
+                aria-label="Затвори"
+                onClick={() => setEditModalQuest(null)}
+                className="p-2 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              <div>
+                <label htmlFor="edit-title" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Наслов
+                </label>
+                <input
+                  id="edit-title"
+                  type="text"
+                  value={editTitle}
+                  onChange={e => setEditTitle(e.target.value)}
+                  maxLength={200}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                />
+              </div>
+              <div>
+                <label htmlFor="edit-desc" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Опис
+                </label>
+                <textarea
+                  id="edit-desc"
+                  value={editDesc}
+                  onChange={e => setEditDesc(e.target.value)}
+                  maxLength={1000}
+                  rows={4}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setEditModalQuest(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                Откажи
+              </button>
+              <button
+                type="button"
+                onClick={handleEditSave}
+                disabled={saving || !editTitle.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Зачувај
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

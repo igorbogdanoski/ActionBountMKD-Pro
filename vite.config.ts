@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 
 export default defineConfig(() => {
   return {
@@ -14,6 +15,17 @@ export default defineConfig(() => {
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: ['./src/test/setup.ts'],
+      exclude: [...configDefaults.exclude],
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'lcov'],
+        exclude: ['src/test/**', 'src/main.tsx'],
+      },
     },
     build: {
       rollupOptions: {

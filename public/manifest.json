@@ -1,0 +1,16 @@
+{
+  "name": "АвантураКреатор",
+  "short_name": "Авантура",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#e8eedd",
+  "theme_color": "#e66c4f",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "description": "Интерактивни мобилни авантури за брзо учење."
+}

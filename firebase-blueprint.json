@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "quest": {
+      "title": "Quest",
+      "description": "An adventure quest containing multiple stages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "creatorId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "visibility": { "type": "string" },
+        "playMode": { "type": "string" },
+        "sequence": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "stages": { "type": "array" }
+      },
+      "required": ["id", "title", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "quests/{questId}": {
+      "schema": { "$ref": "#/entities/quest" },
+      "description": "Stores all quests."
+    }
+  }
+}

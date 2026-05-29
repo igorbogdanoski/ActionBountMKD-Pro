@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="mk">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <!-- Primary SEO — overridden per-route by react-helmet-async -->
+    <title>АвантураКреатор | Интерактивни GPS Авантури и Едукативни Квестови</title>
+    <meta name="description" content="Создавај и играј интерактивни GPS авантури, едукативни квестови и дигитален лов на богатство. Македонска платформа за интерактивно учење на отворено." />
+    <meta name="keywords" content="авантура, квест, едукација, GPS, интерактивно, квиз, игра, водич, македонија, учење, теренска настава" />
+    <meta name="author" content="АвантураКреатор" />
+    <meta name="robots" content="index, follow" />
+
+    <!-- OpenGraph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="АвантураКреатор | Интерактивни GPS Авантури" />
+    <meta property="og:description" content="Создавај и играј интерактивни GPS авантури и едукативни квестови. Македонска SaaS платформа." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:locale" content="mk_MK" />
+    <meta property="og:locale:alternate" content="en_US" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="АвантураКреатор" />
+    <meta name="twitter:description" content="Интерактивни GPS авантури и едукативни квестови." />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#e66c4f" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="АвантураКреатор" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>

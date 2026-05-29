@@ -1,0 +1,21 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Firebase credentials — use .env.local instead
+firebase-applet-config.json
+
+# Temp fix scripts
+fix-sidebar.cjs
+fix-theme.cjs
+fix-theme.js
+
+# AI Studio artifacts
+assets/.aistudio/
+интерактивни-авантури.zip
+metadata.json

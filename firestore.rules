@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── HELPERS ─────────────────────────────────────────────────────────────
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(resource) {
+      return isAuth() && resource.data.creatorId == request.auth.uid;
+    }
+
+    function isCollaborator(resource) {
+      return isAuth() &&
+        resource.data.collaborators != null &&
+        resource.data.collaborators.hasAny([
+          { email: request.auth.token.email, role: 'editor' },
+          { email: request.auth.token.email, role: 'viewer' }
+        ]);
+    }
+
+    function isEditor(resource) {
+      return isAuth() &&
+        resource.data.collaborators != null &&
+        resource.data.collaborators.hasAny([
+          { email: request.auth.token.email, role: 'editor' }
+        ]);
+    }
+
+    function isPublic(resource) {
+      return resource.data.visibility == 'public';
+    }
+
+    function isValidQuest(data) {
+      return data.keys().hasAll(['id', 'creatorId', 'title', 'visibility', 'playMode', 'sequence', 'stages', 'createdAt', 'updatedAt'])
+        && data.creatorId is string
+        && data.title is string
+        && data.title.size() >= 1
+        && data.title.size() <= 200
+        && data.visibility in ['public', 'secret']
+        && data.playMode in ['singleplayer', 'multiplayer']
+        && data.sequence in ['fixed', 'random', 'selectable']
+        && data.stages is list
+        && data.stages.size() <= 100;
+    }
+
+    function isValidResult(data) {
+      return data.keys().hasAll(['questId', 'playerName', 'points', 'completedAt'])
+        && data.questId is string
+        && data.playerName is string
+        && data.playerName.size() >= 1
+        && data.playerName.size() <= 100
+        && data.points is number
+        && data.points >= 0;
+    }
+
+    // ─── QUESTS ──────────────────────────────────────────────────────────────
+    match /quests/{questId} {
+      // Public quests visible to all; private only to owner/collaborators
+      allow read: if isPublic(resource)
+                  || isOwner(resource)
+                  || isCollaborator(resource);
+
+      // Authenticated users can create their own quests
+      allow create: if isAuth()
+                    && request.resource.data.creatorId == request.auth.uid
+                    && isValidQuest(request.resource.data);
+
+      // Owner or editor collaborators can update
+      allow update: if (isOwner(resource) || isEditor(resource))
+                    && request.resource.data.creatorId == resource.data.creatorId
+                    && isValidQuest(request.resource.data);
+
+      // Only the owner can delete
+      allow delete: if isOwner(resource);
+    }
+
+    // ─── QUEST RESULTS ────────────────────────────────────────────────────────
+    match /quest_results/{resultId} {
+      // Players submit results without auth (mobile player flow)
+      allow create: if isValidResult(request.resource.data);
+
+      // Authenticated users can read results (for analytics dashboard)
+      allow read: if isAuth();
+
+      // No updates or deletes from the client
+      allow update, delete: if false;
+    }
+
+    // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────
+    match /quest_feedback/{feedbackId} {
+      allow create: if request.resource.data.keys().hasAll(['questId', 'playerName', 'comment', 'createdAt'])
+                    && request.resource.data.comment.size() <= 1000;
+      allow read: if isAuth();
+      allow update, delete: if false;
+    }
+
+    // ─── USER SETTINGS ────────────────────────────────────────────────────────
+    match /user_settings/{userId} {
+      allow read, write: if isAuth() && request.auth.uid == userId;
+    }
+
+    // ─── USER PROFILES (за SaaS plan/subscription) ────────────────────────────
+    match /user_profiles/{userId} {
+      allow read: if isAuth() && request.auth.uid == userId;
+      allow create: if isAuth() && request.auth.uid == userId;
+      allow update: if isAuth() && request.auth.uid == userId
+                    && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'subscriptionId']);
+      allow delete: if false;
+    }
+
+    // ─── DENY EVERYTHING ELSE ─────────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

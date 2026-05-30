@@ -4,7 +4,8 @@ export const PAYMENT_CONFIG = {
   bank: {
     name:    'NLB Банка АД Скопје',
     account: '210-5015961024-57',
-    swift:   'NBBAMK2X',
+    iban:    'MK07 2105 0159 6102 457',
+    bic:     'TUTNMK22',
     holder:  'Игор Богданоски',
   },
 

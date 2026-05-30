@@ -129,7 +129,8 @@ export function PaymentModal({ planId, planName, onClose }: Props) {
                   <div className="bg-slate-800/60 rounded-xl px-4 py-1">
                     <Row label="Банка"   value={bank.name} />
                     <Row label="Сметка" value={bank.account} />
-                    <Row label="SWIFT"  value={bank.swift} />
+                    <Row label="IBAN"   value={bank.iban} />
+                    <Row label="BIC"    value={bank.bic} />
                     <Row label="Примач" value={bank.holder} />
                     <Row label="Износ"  value={`${plan.mkd.toLocaleString('mk-MK')} MKD`} />
                     <Row label="Цел"    value={ref} />

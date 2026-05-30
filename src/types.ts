@@ -50,6 +50,7 @@ export interface Quest {
   playMode: PlayMode;
   sequence: SequenceType;
   publicResults?: boolean;   // whether results page is public
+  publicLeaderboard?: boolean; // whether a live leaderboard page is public (Pro+)
   playingTimeMinutes?: number;
 
   // Structure
@@ -79,7 +80,8 @@ export type StageType =
   | 'FIND_SPOT'
   | 'SCAN_CODE'
   | 'SURVEY'
-  | 'TOURNAMENT';
+  | 'TOURNAMENT'
+  | 'SWITCH';
 
 export interface BaseStage {
   id: string;
@@ -137,9 +139,25 @@ export interface SurveyStage extends BaseStage {
 
 export interface TournamentStage extends BaseStage {
   type: 'TOURNAMENT';
-  teamCount?: number;            // number of competing teams
-  taskDescription?: string;      // what teams must do
+  teamCount?: number;
+  taskDescription?: string;
   judgingMode?: 'points' | 'time' | 'manual';
+}
+
+export interface SwitchCondition {
+  id: string;
+  label: string;               // e.g. 'Ако имаш повеќе од 50 поени'
+  minPoints?: number;
+  maxPoints?: number;
+  requiredStageIds?: string[]; // all listed stages must be completed
+  targetStageId: string;       // jump to this stage if condition matches
+}
+
+export interface SwitchStage extends BaseStage {
+  type: 'SWITCH';
+  conditions: SwitchCondition[];
+  defaultTargetStageId?: string; // fallback when no condition matches
+  showPathsToPlayer: boolean;    // show branching choices or auto-route silently
 }
 
 export type Stage =
@@ -149,7 +167,47 @@ export type Stage =
   | FindSpotStage
   | ScanCodeStage
   | SurveyStage
-  | TournamentStage;
+  | TournamentStage
+  | SwitchStage;
+
+// ─── TEMPLATE ─────────────────────────────────────────────────────────────────
+
+export type TemplateSubject =
+  | 'Математика'
+  | 'Природни науки'
+  | 'Јазици'
+  | 'Историја'
+  | 'Физичко'
+  | 'Уметност'
+  | 'Останато';
+
+export type TemplateDifficulty = 'лесно' | 'средно' | 'тешко';
+export type TemplateStatus = 'pending' | 'approved' | 'rejected';
+
+export interface Template {
+  id: string;
+  title: string;
+  subject: TemplateSubject;
+  grade: string;              // '6 одд.' | '7-8 одд.' | 'Сите'
+  description: string;
+  stages: Stage[];            // full stage data — copied on use
+  stageCount: number;
+  rating: number;
+  ratingCount: number;
+  authorId: string;
+  authorName: string;
+  status: TemplateStatus;
+  isPublic: boolean;
+  isFeatured: boolean;        // admin-curated highlight
+  isPro: boolean;             // requires Pro plan to use
+  difficulty: TemplateDifficulty;
+  estimatedMinutes: number;
+  playMode: PlayMode;
+  tags: string[];
+  usageCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 // ─── QUEST RESULT ─────────────────────────────────────────────────────────────
 

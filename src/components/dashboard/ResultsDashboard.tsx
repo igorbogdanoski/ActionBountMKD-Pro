@@ -1,18 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getQuests, getQuestResults } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
+import { usePlan } from '../../hooks/usePlan';
 import { Quest } from '../../types';
-import { Trophy, Clock, Search, User, Download, Filter } from 'lucide-react';
+import { Trophy, Clock, User, Download, Filter, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 export function ResultsDashboard() {
   const { user } = useAuth();
+  const { planId } = usePlan();
+  const isPro = planId === 'pro' || planId === 'enterprise';
   const [quests, setQuests] = useState<Quest[]>([]);
   const [selectedQuestId, setSelectedQuestId] = useState<string>('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortByStageId, setSortByStageId] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel'>('leaderboard');
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +68,17 @@ export function ResultsDashboard() {
     });
   }, [selectedQuest, results]);
 
+  const funnelStats = useMemo(() => {
+    if (!stageStats.length) return [];
+    const topPlays = stageStats[0]?.plays || 0;
+    return stageStats.map((s, idx) => {
+      const pct = topPlays > 0 ? Math.round((s.plays / topPlays) * 100) : 0;
+      const prevPct = idx > 0 && topPlays > 0 ? Math.round((stageStats[idx - 1].plays / topPlays) * 100) : 100;
+      const drop = prevPct - pct;
+      return { ...s, pct, drop, bigDrop: drop >= 20 };
+    });
+  }, [stageStats]);
+
   const sortedResults = useMemo(() => {
     const data = [...results];
     if (sortByStageId) {
@@ -113,12 +128,13 @@ export function ResultsDashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-100">Резултати и Топ Листа</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-100">Резултати и Аналитика</h2>
           <p className="text-sm text-slate-400 mt-1">Анализирајте ги перформансите на играчите и времињата по етапа.</p>
         </div>
-        
+
         <div className="relative w-full sm:max-w-xs flex gap-2">
           <select
+            title="Избери авантура"
             value={selectedQuestId}
             onChange={(e) => setSelectedQuestId(e.target.value)}
             className="block w-full rounded-md border-0 bg-slate-800 py-2.5 pl-4 pr-10 text-slate-200 ring-1 ring-inset ring-slate-700 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm font-semibold"
@@ -128,7 +144,8 @@ export function ResultsDashboard() {
               <option key={q.id} value={q.id}>{q.title}</option>
             ))}
           </select>
-          <button 
+          <button
+            type="button"
             onClick={exportCSV}
             title="Извоз во CSV"
             className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition-colors shadow-sm"
@@ -138,9 +155,138 @@ export function ResultsDashboard() {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-slate-700">
+        {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика']] as const).map(([tab, label]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+              activeTab === tab
+                ? 'border-indigo-500 text-indigo-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {label}
+            {tab === 'funnel' && !isPro && (
+              <Lock className="inline w-3 h-3 ml-1.5 text-slate-600" />
+            )}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
          <div className="p-8 text-center text-slate-400 font-medium">Се вчитува...</div>
+      ) : activeTab === 'funnel' ? (
+        /* ── FUNNEL TAB ─────────────────────────────────────────────── */
+        isPro ? (
+          <div className="space-y-6">
+            {funnelStats.length === 0 ? (
+              <div className="text-center py-16 text-slate-500">Нема доволно податоци за funnel анализа.</div>
+            ) : (
+              <>
+                {/* Summary chips */}
+                <div className="flex flex-wrap gap-3">
+                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                    <p className="text-2xl font-bold text-white">{results.length}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Вкупно играчи</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                    <p className="text-2xl font-bold text-emerald-400">{funnelStats[funnelStats.length - 1]?.pct ?? 0}%</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Завршиле квестот</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                    <p className="text-2xl font-bold text-rose-400">
+                      {funnelStats.filter(s => s.bigDrop).length}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">Критичен пад (&gt;20%)</p>
+                  </div>
+                </div>
+
+                {/* Bar chart */}
+                <div className="bg-slate-800 rounded-xl border border-slate-700 p-5">
+                  <h3 className="font-bold text-slate-200 mb-4 flex items-center gap-2">
+                    <TrendingDown className="w-4 h-4 text-rose-400" />
+                    Стапка на завршување по етапа (%)
+                  </h3>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={funnelStats} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                        <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} unit="%" />
+                        <RechartsTooltip
+                          contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
+                          formatter={(v: number, _n: string, props: { payload?: { bigDrop?: boolean } }) => [
+                            `${v}%${props.payload?.bigDrop ? ' ⚠ Голем пад' : ''}`,
+                            'Завршиле'
+                          ]}
+                        />
+                        <Bar dataKey="pct" radius={[6, 6, 0, 0]}>
+                          {funnelStats.map((entry, idx) => (
+                            <Cell
+                              key={idx}
+                              fill={entry.bigDrop ? '#f43f5e' : entry.pct >= 70 ? '#34d399' : '#6366f1'}
+                            />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Per-stage drop list */}
+                <div className="space-y-2">
+                  {funnelStats.map((s, idx) => (
+                    <div key={s.id} className={`rounded-xl border px-4 py-3 flex items-center gap-4 ${
+                      s.bigDrop ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-800 border-slate-700'
+                    }`}>
+                      <span className="text-xs font-bold text-slate-500 w-8 shrink-0">{idx + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-200 truncate">{s.title || s.name}</p>
+                        <div className="flex items-center gap-3 mt-1">
+                          <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${s.bigDrop ? 'bg-rose-500' : s.pct >= 70 ? 'bg-emerald-500' : 'bg-indigo-500'}`}
+                              style={{ width: `${s.pct}%` }}
+                            />
+                          </div>
+                          <span className={`text-xs font-bold shrink-0 ${s.bigDrop ? 'text-rose-400' : 'text-slate-400'}`}>
+                            {s.pct}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs text-slate-500">{s.plays} играчи</p>
+                        {s.bigDrop && idx > 0 && (
+                          <p className="text-xs text-rose-400 flex items-center gap-1 mt-0.5">
+                            <AlertTriangle className="w-3 h-3" /> -{s.drop}%
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center">
+              <Lock className="w-7 h-7 text-slate-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-300">Funnel Аналитика — Pro план</h3>
+            <p className="text-slate-500 text-sm max-w-xs">
+              Видете каде ги губите играчите — стапка на завршување и критични падови по етапа.
+            </p>
+            <a href="/pricing" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors">
+              Надгради во Pro
+            </a>
+          </div>
+        )
       ) : (
+        /* ── LEADERBOARD TAB ────────────────────────────────────────── */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Leaderboard */}
           <div className="lg:col-span-2 space-y-6">
@@ -153,6 +299,7 @@ export function ResultsDashboard() {
                 <div className="flex items-center gap-2 text-sm">
                   <Filter className="w-4 h-4 text-slate-400" />
                   <select
+                    title="Подреди по"
                     value={sortByStageId}
                     onChange={(e) => setSortByStageId(e.target.value)}
                     className="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-slate-300 outline-none focus:border-indigo-500"

@@ -1,4 +1,4 @@
-import type { Stage } from '../../types';
+import type { Stage, InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage, SwitchStage } from '../../types';
 import { STAGE_TYPE_CONFIG } from './StageList';
 import { InfoStageEditor }    from './stages/InfoStageEditor';
 import { QuizStageEditor }    from './stages/QuizStageEditor';
@@ -7,14 +7,15 @@ import { FindSpotEditor }     from './stages/FindSpotEditor';
 import { ScanCodeEditor }     from './stages/ScanCodeEditor';
 import { SurveyEditor }       from './stages/SurveyEditor';
 import { TournamentEditor }   from './stages/TournamentEditor';
-import type { InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage } from '../../types';
+import { SwitchStageEditor }  from './stages/SwitchStageEditor';
 
 interface Props {
   stage: Stage;
+  allStages: Stage[];
   onChange: (updates: Partial<Stage>) => void;
 }
 
-export function StageEditor({ stage, onChange }: Props) {
+export function StageEditor({ stage, allStages, onChange }: Props) {
   const cfg = STAGE_TYPE_CONFIG[stage.type];
   const Icon = cfg.icon;
 
@@ -35,13 +36,14 @@ export function StageEditor({ stage, onChange }: Props) {
 
       {/* Editor content */}
       <div className="flex-1 overflow-y-auto p-6">
-        {stage.type === 'INFO'       && <InfoStageEditor    stage={stage as InfoStage}      onChange={u => onChange(u)} />}
-        {stage.type === 'QUIZ'       && <QuizStageEditor    stage={stage as QuizStage}      onChange={u => onChange(u)} />}
-        {stage.type === 'MISSION'    && <MissionStageEditor stage={stage as MissionStage}   onChange={u => onChange(u)} />}
-        {stage.type === 'FIND_SPOT'  && <FindSpotEditor     stage={stage as FindSpotStage}  onChange={u => onChange(u)} />}
-        {stage.type === 'SCAN_CODE'  && <ScanCodeEditor     stage={stage as ScanCodeStage}  onChange={u => onChange(u)} />}
-        {stage.type === 'SURVEY'     && <SurveyEditor       stage={stage as SurveyStage}    onChange={u => onChange(u)} />}
+        {stage.type === 'INFO'       && <InfoStageEditor    stage={stage as InfoStage}       onChange={u => onChange(u)} />}
+        {stage.type === 'QUIZ'       && <QuizStageEditor    stage={stage as QuizStage}       onChange={u => onChange(u)} />}
+        {stage.type === 'MISSION'    && <MissionStageEditor stage={stage as MissionStage}    onChange={u => onChange(u)} />}
+        {stage.type === 'FIND_SPOT'  && <FindSpotEditor     stage={stage as FindSpotStage}   onChange={u => onChange(u)} />}
+        {stage.type === 'SCAN_CODE'  && <ScanCodeEditor     stage={stage as ScanCodeStage}   onChange={u => onChange(u)} />}
+        {stage.type === 'SURVEY'     && <SurveyEditor       stage={stage as SurveyStage}     onChange={u => onChange(u)} />}
         {stage.type === 'TOURNAMENT' && <TournamentEditor   stage={stage as TournamentStage} onChange={u => onChange(u)} />}
+        {stage.type === 'SWITCH'     && <SwitchStageEditor  stage={stage as SwitchStage} allStages={allStages} onChange={u => onChange(u as Partial<Stage>)} />}
       </div>
     </div>
   );

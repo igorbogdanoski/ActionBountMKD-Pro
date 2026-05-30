@@ -10,10 +10,11 @@ import {
   orderBy,
   limit,
   startAfter,
+  increment,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
-import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile } from '../types';
+import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template } from '../types';
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 
@@ -22,6 +23,7 @@ const RESULTS = 'quest_results';
 const FEEDBACK = 'quest_feedback';
 const USER_SETTINGS = 'user_settings';
 const USER_PROFILES = 'user_profiles';
+const TEMPLATES = 'templates';
 
 export async function getQuests(creatorId: string): Promise<Quest[]> {
   const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId));
@@ -74,6 +76,63 @@ export async function getQuestResults(questId?: string): Promise<QuestResult[]> 
     : query(collection(db, RESULTS), orderBy('completedAt', 'desc'), limit(200));
   const snap = await getDocs(q);
   return snap.docs.map(d => d.data() as QuestResult);
+}
+
+export async function getPublicQuestResults(questId: string, pageSize = 20): Promise<QuestResult[]> {
+  const q = query(
+    collection(db, RESULTS),
+    where('questId', '==', questId),
+    orderBy('points', 'desc'),
+    limit(pageSize),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data() as QuestResult);
+}
+
+// ─── TEMPLATES ────────────────────────────────────────────────────────────────
+
+export interface TemplateFilters {
+  subject?: string;
+  grade?: string;
+  difficulty?: string;
+  isPro?: boolean;
+}
+
+export async function getPublicTemplates(filters?: TemplateFilters): Promise<Template[]> {
+  const constraints: Parameters<typeof query>[1][] = [
+    where('isPublic', '==', true),
+    where('status', '==', 'approved'),
+    orderBy('isFeatured', 'desc'),
+    orderBy('usageCount', 'desc'),
+    limit(50),
+  ];
+  if (filters?.subject) constraints.push(where('subject', '==', filters.subject));
+  if (filters?.grade)   constraints.push(where('grade', '==', filters.grade));
+  const q = query(collection(db, TEMPLATES), ...constraints);
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data() as Template);
+}
+
+export async function getPendingTemplates(): Promise<Template[]> {
+  const q = query(collection(db, TEMPLATES), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data() as Template);
+}
+
+export async function saveTemplate(template: Template): Promise<void> {
+  await setDoc(doc(db, TEMPLATES, template.id), {
+    ...template,
+    updatedAt: new Date().toISOString(),
+    createdAt: template.createdAt ?? new Date().toISOString(),
+  }, { merge: true });
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  await deleteDoc(doc(db, TEMPLATES, id));
+}
+
+export async function incrementTemplateUsage(id: string): Promise<void> {
+  await setDoc(doc(db, TEMPLATES, id), { usageCount: increment(1) }, { merge: true });
 }
 
 // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────────

@@ -1,117 +1,213 @@
 import { useState, useEffect } from 'react';
-import { Search, Map as MapIcon, Lock, Users, Clock, Compass, BookOpen, Star, FileText, Heart, X, Play } from 'lucide-react';
+import { Search, BookOpen, Star, Heart, Play, Lock, Loader2, GitBranch, Upload, CheckCircle } from 'lucide-react';
+import { useAuth } from '../../utils/AuthContext';
+import { usePlan } from '../../hooks/usePlan';
+import { getPublicTemplates, incrementTemplateUsage, saveTemplate } from '../../utils/storage';
+import type { Template, TemplateSubject, Quest } from '../../types';
 
-export function TemplatesLibrary({ onUseTemplate }: { onUseTemplate: (template: any) => void }) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('Сите');
+const SUBJECTS: TemplateSubject[] = [
+  'Математика', 'Природни науки', 'Јазици', 'Историја', 'Физичко', 'Уметност', 'Останато',
+];
+
+const DIFFICULTY_COLORS = {
+  'лесно':  'bg-emerald-500/10 text-emerald-400',
+  'средно': 'bg-amber-500/10 text-amber-400',
+  'тешко':  'bg-rose-500/10 text-rose-400',
+};
+
+interface Props {
+  onUseTemplate: (template: { title: string; description: string; stages: Template['stages'] }) => void;
+}
+
+function TemplateCard({
+  template,
+  isFavorite,
+  onFavorite,
+  onUse,
+  canUse,
+}: {
+  template: Template;
+  isFavorite: boolean;
+  onFavorite: (e: React.MouseEvent) => void;
+  onUse: () => void;
+  canUse: boolean;
+}) {
+  const hasSwitch = template.stages.some(s => s.type === 'SWITCH');
+  return (
+    <div className="rounded-2xl bg-slate-800 border border-slate-700 hover:border-slate-500 transition-all flex flex-col overflow-hidden group">
+      {/* Header strip */}
+      <div className="px-5 pt-5 pb-4 flex-1 space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-1.5">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400">
+              {template.subject}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-700 text-slate-300">
+              {template.grade}
+            </span>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${DIFFICULTY_COLORS[template.difficulty]}`}>
+              {template.difficulty}
+            </span>
+            {template.isFeatured && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400">
+                ⭐ Избор на редакција
+              </span>
+            )}
+            {template.isPro && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5" /> Pro
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onFavorite}
+            aria-label={isFavorite ? 'Отстрани од омилени' : 'Додај во омилени'}
+            className={`shrink-0 transition-colors ${isFavorite ? 'text-rose-400' : 'text-slate-600 hover:text-rose-400'}`}
+          >
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+          </button>
+        </div>
+
+        <h3 className="font-bold text-slate-100 leading-snug">{template.title}</h3>
+        <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{template.description}</p>
+
+        <div className="flex items-center gap-4 text-xs text-slate-500">
+          <span>{template.stageCount} етапи</span>
+          <span>~{template.estimatedMinutes} мин</span>
+          {hasSwitch && (
+            <span className="flex items-center gap-1 text-violet-400">
+              <GitBranch className="w-3 h-3" /> Условна логика
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 py-4 border-t border-slate-700 flex items-center justify-between">
+        <div className="flex items-center gap-1 text-xs text-slate-400">
+          <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
+          <span className="font-semibold text-slate-300">{template.rating.toFixed(1)}</span>
+          <span>({template.ratingCount})</span>
+          {template.usageCount > 0 && <span className="ml-2">{template.usageCount} употреби</span>}
+        </div>
+
+        <button
+          type="button"
+          onClick={onUse}
+          disabled={!canUse}
+          title={!canUse ? 'Потребен Pro план' : undefined}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
+            canUse
+              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
+              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          {canUse ? <Play className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+          Користи
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function TemplatesLibrary({ onUseTemplate }: Props) {
+  const { user } = useAuth();
+  const { planId } = usePlan();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState<string>('Сите');
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>([]);
-  const [previewTemplate, setPreviewTemplate] = useState<any>(null);
+  const [submitMode, setSubmitMode] = useState(false);
+  const [submitQuest, setSubmitQuest] = useState<Quest | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitDone, setSubmitDone] = useState(false);
+  const [submitForm, setSubmitForm] = useState({
+    subject: 'Математика' as TemplateSubject,
+    grade: '',
+    difficulty: 'средно' as Template['difficulty'],
+    estimatedMinutes: 30,
+    tags: '',
+  });
 
   useEffect(() => {
-    const savedFavs = localStorage.getItem('actionbound_fav_templates');
-    if (savedFavs) {
-      setFavorites(JSON.parse(savedFavs));
-    }
+    const saved = localStorage.getItem('actionbound_fav_templates');
+    if (saved) setFavorites(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    setLoading(true);
+    getPublicTemplates()
+      .then(setTemplates)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newFavs = favorites.includes(id) 
-      ? favorites.filter(favId => favId !== id)
-      : [...favorites, id];
-    setFavorites(newFavs);
-    localStorage.setItem('actionbound_fav_templates', JSON.stringify(newFavs));
+    const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+    setFavorites(next);
+    localStorage.setItem('actionbound_fav_templates', JSON.stringify(next));
   };
 
-  const categories = ['Сите', 'Омилени', 'Математика', 'Природни науки', 'Јазици', 'Историја', 'Физичко'];
-
-  const templates = [
-    {
-      id: 'math-1',
-      title: 'Синтетичка геометрија во реалниот простор',
-      subject: 'Математика',
-      grade: '8 одд.',
-      description: 'Учениците наоѓаат агли и пресметуваат симетрали користејќи објекти во природата. Идеално за училишен двор.',
-      stages: 5,
-      rating: 4.8
-    },
-    {
-      id: 'math-2',
-      title: 'Процентополис - City Quests',
-      subject: 'Математика',
-      grade: '7 одд.',
-      description: 'Мрежа од скриени QR кодови низ училиштето. Секој код активира задача за математичко моделирање и проценти.',
-      stages: 8,
-      rating: 4.9
-    },
-    {
-      id: 'science-1',
-      title: 'Лов на екосистеми (Биологија)',
-      subject: 'Природни науки',
-      grade: '6 одд.',
-      description: 'Теренска настава. Учениците истражуваат локални екосистеми, фотографираат растенија и мерат податоци на терен.',
-      stages: 6,
-      rating: 4.7
-    },
-    {
-      id: 'history-1',
-      title: 'Дигитален Времеплов',
-      subject: 'Историја',
-      grade: '9 одд.',
-      description: 'Рута низ градот до споменици со аудио-информации. Учениците снимаат видео репортажи како новинари од минатото.',
-      stages: 4,
-      rating: 5.0
-    },
-    {
-      id: 'lang-1',
-      title: 'Интерактивна Лектира (Storytelling)',
-      subject: 'Јазици',
-      grade: '7-9 одд.',
-      description: 'Секоја станица е поглавје. Учениците одговараат на прашања и самите одлучуваат како завршува приказната преку логички разгранувања.',
-      stages: 10,
-      rating: 4.6
-    },
-    {
-      id: 'pe-1',
-      title: 'Ориентационо трчање и здравје',
-      subject: 'Физичко',
-      grade: 'Сите',
-      description: 'Комбинира физичка активност и знаење. Спринт помеѓу GPS точки и одговарање на брз квиз за анатомија.',
-      stages: 7,
-      rating: 4.5
-    }
-  ];
-
-  const filteredTemplates = templates.filter(t => {
-    const matchesCategory = selectedCategory === 'Сите' || t.subject === selectedCategory || (selectedCategory === 'Омилени' && favorites.includes(t.id));
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.description.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
-
-  const handleUseTemplate = (template: any) => {
-    // Generate dummy stages for the template to pre-fill the BoundCreator
-    const generatedStages = [];
-    for (let i = 0; i < template.stages; i++) {
-      let type = 'INFO';
-      if (i === template.stages - 1) type = 'SURVEY';
-      else if (i % 3 === 1) type = 'QUIZ';
-      else if (i % 3 === 2) type = 'MISSION';
-      
-      generatedStages.push({
-        id: `stage-${template.id}-${i}`,
-        type,
-        title: `${template.title} - Етапа ${i + 1}`,
-        description: 'Прилагодете го описот според вашите потреби.',
-        order: i,
-        points: (i + 1) * 10
-      });
-    }
-
+  const handleUse = async (template: Template) => {
+    await incrementTemplateUsage(template.id).catch(() => {});
     onUseTemplate({
       title: `(Копија) ${template.title}`,
       description: template.description,
-      stages: generatedStages
+      stages: template.stages,
     });
+  };
+
+  const canUseTemplate = (template: Template) =>
+    !template.isPro || planId === 'pro' || planId === 'enterprise';
+
+  const filtered = templates.filter(t => {
+    if (selectedSubject === 'Омилени') return favorites.includes(t.id);
+    if (selectedSubject !== 'Сите' && t.subject !== selectedSubject) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
+  const handleSubmitTemplate = async () => {
+    if (!submitQuest || !user) return;
+    setSubmitting(true);
+    try {
+      const tpl: Template = {
+        id: crypto.randomUUID(),
+        title: submitQuest.title,
+        subject: submitForm.subject,
+        grade: submitForm.grade,
+        description: submitQuest.description,
+        stages: submitQuest.stages,
+        stageCount: submitQuest.stages.length,
+        rating: 0,
+        ratingCount: 0,
+        authorId: user.uid,
+        authorName: user.displayName ?? user.email ?? 'Наставник',
+        status: 'pending',
+        isPublic: false,
+        isFeatured: false,
+        isPro: false,
+        difficulty: submitForm.difficulty,
+        estimatedMinutes: submitForm.estimatedMinutes,
+        playMode: submitQuest.playMode,
+        tags: submitForm.tags.split(',').map(t => t.trim()).filter(Boolean),
+        usageCount: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await saveTemplate(tpl);
+      setSubmitDone(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -120,141 +216,170 @@ export function TemplatesLibrary({ onUseTemplate }: { onUseTemplate: (template: 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-emerald-400" /> Библиотека со Шаблони
+            <BookOpen className="w-6 h-6 text-emerald-400" /> Библиотека со шаблони
           </h2>
-          <p className="text-sm text-slate-400 mt-1">Откријте и копирајте готови авантури специјално дизајнирани за образовниот систем.</p>
+          <p className="text-sm text-slate-400 mt-1">
+            Откријте готови авантури по предмет и одделение. Копирајте и прилагодете во секунда.
+          </p>
         </div>
-        
-        <div className="relative w-full sm:max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-            <Search className="h-4 w-4 text-slate-400" />
-          </div>
+
+        {(planId === 'pro' || planId === 'enterprise') && (
+          <button
+            type="button"
+            onClick={() => setSubmitMode(v => !v)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors shrink-0"
+          >
+            <Upload className="w-4 h-4" />
+            Предложи шаблон
+          </button>
+        )}
+      </div>
+
+      {/* Submit form (Pro+) */}
+      {submitMode && (planId === 'pro' || planId === 'enterprise') && (
+        <div className="rounded-2xl bg-slate-800 border border-indigo-500/30 p-6 space-y-4">
+          <h3 className="font-bold text-slate-100">Предложи свој шаблон</h3>
+          {submitDone ? (
+            <div className="flex items-center gap-3 text-emerald-400">
+              <CheckCircle className="w-5 h-5" />
+              <span className="text-sm font-medium">Шаблонот е поднесен и чека одобрување. Благодарам!</span>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-400">Прво избери еден од твоите квестови, потоа пополни ги деталите.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Предмет</label>
+                  <select
+                    title="Предмет"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                    value={submitForm.subject}
+                    onChange={e => setSubmitForm(f => ({ ...f, subject: e.target.value as TemplateSubject }))}
+                  >
+                    {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Одделение</label>
+                  <input
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="на пр. 8 одд. или 7-9 одд."
+                    value={submitForm.grade}
+                    onChange={e => setSubmitForm(f => ({ ...f, grade: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Тежина</label>
+                  <select
+                    title="Тежина"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                    value={submitForm.difficulty}
+                    onChange={e => setSubmitForm(f => ({ ...f, difficulty: e.target.value as Template['difficulty'] }))}
+                  >
+                    <option value="лесно">Лесно</option>
+                    <option value="средно">Средно</option>
+                    <option value="тешко">Тешко</option>
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Времетраење (мин)</label>
+                  <input
+                    type="number"
+                    title="Времетраење во минути"
+                    placeholder="30"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                    value={submitForm.estimatedMinutes}
+                    onChange={e => setSubmitForm(f => ({ ...f, estimatedMinutes: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Тагови (одделени со запирка)</label>
+                <input
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                  placeholder="GPS, теренска настава, тимска работа"
+                  value={submitForm.tags}
+                  onChange={e => setSubmitForm(f => ({ ...f, tags: e.target.value }))}
+                />
+              </div>
+              <p className="text-xs text-slate-500">
+                Потребен е квест од твојот профил — пасте го ID-то или изберете директно (функционалност наскоро).
+              </p>
+              <button
+                type="button"
+                onClick={handleSubmitTemplate}
+                disabled={submitting || !submitForm.grade}
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center gap-2"
+              >
+                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                Поднеси за одобрување
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Search + filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full rounded-md border-0 bg-slate-900 py-2.5 pl-9 pr-3 text-slate-200 ring-1 ring-inset ring-slate-700 placeholder:text-slate-500 focus:ring-2 focus:ring-inset focus:ring-emerald-500 sm:text-sm sm:leading-6"
+            className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
             placeholder="Пребарај шаблони..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Categories */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {categories.map(cat => (
-           <button
-             key={cat}
-             onClick={() => setSelectedCategory(cat)}
-             className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${selectedCategory === cat ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-700'}`}
-           >
-             {cat}
-           </button>
+      {/* Category tabs */}
+      <div className="flex flex-wrap gap-2">
+        {['Сите', 'Омилени', ...SUBJECTS].map(cat => (
+          <button
+            key={cat}
+            type="button"
+            onClick={() => setSelectedSubject(cat)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              selectedSubject === cat
+                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+            }`}
+          >
+            {cat}
+          </button>
         ))}
       </div>
 
-      {/* Grid of Templates */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTemplates.map((template) => (
-          <div key={template.id} className="group relative flex flex-col overflow-hidden rounded-xl bg-slate-800 shadow-sm border border-slate-700 transition-all hover:border-emerald-500 hover:shadow-lg">
-            <div className="p-5 flex-1 flex flex-col cursor-pointer" onClick={() => setPreviewTemplate(template)}>
-              <div className="flex items-start justify-between mb-3">
-                <span className="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-1 text-xs font-bold text-indigo-400 ring-1 ring-inset ring-indigo-500/20">
-                  {template.subject}
-                </span>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center text-xs font-bold text-amber-400">
-                    <Star className="w-3.5 h-3.5 mr-1 fill-current" />
-                    {template.rating}
-                  </span>
-                  <button 
-                    onClick={(e) => toggleFavorite(template.id, e)}
-                    className={`transition-colors ${favorites.includes(template.id) ? 'text-rose-500' : 'text-slate-500 hover:text-rose-400'}`}
-                  >
-                    <Heart className={`w-5 h-5 ${favorites.includes(template.id) ? 'fill-current' : ''}`} />
-                  </button>
-                </div>
-              </div>
-              
-              <h3 className="text-xl font-bold text-slate-100 mb-2 leading-tight group-hover:text-emerald-400 transition-colors">{template.title}</h3>
-              <p className="text-sm text-slate-400 mb-4 flex-1 line-clamp-3">{template.description}</p>
-              
-              <div className="flex items-center justify-between pt-4 border-t border-slate-700 text-xs font-medium text-slate-300">
-                <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-md">
-                   <Users className="w-3.5 h-3.5 text-slate-500" />
-                   {template.grade}
-                </div>
-                <div className="flex items-center gap-1.5 bg-slate-900 px-2 py-1 rounded-md">
-                   <FileText className="w-3.5 h-3.5 text-slate-500" />
-                   {template.stages} етапи
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-slate-900/50 border-t border-slate-700 flex gap-2">
-              <button onClick={() => setPreviewTemplate(template)} className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-bold transition-colors border border-slate-700">
-                <Play className="w-4 h-4" />
-              </button>
-              <button onClick={() => handleUseTemplate(template)} className="flex-1 py-2.5 bg-slate-700 hover:bg-emerald-600 text-white rounded-lg text-sm font-bold transition-colors">
-                Користи Шаблон
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {previewTemplate && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-800 flex justify-between items-start">
-              <div>
-                <span className="inline-flex items-center rounded-md bg-indigo-500/10 px-2 py-1 text-xs font-bold text-indigo-400 ring-1 ring-inset ring-indigo-500/20 mb-3">
-                  {previewTemplate.subject}
-                </span>
-                <h2 className="text-2xl font-bold text-slate-100 leading-tight">{previewTemplate.title}</h2>
-              </div>
-              <button onClick={() => setPreviewTemplate(null)} className="text-slate-500 hover:text-slate-300 bg-slate-800 p-2 rounded-full">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-6 flex-1 overflow-y-auto">
-              <div>
-                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Опис</h3>
-                <p className="text-slate-300 leading-relaxed">{previewTemplate.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <Users className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Одделение</span>
-                  </div>
-                  <p className="font-bold text-slate-200">{previewTemplate.grade}</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-4 border border-slate-700/50">
-                  <div className="flex items-center gap-2 text-slate-400 mb-1">
-                    <FileText className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Етапи</span>
-                  </div>
-                  <p className="font-bold text-slate-200">{previewTemplate.stages} вкупно</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-800 bg-slate-900/50 flex gap-3">
-              <button 
-                onClick={() => setPreviewTemplate(null)}
-                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition-colors"
-              >
-                Откажи
-              </button>
-              <button 
-                onClick={() => handleUseTemplate(previewTemplate)}
-                className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-              >
-                <BookOpen className="w-5 h-5" /> Копирај и Започни
-              </button>
-            </div>
-          </div>
+      {/* Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20 gap-3 text-slate-400">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span className="text-sm">Вчитување шаблони...</span>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+          <BookOpen className="w-10 h-10 text-slate-600" />
+          <p className="text-slate-400 text-sm">
+            {searchQuery ? 'Нема резултати за пребарувањето.' : 'Нема шаблони во оваа категорија.'}
+          </p>
+          {templates.length === 0 && !searchQuery && (
+            <p className="text-slate-500 text-xs max-w-xs">
+              Администраторот сè уште не додал шаблони. Наскоро ќе бидат достапни!
+            </p>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map(template => (
+            <TemplateCard
+              key={template.id}
+              template={template}
+              isFavorite={favorites.includes(template.id)}
+              onFavorite={e => toggleFavorite(template.id, e)}
+              onUse={() => handleUse(template)}
+              canUse={canUseTemplate(template)}
+            />
+          ))}
         </div>
       )}
     </div>

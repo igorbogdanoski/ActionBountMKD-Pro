@@ -4,6 +4,8 @@ import { QUEST_CATEGORY_LABELS } from '../../types';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
 import { TrackUploader } from '../upload/TrackUploader';
+import { usePlan } from '../../hooks/usePlan';
+import { Lock } from 'lucide-react';
 
 interface Props {
   quest: Quest;
@@ -15,6 +17,8 @@ const TABS = ['Профил', 'Карактеристики', 'Мапи', 'Оп�
 export function QuestSettingsPanel({ quest, onChange }: Props) {
   const [tab, setTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
+  const { planId } = usePlan();
+  const canLeaderboard = planId === 'pro' || planId === 'enterprise';
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase().replace(/[^a-zа-шѓ0-9-_]/gi, '');
@@ -130,6 +134,17 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                 hint="Играчите можат да ги гледаат резултатите после завршување"
                 checked={quest.publicResults ?? false}
                 onChange={v => onChange('publicResults', v)} />
+              {canLeaderboard ? (
+                <Toggle label="Јавна табела со резултати (Pro)"
+                  hint="Активира јавна URL страница /leaderboard/:id — без логирање"
+                  checked={quest.publicLeaderboard ?? false}
+                  onChange={v => onChange('publicLeaderboard', v)} />
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-slate-500 bg-slate-800/50 rounded-xl px-4 py-3 border border-slate-700">
+                  <Lock className="w-4 h-4 text-slate-600 shrink-0" />
+                  Јавна табела со резултати — достапна со Pro план
+                </div>
+              )}
               <Toggle label="Вовед (Intro)"
                 hint="Прва етапа е посебен вовед (не брои во редослед)"
                 checked={quest.hasIntro ?? false}

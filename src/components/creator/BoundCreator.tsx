@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getQuestById, saveQuest } from '../../utils/storage';
@@ -41,6 +41,7 @@ export function BoundCreator() {
   const { user } = useAuth();
   const { questId } = useParams<{ questId?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [loading, setLoading]       = useState(!!questId);
   const [rightPanel, setRightPanel] = useState<RightPanel>('stage');
@@ -58,8 +59,18 @@ export function BoundCreator() {
     }
   }, [user?.uid]);
 
-  // Load existing quest
+  // Load existing quest or template from navigation state
   useEffect(() => {
+    const tpl = (location.state as any)?.templateData;
+    if (tpl && !questId) {
+      load({
+        ...makeNewQuest(user?.uid ?? ''),
+        title: tpl.title ?? '',
+        description: tpl.description ?? '',
+        stages: tpl.stages ?? [],
+      });
+      return;
+    }
     if (!questId) return;
     setLoading(true);
     getQuestById(questId)
@@ -164,6 +175,7 @@ export function BoundCreator() {
           ) : selectedStage ? (
             <StageEditor
               stage={selectedStage}
+              allStages={quest.stages}
               onChange={updates => updateStage(selectedStage.id, updates)}
             />
           ) : (
@@ -181,7 +193,7 @@ export function BoundCreator() {
 
       {/* Share modal */}
       {shareOpen && (
-        <ShareModal questId={quest.id} questTitle={quest.title} onClose={() => setShareOpen(false)} />
+        <ShareModal questId={quest.id} questTitle={quest.title} publicLeaderboard={quest.publicLeaderboard} onClose={() => setShareOpen(false)} />
       )}
     </div>
   );

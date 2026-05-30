@@ -2,7 +2,7 @@ import { useReducer, useCallback } from 'react';
 import type {
   Quest, Stage, StageType,
   InfoStage, QuizStage, MissionStage,
-  FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage,
+  FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage, SwitchStage,
 } from '../../../types';
 
 // ─── Action types ─────────────────────────────────────────────────────────────
@@ -52,6 +52,15 @@ function defaultStage(type: StageType, order: number): Stage {
       return { ...base, type: 'SURVEY', surveyQuestions: [''] } satisfies SurveyStage;
     case 'TOURNAMENT':
       return { ...base, type: 'TOURNAMENT', teamCount: 2, judgingMode: 'points' } satisfies TournamentStage;
+    case 'SWITCH':
+      return {
+        ...base,
+        type: 'SWITCH',
+        points: 0,
+        conditions: [{ id: makeId(), label: '', targetStageId: '' }],
+        defaultTargetStageId: '',
+        showPathsToPlayer: false,
+      } satisfies SwitchStage;
   }
 }
 

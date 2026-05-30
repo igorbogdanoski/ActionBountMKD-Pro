@@ -159,6 +159,21 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
   const stages = quest?.stages || [];
   const stage = stages[currentStageIndex];
 
+  // Auto-route SWITCH stages (when showPathsToPlayer is false)
+  useEffect(() => {
+    if (!stage || stage.type !== 'SWITCH') return;
+    const sw = stage as import('../../types').SwitchStage;
+    if (sw.showPathsToPlayer) return;
+    const targetId = evaluateSwitch(sw, points, completedStageIds);
+    if (targetId) {
+      jumpToStageById(targetId);
+    } else {
+      // No target — skip to next stage
+      const nextIdx = currentStageIndex + 1;
+      if (nextIdx < stages.length) setCurrentStageIndex(nextIdx);
+    }
+  }, [stage?.id]);
+
   // Timer effect — syncs timeLeft when stage changes (state declared at top)
   useEffect(() => {
     if (stage && (stage as any).timeLimitSeconds > 0) {
@@ -286,11 +301,26 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     }
   }, [stage, hasStarted, isFinished]);
 
-  const handleNextStage = () => {
+  const jumpToStageById = (targetId: string) => {
+    const idx = stages.findIndex(s => s.id === targetId);
+    if (idx !== -1) setCurrentStageIndex(idx);
+  };
+
+  const evaluateSwitch = (switchStage: import('../../types').SwitchStage, currentPoints: number, completed: string[]): string | null => {
+    for (const cond of switchStage.conditions) {
+      const minOk = cond.minPoints === undefined || currentPoints >= cond.minPoints;
+      const maxOk = cond.maxPoints === undefined || currentPoints <= cond.maxPoints;
+      const reqOk = !cond.requiredStageIds?.length || cond.requiredStageIds.every(id => completed.includes(id));
+      if (minOk && maxOk && reqOk && cond.targetStageId) return cond.targetStageId;
+    }
+    return switchStage.defaultTargetStageId || null;
+  };
+
+  const handleNextStage = (overrideNextId?: string) => {
     const now = Date.now();
     const duration = Math.floor((now - stageStartMark) / 1000);
     setStageDurations(prev => [...prev, { stageId: stage.id, durationSec: duration }]);
-    
+
     setQuizAnswer('');
     setQuizFeedback(null);
     setDistanceToTarget(null);
@@ -299,8 +329,17 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     const newCompleted = [...completedStageIds, stage.id];
     setCompletedStageIds(newCompleted);
 
+    // SWITCH stage: jump to evaluated target directly
+    if (overrideNextId) {
+      jumpToStageById(overrideNextId);
+      setStageStartMark(Date.now());
+      return;
+    }
+
     if (quest?.sequence === 'selectable') {
-      if (newCompleted.length >= stages.length) {
+      const nonSwitchStages = stages.filter(s => s.type !== 'SWITCH');
+      const completedNonSwitch = newCompleted.filter(id => stages.find(s => s.id === id && s.type !== 'SWITCH'));
+      if (completedNonSwitch.length >= nonSwitchStages.length) {
         setIsFinished(true);
         import('../../utils/storage').then(({ saveQuestResult }) => {
            saveQuestResult({ questId, playerName, points, completedAt: new Date().toISOString(), stageDurations: [...stageDurations, { stageId: stage.id, durationSec: duration }]});
@@ -309,8 +348,10 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
         setIsSelectingStage(true);
       }
     } else {
-      if (currentStageIndex < stages.length - 1) {
-        setCurrentStageIndex(prev => prev + 1);
+      let nextIdx = currentStageIndex + 1;
+      // Skip any SWITCH stages that should be auto-evaluated (handled by useEffect below)
+      if (nextIdx < stages.length) {
+        setCurrentStageIndex(nextIdx);
       } else {
         setIsFinished(true);
         import('../../utils/storage').then(({ saveQuestResult }) => {
@@ -318,6 +359,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
         });
       }
     }
+    setStageStartMark(Date.now());
   };
 
   const submitQuiz = () => {
@@ -368,7 +410,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-yellow-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
              {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button onClick={() => navigate('/')} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
+          <button type="button" aria-label="Напушти авантура" onClick={() => navigate('/')} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
              <X className="w-5 h-5" />
           </button>
         </div>
@@ -517,14 +559,35 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           </div>
         );
       
-      case 'QUIZ':
+      case 'QUIZ': {
+        const timeLimitSec = (stage as any).timeLimitSeconds as number | undefined;
+        const timerUrgent = timeLeft !== null && timeLeft <= 10;
+        const timerPct = timeLimitSec && timeLeft !== null ? Math.max(0, (timeLeft / timeLimitSec) * 100) : 100;
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
             <div className="flex justify-between items-center mb-4">
               <div className="bg-amber-100 text-amber-700 py-1.5 px-4 rounded-full font-bold text-xs uppercase shadow-sm">
                 Коин: {stage.points} Поени
               </div>
+              {timeLeft !== null && (
+                <div className={`flex items-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold transition-colors ${
+                  timerUrgent ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-slate-700 text-slate-300'
+                }`}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                </div>
+              )}
             </div>
+            {timeLeft !== null && timeLimitSec && (
+              <div className="w-full h-1 rounded-full bg-slate-700 mb-4 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-1000 ${timerUrgent ? 'bg-rose-500' : 'bg-amber-400'}`}
+                  style={{ width: `${timerPct}%` }}
+                />
+              </div>
+            )}
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
             {renderMedia()}
             <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
@@ -563,16 +626,28 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
             )}
 
             <div className="mt-auto">
-              <button 
-                onClick={submitQuiz}
-                disabled={!quizAnswer || quizFeedback === 'success'}
-                className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
-              >
-                Потврди
-              </button>
+              {quizFeedback === 'error' && timeLeft === 0 ? (
+                <button
+                  type="button"
+                  onClick={handleNextStage}
+                  className="w-full py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+                >
+                  Продолжи →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={submitQuiz}
+                  disabled={!quizAnswer || quizFeedback === 'success'}
+                  className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+                >
+                  Потврди
+                </button>
+              )}
             </div>
           </div>
         );
+      }
 
       case 'FIND_SPOT':
         const target = (stage as any).targetCoordinates;
@@ -830,6 +905,66 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           </div>
         );
 
+      case 'SWITCH': {
+        const sw = stage as import('../../types').SwitchStage;
+        if (!sw.showPathsToPlayer) {
+          return (
+            <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-violet-500/20 flex items-center justify-center animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              </div>
+              <p className={`text-sm ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Насочување...</p>
+            </div>
+          );
+        }
+        const matchedId = evaluateSwitch(sw, points, completedStageIds);
+        return (
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+            <h2 className={`text-xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
+              {sw.title || 'Избери го следниот чекор'}
+            </h2>
+            {sw.description && (
+              <p className={`text-sm ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>{sw.description}</p>
+            )}
+            <div className="space-y-3 mt-2">
+              {sw.conditions.filter(c => c.targetStageId).map(cond => {
+                const target = stages.find(s => s.id === cond.targetStageId);
+                const isRecommended = cond.id === sw.conditions.find(c => {
+                  const minOk = c.minPoints === undefined || points >= c.minPoints;
+                  const maxOk = c.maxPoints === undefined || points <= c.maxPoints;
+                  const reqOk = !c.requiredStageIds?.length || c.requiredStageIds.every(id => completedStageIds.includes(id));
+                  return minOk && maxOk && reqOk && c.targetStageId;
+                })?.id;
+                return (
+                  <button
+                    key={cond.id}
+                    type="button"
+                    onClick={() => handleNextStage(cond.targetStageId)}
+                    className={`w-full text-left p-4 rounded-xl border transition-all active:scale-95 ${
+                      isRecommended
+                        ? 'border-violet-500 bg-violet-500/10 text-violet-300'
+                        : isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    <p className="font-semibold text-sm">{cond.label || `Патека ${cond.id.slice(-4)}`}</p>
+                    {target && <p className={`text-xs mt-1 ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>{target.title || `Етапа ${target.order + 1}`}</p>}
+                  </button>
+                );
+              })}
+              {sw.defaultTargetStageId && !matchedId && (
+                <button
+                  type="button"
+                  onClick={() => handleNextStage(sw.defaultTargetStageId)}
+                  className={`w-full text-left p-4 rounded-xl border transition-all active:scale-95 ${isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'}`}
+                >
+                  <p className="font-semibold text-sm">Стандарден пат</p>
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       default:
         return <div className="p-6 text-slate-500">Непознат тип на етапа.</div>;
     }
@@ -900,7 +1035,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           >
             <div className={`p-4 border-b flex justify-between items-center ${isNightMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <h2 className="text-xl font-bold flex items-center gap-2"><Trophy className="text-amber-500 w-6 h-6" /> Турнир во живо</h2>
-              <button onClick={() => setShowTournament(false)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800' : 'bg-slate-200'}`}><X className="w-5 h-5" /></button>
+              <button type="button" aria-label="Затвори турнир" onClick={() => setShowTournament(false)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800' : 'bg-slate-200'}`}><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                {[
@@ -930,7 +1065,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           >
             <div className={`p-4 border-b flex justify-between items-center ${isNightMode ? 'border-slate-800' : 'border-slate-200'} bg-slate-900 absolute top-0 inset-x-0 z-10 text-white shadow-xl bg-opacity-90 backdrop-blur-sm`}>
               <h2 className="text-xl font-bold flex items-center gap-2"><MapPin className="text-emerald-500 w-6 h-6" /> Мапа во живо</h2>
-              <button onClick={() => setShowLiveMap(false)} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700"><X className="w-5 h-5" /></button>
+              <button type="button" aria-label="Затвори карта" onClick={() => setShowLiveMap(false)} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700"><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 w-full h-full relative">
                <MapContainer 

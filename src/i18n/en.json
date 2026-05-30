@@ -121,7 +121,8 @@
       "FIND_SPOT": "Find Spot",
       "SCAN_CODE": "Scan QR",
       "SURVEY": "Survey",
-      "TOURNAMENT": "Tournament"
+      "TOURNAMENT": "Tournament",
+      "SWITCH": "Condition/Branch"
     },
     "dangerZone": {
       "label": "Danger Zone",

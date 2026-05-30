@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { getQuests, deleteQuest, saveQuest, cacheQuestResources } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
+import { PlanUsageWidget } from './PlanUsageWidget';
 import type { Quest } from '../../types';
 
 interface BoundsDashboardProps {
@@ -118,6 +119,9 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
 
   return (
     <div className="max-w-6xl mx-auto w-full p-4 md:p-8 space-y-6">
+
+      {/* Plan usage */}
+      <PlanUsageWidget questCount={quests.length} />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

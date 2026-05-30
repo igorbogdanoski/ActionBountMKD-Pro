@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /creator
+Disallow: /templates
+Disallow: /results
+Disallow: /settings
+Disallow: /admin
+
+Sitemap: https://actionbound.mk/sitemap.xml

@@ -121,7 +121,8 @@
       "FIND_SPOT": "GPS Место",
       "SCAN_CODE": "QR Код",
       "SURVEY": "Анкета",
-      "TOURNAMENT": "Турнир"
+      "TOURNAMENT": "Турнир",
+      "SWITCH": "Услов/Гранка"
     },
     "dangerZone": {
       "label": "Опасна зона",

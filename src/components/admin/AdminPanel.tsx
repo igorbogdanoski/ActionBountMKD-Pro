@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Clock, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
+import { getPendingTemplates, saveTemplate } from '../../utils/storage';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import { SEO } from '../SEO';
-import type { PlanId } from '../../types';
+import type { PlanId, Template } from '../../types';
 
 const STATUS_LABELS: Record<PaymentRequest['status'], { label: string; cls: string }> = {
   pending:  { label: 'Чека',    cls: 'bg-amber-500/20 text-amber-400 border-amber-500/30' },
@@ -21,12 +22,129 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleString('mk-MK', { dateStyle: 'short', timeStyle: 'short' });
 }
 
+function TemplatesTab() {
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const loadTemplates = () => {
+    setLoading(true);
+    getPendingTemplates()
+      .then(setTemplates)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { loadTemplates(); }, []);
+
+  const approve = async (tpl: Template) => {
+    setBusy(tpl.id);
+    try {
+      await saveTemplate({ ...tpl, status: 'approved', isPublic: true });
+      setTemplates(prev => prev.filter(t => t.id !== tpl.id));
+    } finally { setBusy(null); }
+  };
+
+  const reject = async (tpl: Template) => {
+    setBusy(tpl.id);
+    try {
+      await saveTemplate({ ...tpl, status: 'rejected' });
+      setTemplates(prev => prev.filter(t => t.id !== tpl.id));
+    } finally { setBusy(null); }
+  };
+
+  const toggleFeatured = async (tpl: Template) => {
+    setBusy(tpl.id);
+    try {
+      const updated = { ...tpl, isFeatured: !tpl.isFeatured };
+      await saveTemplate(updated);
+      setTemplates(prev => prev.map(t => t.id === tpl.id ? updated : t));
+    } finally { setBusy(null); }
+  };
+
+  if (loading) return (
+    <div className="flex items-center justify-center h-40 text-slate-500">
+      <Loader2 className="w-5 h-5 animate-spin mr-2" /> Вчитување...
+    </div>
+  );
+
+  if (templates.length === 0) return (
+    <div className="text-center py-16 text-slate-600">
+      <BookOpen className="w-8 h-8 mx-auto mb-2" />
+      Нема шаблони на чекање.
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {templates.map(tpl => (
+        <div key={tpl.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div>
+              <p className="font-semibold text-sm">{tpl.title}</p>
+              <p className="text-xs text-slate-500">{tpl.authorName} · {tpl.subject} · {tpl.grade}</p>
+            </div>
+            <div className="flex gap-1.5 flex-wrap">
+              <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{tpl.difficulty}</span>
+              <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">{tpl.stageCount} етапи</span>
+              <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">~{tpl.estimatedMinutes} мин</span>
+            </div>
+          </div>
+          <p className="text-xs text-slate-400 line-clamp-2">{tpl.description}</p>
+          {tpl.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {tpl.tags.map(tag => (
+                <span key={tag} className="text-[10px] bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded-full">{tag}</span>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 pt-1 flex-wrap">
+            <button
+              type="button"
+              onClick={() => approve(tpl)}
+              disabled={busy === tpl.id}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+            >
+              {busy === tpl.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+              Одобри и објави
+            </button>
+            <button
+              type="button"
+              onClick={() => reject(tpl)}
+              disabled={busy === tpl.id}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+            >
+              <X className="w-3.5 h-3.5" /> Одбиј
+            </button>
+            {tpl.status === 'approved' && (
+              <button
+                type="button"
+                onClick={() => toggleFeatured(tpl)}
+                disabled={busy === tpl.id}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  tpl.isFeatured
+                    ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
+                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                }`}
+              >
+                <Star className="w-3.5 h-3.5" />
+                {tpl.isFeatured ? 'Отстрани Featured' : 'Означи Featured'}
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function AdminPanel() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState<string | null>(null);
   const [filter, setFilter]     = useState<PaymentRequest['status'] | 'all'>('pending');
+  const [activeTab, setActiveTab] = useState<'payments' | 'templates'>('payments');
 
   const isAdmin = user && (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid);
 
@@ -82,20 +200,43 @@ export function AdminPanel() {
 
   return (
     <>
-      <SEO title="Admin — Плаќања" description="" url="/admin" />
+      <SEO title="Admin панел" description="" url="/admin" />
       <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Барања за плаќање</h1>
-            <button
-              type="button"
-              onClick={load}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700"
-            >
-              <RefreshCw className="w-3.5 h-3.5" /> Освежи
-            </button>
+            <h1 className="text-xl font-bold">Admin панел</h1>
+            {activeTab === 'payments' && (
+              <button
+                type="button"
+                onClick={load}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Освежи
+              </button>
+            )}
           </div>
 
+          {/* Main tabs */}
+          <div className="flex gap-2 border-b border-slate-800 pb-0">
+            {([['payments', 'Плаќања'], ['templates', 'Шаблони']] as const).map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+                  activeTab === tab
+                    ? 'border-indigo-500 text-indigo-400'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {activeTab === 'templates' && <TemplatesTab />}
+
+          {activeTab === 'payments' && <>
           {/* Filter tabs */}
           <div className="flex gap-2">
             {(['pending', 'approved', 'rejected', 'all'] as const).map(s => (
@@ -178,6 +319,7 @@ export function AdminPanel() {
               })}
             </div>
           )}
+          </>}
         </div>
       </div>
     </>

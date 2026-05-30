@@ -1,4 +1,4 @@
-import { collection, doc, addDoc, getDocs, updateDoc, query, orderBy, where } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, updateDoc, query, where } from 'firebase/firestore';
 import { db } from './firebase';
 import type { PlanId } from '../types';
 
@@ -34,11 +34,13 @@ export async function submitPaymentRequest(
 }
 
 export async function getPaymentRequests(status?: PaymentStatus): Promise<PaymentRequest[]> {
-  const constraints = status
-    ? [where('status', '==', status), orderBy('createdAt', 'desc')]
-    : [orderBy('createdAt', 'desc')];
-  const snap = await getDocs(query(collection(db, COL), ...constraints));
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }) as PaymentRequest);
+  const q = status
+    ? query(collection(db, COL), where('status', '==', status))
+    : query(collection(db, COL));
+  const snap = await getDocs(q);
+  const results = snap.docs.map(d => ({ id: d.id, ...d.data() }) as PaymentRequest);
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results;
 }
 
 export async function approvePaymentRequest(requestId: string, userId: string, planId: PlanId): Promise<void> {

@@ -21,6 +21,9 @@
   },
   "nav": {
     "myAdventures": "My Adventures",
+    "dashboard": "My Adventures",
+    "creator": "Create",
+    "templates": "Templates",
     "createAdventure": "Create Adventure",
     "library": "Library",
     "results": "Results",

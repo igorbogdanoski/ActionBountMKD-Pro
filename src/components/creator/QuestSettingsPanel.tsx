@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Quest, QuestCategory } from '../../types';
 import { QUEST_CATEGORY_LABELS } from '../../types';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
+import { ImageUploader } from '../upload/ImageUploader';
 
 interface Props {
   quest: Quest;
@@ -40,6 +41,13 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
           {/* Tab 0: Profile */}
           {tab === 0 && (
             <>
+              <ImageUploader
+                label="Насловна слика"
+                folder="covers"
+                value={quest.coverImage ?? ''}
+                onChange={url => onChange('coverImage', url)}
+                hint="Се прикажува на картичката и насловната страница на квестот"
+              />
               <Field label="Наслов">
                 <input type="text" className={inputCls} placeholder="Наслов на квестот..."
                   value={quest.title} maxLength={200}

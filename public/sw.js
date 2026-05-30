@@ -1,49 +1,21 @@
-const CACHE_NAME = 'actionbound-pwa-v1';
+// Self-destroying service worker.
+// The previous cache-first worker ('actionbound-pwa-v1') served stale modules and
+// the old app icon. The browser re-checks this file on every navigation, so this
+// version takes over the old one, deletes ALL caches, unregisters itself and
+// force-reloads any open client so the live app is served from the network.
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // Just precaching the root so it works offline
-      return cache.addAll(['/']);
-    })
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME && !name.startsWith('actionbound-quest-')).map((name) => {
-          return caches.delete(name);
-        })
-      );
-    })
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.registration.unregister();
+      const clients = await self.clients.matchAll({ type: 'window' });
+      clients.forEach((client) => client.navigate(client.url));
+    })(),
   );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', (event) => {
-  // If request is HTTP/HTTPS, fallback to network and update cache
-  if (event.request.url.startsWith('http')) {
-    event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
-          // If we got a valid response, cache it (except for api/ firebase requests)
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic' && event.request.method === 'GET' && !event.request.url.includes('firebase')) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return networkResponse;
-        }).catch(() => {
-          // Ignore network errors - return cached if available
-          return cachedResponse;
-        });
-        
-        return cachedResponse || fetchPromise;
-      })
-    );
-  }
 });

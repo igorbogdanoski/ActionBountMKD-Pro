@@ -51,12 +51,18 @@
 
 ---
 
+## ✅ PHASE 3B — Firebase Storage (image upload)
+
+- [x] **Firebase Storage** — upload слики директно (наместо URL-only)
+  - [x] `ImageUploader` компонент (drag & drop + progress + URL fallback)
+  - [x] `storage` export во `firebase.ts`
+  - [x] Integrate во `InfoStageEditor` (image media) + `QuestSettingsPanel` cover image
+  - [x] `storage.rules` — owner-only write, public read, 5MB / image-only validation
+  - [ ] ⚠️ Enable Storage во Firebase Console + `firebase deploy --only storage` (manual)
+- [x] **Vitest fix** — Windows cmd lowercase-drive bug (`scripts/vitest.mjs` wrapper), 24/24 повторно
+
 ## 🔜 PHASE 3B remaining
 
-- [ ] **Firebase Storage** — upload слики директно (наместо URL-only)
-  - Enable Storage в Firebase Console
-  - `ImageUploader` компонент (drag & drop)
-  - Integrate в InfoStageEditor + BoundCreator cover image
 - [ ] **GPX/KML Track upload** — рути за авантури
 
 ---

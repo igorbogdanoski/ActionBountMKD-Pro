@@ -1,6 +1,7 @@
 import type { InfoStage } from '../../../types';
 import { Field, inputCls } from './shared';
 import { MathRichEditor } from '../../editor/MathRichEditor';
+import { ImageUploader } from '../../upload/ImageUploader';
 
 interface Props { stage: InfoStage; onChange: (u: Partial<InfoStage>) => void; }
 
@@ -25,13 +26,23 @@ export function InfoStageEditor({ stage, onChange }: Props) {
         <select aria-label="Тип на медија" className={inputCls} value={stage.mediaType ?? 'none'}
           onChange={e => onChange({ mediaType: e.target.value as InfoStage['mediaType'] })}>
           <option value="none">Без медија</option>
-          <option value="image">Слика (URL)</option>
+          <option value="image">Слика</option>
           <option value="video">YouTube видео</option>
         </select>
       </Field>
 
-      {(stage.mediaType === 'image' || stage.mediaType === 'video') && (
-        <Field label="Медија URL" hint={stage.mediaType === 'video' ? 'YouTube линк' : 'URL на слика'}>
+      {stage.mediaType === 'image' && (
+        <ImageUploader
+          label="Слика"
+          folder="stages"
+          value={stage.mediaUrl ?? ''}
+          onChange={url => onChange({ mediaUrl: url })}
+          hint="Влечи слика, клик за upload, или внеси URL"
+        />
+      )}
+
+      {stage.mediaType === 'video' && (
+        <Field label="Медија URL" hint="YouTube линк">
           <input type="url" className={inputCls} placeholder="https://..."
             value={stage.mediaUrl ?? ''} onChange={e => onChange({ mediaUrl: e.target.value })} />
         </Field>

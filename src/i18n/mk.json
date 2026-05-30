@@ -21,6 +21,9 @@
   },
   "nav": {
     "myAdventures": "Мои Авантури",
+    "dashboard": "Мои Авантури",
+    "creator": "Креирај",
+    "templates": "Шаблони",
     "createAdventure": "Креирај Авантура",
     "library": "Библиотека",
     "results": "Резултати",

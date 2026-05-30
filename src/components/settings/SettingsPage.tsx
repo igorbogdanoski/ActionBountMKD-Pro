@@ -132,11 +132,11 @@ export function SettingsPage() {
       {tab === 'profile' && (
         <div className="space-y-4">
           {/* Avatar */}
-          <div className="flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-800/60 p-5">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 rounded-2xl border border-slate-700 bg-slate-800/60 p-4 sm:p-5 text-center sm:text-left">
             {user?.photoURL ? (
-              <img src={user.photoURL} alt="Профил" className="w-16 h-16 rounded-full ring-2 ring-indigo-500/40" />
+              <img src={user.photoURL} alt="Профил" className="w-14 h-14 sm:w-16 sm:h-16 rounded-full ring-2 ring-indigo-500/40 shrink-0" />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-indigo-600 flex items-center justify-center text-white text-2xl font-bold shrink-0">
                 {(displayName || user?.email || '?')[0].toUpperCase()}
               </div>
             )}
@@ -156,7 +156,7 @@ export function SettingsPage() {
                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
                   Прикажано ime
                 </label>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={displayName}
@@ -169,7 +169,7 @@ export function SettingsPage() {
                     type="button"
                     onClick={saveDisplayName}
                     disabled={saving || !displayName.trim() || displayName === user?.displayName}
-                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center gap-1.5 min-w-[90px] justify-center"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center gap-1.5 justify-center"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> Зачувано</> : 'Зачувај'}
                   </button>
@@ -222,14 +222,14 @@ export function SettingsPage() {
               </button>
             </Row>
             <Row label="Јазик" hint="Јазик на интерфејсот">
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {LANGUAGES.map(lang => (
                   <button
                     key={lang.code}
                     type="button"
                     onClick={() => switchLang(lang.code)}
                     title={lang.label}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
+                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-colors ${
                       i18n.language === lang.code
                         ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                         : 'bg-slate-700 text-slate-300 hover:bg-slate-600'

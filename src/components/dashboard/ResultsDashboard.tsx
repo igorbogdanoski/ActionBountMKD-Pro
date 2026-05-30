@@ -315,10 +315,10 @@ export function ResultsDashboard() {
                 <table className="w-full text-left text-sm text-slate-400">
                   <thead className="bg-slate-900/50 text-xs uppercase font-semibold text-slate-500">
                     <tr>
-                      <th className="px-4 py-3 w-16 text-center">Ранг</th>
-                      <th className="px-4 py-3">Играч</th>
-                      <th className="px-4 py-3 text-right">Поени</th>
-                      <th className="px-4 py-3 text-right">{sortByStageId ? 'Време' : 'Датум'}</th>
+                      <th className="px-2 md:px-4 py-3 w-10 md:w-16 text-center">Ранг</th>
+                      <th className="px-2 md:px-4 py-3">Играч</th>
+                      <th className="px-2 md:px-4 py-3 text-right">Поени</th>
+                      <th className="hidden sm:table-cell px-2 md:px-4 py-3 text-right">{sortByStageId ? 'Време' : 'Датум'}</th>
                     </tr>
                   </thead>
                   <motion.tbody 
@@ -340,18 +340,18 @@ export function ResultsDashboard() {
                             transition={{ duration: 0.2, delay: idx * 0.05 }}
                             className="hover:bg-slate-700/30 transition-colors"
                           >
-                            <td className="px-4 py-3 text-center">
-                              {!sortByStageId && idx === 0 ? <span className="inline-flex w-6 h-6 items-center justify-center bg-amber-500 text-white font-bold rounded-full text-xs shadow-md shadow-amber-500/20">1</span> : 
+                            <td className="px-2 md:px-4 py-3 text-center">
+                              {!sortByStageId && idx === 0 ? <span className="inline-flex w-6 h-6 items-center justify-center bg-amber-500 text-white font-bold rounded-full text-xs shadow-md shadow-amber-500/20">1</span> :
                                !sortByStageId && idx === 1 ? <span className="inline-flex w-6 h-6 items-center justify-center bg-slate-300 text-slate-800 font-bold rounded-full text-xs shadow-md shadow-slate-300/20">2</span> :
                                !sortByStageId && idx === 2 ? <span className="inline-flex w-6 h-6 items-center justify-center bg-amber-700 text-white font-bold rounded-full text-xs shadow-md shadow-amber-700/20">3</span> :
                                <span className="font-bold">{idx + 1}</span>}
                             </td>
-                            <td className="px-4 py-3 font-bold text-slate-200 flex items-center gap-2">
-                              <User className="w-4 h-4 text-slate-500" />
-                              {r.playerName || 'Анонимен'}
+                            <td className="px-2 md:px-4 py-3 font-bold text-slate-200 flex items-center gap-2">
+                              <User className="w-4 h-4 text-slate-500 shrink-0" />
+                              <span className="truncate">{r.playerName || 'Анонимен'}</span>
                             </td>
-                            <td className="px-4 py-3 text-right font-black text-indigo-400">{r.points}</td>
-                            <td className="px-4 py-3 text-right text-xs">
+                            <td className="px-2 md:px-4 py-3 text-right font-black text-indigo-400">{r.points}</td>
+                            <td className="hidden sm:table-cell px-2 md:px-4 py-3 text-right text-xs">
                               {sortByStageId ? (
                                 (() => {
                                   const dur = r.stageDurations?.find((sd: any) => sd.stageId === sortByStageId)?.durationSec;

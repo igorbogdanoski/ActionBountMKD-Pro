@@ -46,6 +46,8 @@ export function BoundCreator() {
   const [loading, setLoading]       = useState(!!questId);
   const [rightPanel, setRightPanel] = useState<RightPanel>('stage');
   const [shareOpen, setShareOpen]   = useState(false);
+  // Mobile: which panel is visible (stages | editor)
+  const [mobilePanel, setMobilePanel] = useState<'stages' | 'editor'>('stages');
 
   // Editor state managed by useReducer
   const editor = useQuestEditor(makeNewQuest(user?.uid ?? ''));
@@ -142,11 +144,14 @@ export function BoundCreator() {
         </div>
       </header>
 
-      {/* Three-column workspace */}
+      {/* Workspace — desktop: 2 columns | mobile: single panel with bottom tabs */}
       <div className="flex flex-1 overflow-hidden">
 
-        {/* Left: Stage list */}
-        <div className="w-72 shrink-0 border-r border-slate-800 flex flex-col bg-slate-900">
+        {/* Left: Stage list — hidden on mobile when editor is active */}
+        <div className={`
+          w-full md:w-72 md:shrink-0 border-r border-slate-800 flex flex-col bg-slate-900
+          ${mobilePanel === 'editor' ? 'hidden md:flex' : 'flex'}
+        `}>
           <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Етапи ({quest.stages.length})
@@ -156,10 +161,11 @@ export function BoundCreator() {
             <StageList
               stages={quest.stages}
               selectedId={selectedStageId}
-              onSelect={select}
+              onSelect={id => { select(id); setMobilePanel('editor'); }}
               onAdd={(type: StageType, afterIndex: number) => {
                 addStage(type, afterIndex);
                 setRightPanel('stage');
+                setMobilePanel('editor');
               }}
               onDuplicate={dupStage}
               onDelete={delStage}
@@ -168,8 +174,21 @@ export function BoundCreator() {
           </div>
         </div>
 
-        {/* Right panel: Stage editor OR Quest settings */}
-        <div className="flex-1 overflow-hidden flex flex-col bg-slate-950">
+        {/* Right panel: Stage editor OR Quest settings — hidden on mobile when stages panel is active */}
+        <div className={`
+          flex-1 overflow-hidden flex flex-col bg-slate-950
+          ${mobilePanel === 'stages' ? 'hidden md:flex' : 'flex'}
+        `}>
+          {/* Mobile back button */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 md:hidden shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobilePanel('stages')}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Назад кон етапи
+            </button>
+          </div>
           {rightPanel === 'settings' ? (
             <QuestSettingsPanel quest={quest} onChange={setField} />
           ) : selectedStage ? (

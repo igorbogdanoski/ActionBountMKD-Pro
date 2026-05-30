@@ -84,7 +84,7 @@ export function LandingPage() {
              </div>
           </div>
 
-          <h1 className="text-7xl md:text-[8rem] text-[#e66c4f] font-cursive drop-shadow-md mb-8 tracking-wide transform -rotate-1">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[8rem] text-[#e66c4f] font-cursive drop-shadow-md mb-8 tracking-wide transform -rotate-1">
             Авантура
           </h1>
           
@@ -96,7 +96,7 @@ export function LandingPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="absolute w-full text-2xl md:text-5xl font-light text-slate-200 text-center"
+                className="absolute w-full text-lg sm:text-xl md:text-3xl lg:text-5xl font-light text-slate-200 text-center px-4"
               >
                 {ROTATING_TEXTS[textIndex]}
               </motion.p>
@@ -137,7 +137,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-light text-center text-slate-700 mb-16">Преполно со функционалности</h2>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-12 gap-x-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 md:gap-y-12 gap-x-4 md:gap-x-8">
             <Feature icon={Target} label="Квиз" />
             <Feature icon={MapPin} label="GPS Локации" />
             <Feature icon={Trophy} label="Награди" />
@@ -166,7 +166,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <h2 className="text-4xl font-light text-center text-slate-700 mb-16">Флексибилно</h2>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-y-10 gap-x-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 md:gap-y-10 gap-x-4 md:gap-x-8">
             <Feature icon={BuildingIcon} label="Урбани средини" />
             <Feature icon={HomeIcon} label="Внатре (Indoors)" />
             <Feature icon={UserIcon} label="Еден играч" />

@@ -34,7 +34,7 @@ service cloud.firestore {
 
     // Hardcoded admin UIDs — update in src/config/payment.ts AND here
     function isAdmin() {
-      return isAuth() && request.auth.uid in ['REPLACE_WITH_YOUR_FIREBASE_UID'];
+      return isAuth() && request.auth.uid in ['YZyJNIyBeHVpuNaomr4tSVaDNY93'];
     }
 
     function isValidQuest(data) {

@@ -15,7 +15,7 @@ export const PAYMENT_CONFIG = {
   },
 
   // Firebase UID — земи го од Firebase Console → Authentication → Users
-  adminUids: ['REPLACE_WITH_YOUR_FIREBASE_UID'],
+  adminUids: ['YZyJNIyBeHVpuNaomr4tSVaDNY93'],
 
   contactEmail: 'igor.bogdanoski@mismath.net',
 } as const;

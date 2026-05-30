@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Quest, Stage, Coordinates } from '../../types';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Medal, Cloud, CloudOff, Mic, Square, Navigation, Wifi, WifiOff } from 'lucide-react';
+import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff } from 'lucide-react';
 import { getQuestById } from '../../utils/storage';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
@@ -72,6 +73,12 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
   const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
   const prevPointsRef = useRef(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  // Feedback — declared here (not after early returns) to avoid Rules of Hooks violation
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -104,7 +111,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
 
   useEffect(() => {
     if (quest && 'caches' in window) {
-      caches.open(`actionbound-quest-${quest.id}`).then(async cache => {
+      caches.open(`avanturakreator-quest-${quest.id}`).then(async cache => {
         const keys = await cache.keys();
         const urls = keys.map(req => req.url);
         const cached: Record<string, boolean> = {};
@@ -220,25 +227,23 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     
     return mediaContainer;
   };
+  // Only watch GPS position on FIND_SPOT stages to save battery
   useEffect(() => {
-    if (hasStarted && !isFinished) {
-      const watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          const newLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-          setCurrentLocation(newLoc);
-          setPathHistory(prev => [...prev, [newLoc.latitude, newLoc.longitude]]);
-          
-          if (stage?.type === 'FIND_SPOT') {
-            const dist = getDistance(newLoc, (stage as any).targetCoordinates);
-            setDistanceToTarget(dist);
-          }
-        },
-        (error) => console.error("Error getting location", error),
-        { enableHighAccuracy: true }
-      );
-      return () => navigator.geolocation.clearWatch(watchId);
-    }
-  }, [hasStarted, isFinished, stage]);
+    if (!hasStarted || isFinished || stage?.type !== 'FIND_SPOT') return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const newLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        setCurrentLocation(newLoc);
+        setPathHistory(prev => [...prev, [newLoc.latitude, newLoc.longitude]]);
+        const dist = getDistance(newLoc, (stage as any).targetCoordinates);
+        setDistanceToTarget(dist);
+      },
+      (error) => console.warn('[GPS]', error.message),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
+    );
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [hasStarted, isFinished, stage?.id]);
 
   // Handle QR code scanner initialization
   useEffect(() => {
@@ -317,7 +322,9 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
   };
 
   const submitQuiz = () => {
-    const isCorrect = quizAnswer === (stage as any).correctAnswer;
+    const correct = (stage as any).correctAnswer;
+    // Normalize both to trimmed strings for comparison (handles string + number types)
+    const isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).trim().toLowerCase();
     if (isCorrect) {
       setPoints(prev => prev + (stage.points || 0));
       setQuizFeedback('success');
@@ -329,7 +336,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
 
   const handleExit = () => {
      if (window.confirm('Сигурно сакате да ја напуштите авантурата? Вашиот напредок ќе биде изгубен.')) {
-        window.location.href = '/';
+        navigate('/');
      }
   };
 
@@ -362,7 +369,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-yellow-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
              {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
-          <button onClick={() => window.location.href = '/'} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
+          <button onClick={() => navigate('/')} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
              <X className="w-5 h-5" />
           </button>
         </div>
@@ -442,9 +449,6 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
 
 
 
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-
   const handleFeedbackSubmit = async () => {
     if (!feedbackText.trim()) return;
     const { submitQuestFeedback } = await import('../../utils/storage');
@@ -488,7 +492,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
             </div>
           )}
 
-          <button onClick={() => window.location.href = '/'} className={`px-6 py-3 font-bold rounded-xl transition-colors ${isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
+          <button onClick={() => navigate('/')} className={`px-6 py-3 font-bold rounded-xl transition-colors ${isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
             Врати се назад
           </button>
         </div>
@@ -796,8 +800,39 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           </div>
         );
 
+      case 'TOURNAMENT':
+        return (
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center text-center">
+            <div className="w-20 h-20 rounded-2xl bg-orange-500/20 flex items-center justify-center mb-6">
+              <Trophy className={`w-10 h-10 ${isNightMode ? 'text-orange-400' : 'text-orange-500'}`} />
+            </div>
+            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
+            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
+            {(stage as any).taskDescription && (
+              <div className={`w-full p-4 rounded-2xl border mb-6 text-left ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-orange-50 border-orange-200'}`}>
+                <p className="text-sm font-semibold text-orange-500 mb-1">Задача за тимовите:</p>
+                <MathRenderer text={(stage as any).taskDescription} className={`text-sm ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`} />
+              </div>
+            )}
+            {(stage as any).teamCount > 0 && (
+              <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-8`}>
+                {(stage as any).teamCount} тима се натпреваруваат
+              </p>
+            )}
+            <div className="mt-auto w-full">
+              <button
+                type="button"
+                onClick={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }}
+                className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+              >
+                Турнирот заврши (+{stage.points})
+              </button>
+            </div>
+          </div>
+        );
+
       default:
-        return <div className="p-6">Непознат чекор.</div>;
+        return <div className="p-6 text-slate-500">Непознат тип на етапа.</div>;
     }
   };
 

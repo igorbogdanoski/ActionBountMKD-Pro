@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2, Sprout } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2, Sprout, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
 import { getPendingTemplates, saveTemplate } from '../../utils/storage';
@@ -196,6 +197,7 @@ function TemplatesTab() {
 
 export function AdminPanel() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState<string | null>(null);
@@ -260,7 +262,16 @@ export function AdminPanel() {
       <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold">Admin панел</h1>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Назад
+              </button>
+              <h1 className="text-xl font-bold">Admin панел</h1>
+            </div>
             {activeTab === 'payments' && (
               <button
                 type="button"

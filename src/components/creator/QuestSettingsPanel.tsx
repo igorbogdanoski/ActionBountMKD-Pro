@@ -3,6 +3,7 @@ import type { Quest, QuestCategory } from '../../types';
 import { QUEST_CATEGORY_LABELS } from '../../types';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
+import { TrackUploader } from '../upload/TrackUploader';
 
 interface Props {
   quest: Quest;
@@ -157,6 +158,23 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                   placeholder="npr. 2.5"
                   onChange={e => onChange('boundLengthKm', Number(e.target.value) || undefined)} />
               </Field>
+              <TrackUploader
+                points={quest.track}
+                trackName={quest.trackName}
+                hint="Качи GPX/KML рута — должината, стартот и целта се пресметуваат автоматски"
+                onChange={result => {
+                  if (result) {
+                    onChange('track', result.points);
+                    onChange('trackName', result.name);
+                    onChange('boundLengthKm', result.lengthKm);
+                    onChange('startCoordinates', result.points[0]);
+                    onChange('destinationCoordinates', result.points[result.points.length - 1]);
+                  } else {
+                    onChange('track', undefined);
+                    onChange('trackName', undefined);
+                  }
+                }}
+              />
             </>
           )}
 

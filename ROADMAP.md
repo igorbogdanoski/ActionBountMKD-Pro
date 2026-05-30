@@ -61,9 +61,12 @@
   - [ ] ⚠️ Enable Storage во Firebase Console + `firebase deploy --only storage` (manual)
 - [x] **Vitest fix** — Windows cmd lowercase-drive bug (`scripts/vitest.mjs` wrapper), 24/24 повторно
 
-## 🔜 PHASE 3B remaining
+## ✅ PHASE 3B remaining
 
-- [ ] **GPX/KML Track upload** — рути за авантури
+- [x] **GPX/KML Track upload** — рути за авантури
+  - [x] `trackParser` util (GPX `trkpt/rtept/wpt` + KML `coordinates`/`gx:coord`, haversine должина, downsample за Firestore)
+  - [x] `TrackUploader` компонент (drag & drop .gpx/.kml, валидација, статистика)
+  - [x] Integrate во `QuestSettingsPanel` Мапи таб — auto должина/старт/цел; `track`/`trackName` во `Quest` type
 
 ---
 

@@ -62,6 +62,8 @@ export interface Quest {
   startCoordinates?: Coordinates;
   destinationCoordinates?: Coordinates;
   boundLengthKm?: number;    // auto-calculated or manual
+  track?: Coordinates[];     // route polyline parsed from a GPX/KML upload
+  trackName?: string;        // original uploaded file name
 
   // Timestamps
   createdAt: string;

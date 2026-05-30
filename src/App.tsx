@@ -1,7 +1,6 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from './utils/AuthContext';
-import { initMockData } from './utils/storage';
 
 // ─── Lazy-loaded routes (code splitting) ─────────────────────────────────────
 const LandingPage      = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -76,7 +75,6 @@ function DashboardShell() {
 // ─── Root routes ──────────────────────────────────────────────────────────────
 
 function AppRoutes() {
-  useEffect(() => { initMockData(); }, []);
 
   return (
     <Suspense fallback={<AppLoader />}>

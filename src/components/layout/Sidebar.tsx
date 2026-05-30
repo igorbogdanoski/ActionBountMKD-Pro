@@ -1,4 +1,4 @@
-import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown } from 'lucide-react';
+import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
@@ -10,6 +10,8 @@ export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 's
 interface SidebarProps {
   currentView: CurrentView;
   onNavigate: (view: CurrentView) => void;
+  isDarkTheme?: boolean;
+  onToggleTheme?: () => void;
 }
 
 const NAV_ITEM_IDS = ['dashboard', 'creator', 'templates', 'results', 'settings'] as const;
@@ -17,7 +19,7 @@ const NAV_ICONS: Record<string, React.ElementType> = {
   dashboard: Map, creator: PlusCircle, templates: BookOpen, results: BarChart3, settings: Settings,
 };
 
-export function Sidebar({ currentView, onNavigate }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleTheme }: SidebarProps) {
   const { user, logout } = useAuth();
   const { planId, limits } = usePlan();
   const navigate = useNavigate();
@@ -70,7 +72,7 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
       {/* Bottom section */}
       <div className="p-4 border-t border-indigo-900/60 space-y-3">
 
-        {/* Language switcher */}
+        {/* Language switcher + theme toggle */}
         <div className="flex gap-1.5">
           {LANGUAGES.map(lang => (
             <button
@@ -87,6 +89,17 @@ export function Sidebar({ currentView, onNavigate }: SidebarProps) {
               {lang.flag} {lang.code.toUpperCase()}
             </button>
           ))}
+          {onToggleTheme && (
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              title="Смени тема"
+              aria-label="Смени тема"
+              className="px-2.5 py-1.5 rounded-lg bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/70 hover:text-white transition-colors shrink-0"
+            >
+              {isDarkTheme ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+          )}
         </div>
 
         {/* Plan card */}

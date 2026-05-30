@@ -100,8 +100,15 @@ async function networkFirst(request, cacheName) {
     }
     return response;
   } catch {
+    // Exact match first (e.g. previously-visited /play/:id deep link)
     const cached = await cache.match(request);
-    return cached ?? new Response('Offline', { status: 503 });
+    if (cached) return cached;
+    // SPA fallback: serve the cached app shell so client-side routing works offline
+    if (request.mode === 'navigate') {
+      const shell = (await cache.match('/index.html')) ?? (await cache.match('/'));
+      if (shell) return shell;
+    }
+    return new Response('Offline', { status: 503 });
   }
 }
 

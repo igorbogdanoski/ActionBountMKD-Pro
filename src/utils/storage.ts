@@ -14,6 +14,7 @@ import {
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
+import { cacheQuestLocally } from './offlineQueue';
 import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template } from '../types';
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
@@ -199,9 +200,16 @@ export {
 
 // ─── OFFLINE MEDIA CACHE (Service Worker) ─────────────────────────────────────
 
+// Shared with public/sw.js — keep names in sync.
+const MEDIA_CACHE = 'av-media-v2';
+
 export async function cacheQuestResources(quest: Quest): Promise<void> {
+  // 1. Persist quest JSON so it can be loaded offline by MobilePlayer.
+  cacheQuestLocally(quest);
+
+  // 2. Warm the Service Worker media cache (same name the SW serves from).
   if (!('caches' in window)) return;
-  const cache = await caches.open(`avanturakreator-quest-${quest.id}`);
+  const cache = await caches.open(MEDIA_CACHE);
 
   const urls: string[] = quest.stages.flatMap(stage => {
     const u: string[] = [];

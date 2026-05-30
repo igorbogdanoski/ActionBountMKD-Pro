@@ -70,21 +70,32 @@
 
 ---
 
-## 🔜 PHASE 3C — i18n + Stripe
+## ✅ PHASE 3C — i18n + Stripe
 
-### i18n (NEXT)
-- [ ] `react-i18next` setup
-- [ ] `src/i18n/mk.json` — Македонски (default)
-- [ ] `src/i18n/en.json` — English
-- [ ] Language switcher во Sidebar (🇲🇰 / 🇬🇧)
-- [ ] SEO: hreflang tags, lang attribute на `<html>`
-- [ ] Translate: LandingPage, Dashboard, Creator, Player, Pricing, Sidebar
+### i18n ✅
+- [x] `react-i18next` setup
+- [x] `src/i18n/mk.json` — Македонски (default)
+- [x] `src/i18n/en.json` — English
+- [x] Language switcher во Sidebar (🇲🇰 / 🇬🇧)
+- [x] Translate: LandingPage, Dashboard, Creator, Player, Pricing, Sidebar
 
-### Stripe
-- [ ] Stripe Checkout за Starter + Pro
-- [ ] Webhook `checkout.session.completed` → update `user_profiles.plan`
-- [ ] Customer Portal за менаџмент
-- [ ] `PlanGate` → реален план check post-payment
+### Плаќање — PayPal + Банкарски трансфер (MKD) ✅
+
+> Stripe не е достапен во MK засега. Stripe API фајловите се зачувани за подоцна.
+
+- [x] `src/config/payment.ts` — PayPal email, PayPal.me, банкарски детали, план износи, admin UIDs
+- [x] `src/utils/paymentRequests.ts` — Firestore `payment_requests` CRUD
+- [x] `src/components/pricing/PaymentModal.tsx` — 3-чекорен modal (метод → инструкции → потврда)
+- [x] `PricingPage` — отвора PaymentModal наместо Stripe redirect
+- [x] `src/components/admin/AdminPanel.tsx` — `/admin` страница за одобрување/одбивање барања
+- [x] `firestore.rules` — `payment_requests` колекција + admin може да го смени `plan`
+- [x] `vercel.json` — `/api/` исклучен (Stripe подготвен за подоцна)
+
+  **Setup потребен (еднаш):**
+  - [ ] Земи твојот Firebase UID (Firebase Console → Auth → Users)
+  - [ ] Стави го во `src/config/payment.ts` → `adminUids` И во `firestore.rules` → `isAdmin()`
+  - [ ] Ажурирај банкарски детали + PayPal во `src/config/payment.ts`
+  - [ ] `firebase deploy --only firestore:rules` за да се применат новите правила
 
 ---
 

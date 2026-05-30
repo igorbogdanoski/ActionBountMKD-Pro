@@ -32,6 +32,11 @@ service cloud.firestore {
       return resource.data.visibility == 'public';
     }
 
+    // Hardcoded admin UIDs — update in src/config/payment.ts AND here
+    function isAdmin() {
+      return isAuth() && request.auth.uid in ['REPLACE_WITH_YOUR_FIREBASE_UID'];
+    }
+
     function isValidQuest(data) {
       return data.keys().hasAll(['id', 'creatorId', 'title', 'visibility', 'playMode', 'sequence', 'stages', 'createdAt', 'updatedAt'])
         && data.creatorId is string
@@ -103,10 +108,22 @@ service cloud.firestore {
 
     // ─── USER PROFILES (за SaaS plan/subscription) ────────────────────────────
     match /user_profiles/{userId} {
-      allow read: if isAuth() && request.auth.uid == userId;
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
       allow create: if isAuth() && request.auth.uid == userId;
+      // Users can update their own profile except plan/subscriptionId (admin-only fields)
       allow update: if isAuth() && request.auth.uid == userId
                     && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plan', 'subscriptionId']);
+      // Admin can update any user profile including plan
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ─── PAYMENT REQUESTS ─────────────────────────────────────────────────────
+    match /payment_requests/{reqId} {
+      // Authenticated user can submit their own payment request
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      // Only admin can read and update (approve/reject)
+      allow read, update: if isAdmin();
       allow delete: if false;
     }
 

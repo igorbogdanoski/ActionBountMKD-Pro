@@ -11,6 +11,7 @@ const MobilePlayer     = lazy(() => import('./components/player/MobilePlayer').t
 const ResultsDashboard = lazy(() => import('./components/dashboard/ResultsDashboard').then(m => ({ default: m.ResultsDashboard })));
 const TemplatesLibrary = lazy(() => import('./components/dashboard/TemplatesLibrary').then(m => ({ default: m.TemplatesLibrary })));
 const PricingPage      = lazy(() => import('./components/pricing/PricingPage').then(m => ({ default: m.PricingPage })));
+const AdminPanel       = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ function AppRoutes() {
         {/* Public pages */}
         <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
 
         {/* Mobile player — public, no auth */}
         <Route path="/play/:questId" element={<PlayerRoute />} />

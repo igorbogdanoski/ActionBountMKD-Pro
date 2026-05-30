@@ -1,7 +1,10 @@
-import { Check, Zap, Building2, Users, Star } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Zap, Building2, Users, Star, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
+import { usePlan } from '../../hooks/usePlan';
 import { SEO } from '../SEO';
+import { PaymentModal } from './PaymentModal';
 import type { PlanId } from '../../types';
 
 interface Plan {
@@ -94,28 +97,33 @@ const PLANS: Plan[] = [
   },
 ];
 
-const COLOR_MAP: Record<string, { border: string; badge: string; btn: string; icon: string }> = {
-  slate:  { border: 'border-slate-700',   badge: 'bg-slate-700 text-slate-200',   btn: 'bg-slate-700 hover:bg-slate-600 text-white',         icon: 'text-slate-400' },
-  indigo: { border: 'border-indigo-500',  badge: 'bg-indigo-500 text-white',      btn: 'bg-indigo-600 hover:bg-indigo-500 text-white',        icon: 'text-indigo-400' },
-  emerald:{ border: 'border-emerald-500', badge: 'bg-emerald-500 text-white',     btn: 'bg-emerald-600 hover:bg-emerald-500 text-white',      icon: 'text-emerald-400' },
-  amber:  { border: 'border-amber-500',   badge: 'bg-amber-500 text-slate-900',   btn: 'bg-amber-500 hover:bg-amber-400 text-slate-900',      icon: 'text-amber-400' },
+const COLOR_MAP: Record<string, { border: string; badge: string; btn: string; btnActive: string; icon: string }> = {
+  slate:  { border: 'border-slate-700',   badge: 'bg-slate-700 text-slate-200',  btn: 'bg-slate-700 hover:bg-slate-600 text-white',       btnActive: 'bg-slate-800 text-slate-400 cursor-default',        icon: 'text-slate-400' },
+  indigo: { border: 'border-indigo-500',  badge: 'bg-indigo-500 text-white',     btn: 'bg-indigo-600 hover:bg-indigo-500 text-white',      btnActive: 'bg-indigo-900/60 text-indigo-300 cursor-default',   icon: 'text-indigo-400' },
+  emerald:{ border: 'border-emerald-500', badge: 'bg-emerald-500 text-white',    btn: 'bg-emerald-600 hover:bg-emerald-500 text-white',    btnActive: 'bg-emerald-900/60 text-emerald-300 cursor-default', icon: 'text-emerald-400' },
+  amber:  { border: 'border-amber-500',   badge: 'bg-amber-500 text-slate-900',  btn: 'bg-amber-500 hover:bg-amber-400 text-slate-900',   btnActive: 'bg-amber-900/60 text-amber-300 cursor-default',     icon: 'text-amber-400' },
 };
 
 export function PricingPage() {
   const navigate = useNavigate();
   const { user, signInWithGoogle } = useAuth();
+  const { planId: currentPlan } = usePlan();
+  const [modal, setModal] = useState<{ planId: 'starter' | 'pro'; planName: string } | null>(null);
 
-  const handleCta = (plan: Plan) => {
+  const handleCta = async (plan: Plan) => {
     if (plan.id === 'enterprise') {
       window.location.href = 'mailto:contact@avanturakreator.mk?subject=Enterprise план';
       return;
     }
-    if (!user) {
-      signInWithGoogle();
+    if (plan.id === 'free') {
+      navigate('/dashboard');
       return;
     }
-    // TODO: Stripe checkout redirect
-    navigate('/dashboard');
+    if (!user) {
+      await signInWithGoogle();
+      return;
+    }
+    setModal({ planId: plan.id as 'starter' | 'pro', planName: plan.name });
   };
 
   return (
@@ -125,6 +133,15 @@ export function PricingPage() {
         description="Избери план за АвантураКреатор. Бесплатен план достапен. Starter од 590 MKD/мес, Pro од 1.490 MKD/мес."
         url="/pricing"
       />
+
+      {modal && (
+        <PaymentModal
+          planId={modal.planId}
+          planName={modal.planName}
+          onClose={() => setModal(null)}
+        />
+      )}
+
       <div className="min-h-screen bg-gray-950 text-white py-20 px-4">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -142,8 +159,10 @@ export function PricingPage() {
           {/* Plans grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
             {PLANS.map((plan) => {
-              const c = COLOR_MAP[plan.color];
-              const Icon = plan.icon;
+              const c        = COLOR_MAP[plan.color];
+              const Icon     = plan.icon;
+              const isActive = currentPlan === plan.id;
+
               return (
                 <div
                   key={plan.id}
@@ -158,19 +177,23 @@ export function PricingPage() {
                       </span>
                     </div>
                   )}
+                  {isActive && (
+                    <div className="absolute top-3 right-3">
+                      <span className="flex items-center gap-1 bg-green-500/20 text-green-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-green-500/30">
+                        <Crown className="w-3 h-3" /> Тековен
+                      </span>
+                    </div>
+                  )}
 
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${c.badge}`}>
                     <Icon className="w-5 h-5" />
                   </div>
-
                   <h2 className="text-xl font-bold mb-1">{plan.name}</h2>
                   <p className="text-slate-400 text-sm mb-4">{plan.description}</p>
-
                   <div className="mb-6">
                     <span className="text-3xl font-bold">{plan.price}</span>
                     {plan.period && <span className="text-slate-400 text-sm ml-1">{plan.period}</span>}
                   </div>
-
                   <ul className="space-y-2.5 mb-8 flex-1">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
@@ -179,26 +202,34 @@ export function PricingPage() {
                       </li>
                     ))}
                   </ul>
-
                   <button
                     type="button"
-                    onClick={() => handleCta(plan)}
-                    className={`w-full py-2.5 rounded-lg font-bold text-sm transition-colors ${c.btn}`}
+                    onClick={() => !isActive && handleCta(plan)}
+                    className={`w-full py-2.5 rounded-lg font-bold text-sm transition-colors ${
+                      isActive ? c.btnActive : c.btn
+                    }`}
                   >
-                    {plan.cta}
+                    {isActive ? '✓ Активен план' : plan.cta}
                   </button>
                 </div>
               );
             })}
           </div>
 
-          {/* FAQ teaser */}
-          <p className="text-center text-slate-500 text-sm mt-12">
-            Прашања? Пишете ни на{' '}
-            <a href="mailto:contact@avanturakreator.mk" className="text-indigo-400 hover:underline">
-              contact@avanturakreator.mk
-            </a>
-          </p>
+          {/* Payment methods note */}
+          <div className="mt-10 text-center">
+            <p className="text-slate-500 text-sm">
+              Прифаќаме плаќање преку <span className="text-slate-300">банкарски трансфер (MKD)</span> и{' '}
+              <span className="text-slate-300">PayPal</span>.
+              Активација во рок од 24 часа.
+            </p>
+            <p className="text-slate-600 text-sm mt-2">
+              Прашања?{' '}
+              <a href="mailto:contact@avanturakreator.mk" className="text-indigo-400 hover:underline">
+                contact@avanturakreator.mk
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </>

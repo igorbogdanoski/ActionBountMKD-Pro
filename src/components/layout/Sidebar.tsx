@@ -1,9 +1,10 @@
-import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon } from 'lucide-react';
+import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
+import { PAYMENT_CONFIG } from '../../config/payment';
 
 export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 'settings';
 
@@ -28,6 +29,7 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
   const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
   const maxQuests = limits.maxQuests === -1 ? '∞' : limits.maxQuests;
   const isEnterprise = planId === 'enterprise';
+  const isAdmin = user ? (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid) : false;
 
   return (
     <aside className="w-64 bg-indigo-950 flex flex-col shrink-0 h-full">
@@ -134,6 +136,18 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
           <div className="px-3 py-2 bg-indigo-900/30 rounded-lg">
             <p className="text-[11px] text-indigo-300 truncate">{user.email}</p>
           </div>
+        )}
+
+        {/* Admin link — only for admin users */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => navigate('/admin')}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-900/60 hover:text-white transition-colors"
+          >
+            <Shield className="h-4 w-4 shrink-0 text-indigo-400" />
+            Admin панел
+          </button>
         )}
 
         {/* Help & Logout */}

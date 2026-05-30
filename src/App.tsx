@@ -10,6 +10,7 @@ const BoundCreator     = lazy(() => import('./components/creator/BoundCreator').
 const MobilePlayer     = lazy(() => import('./components/player/MobilePlayer').then(m => ({ default: m.MobilePlayer })));
 const ResultsDashboard = lazy(() => import('./components/dashboard/ResultsDashboard').then(m => ({ default: m.ResultsDashboard })));
 const TemplatesLibrary = lazy(() => import('./components/dashboard/TemplatesLibrary').then(m => ({ default: m.TemplatesLibrary })));
+const SettingsPage     = lazy(() => import('./components/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const PricingPage         = lazy(() => import('./components/pricing/PricingPage').then(m => ({ default: m.PricingPage })));
 const AdminPanel          = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
 const PublicLeaderboard   = lazy(() => import('./components/leaderboard/PublicLeaderboard').then(m => ({ default: m.PublicLeaderboard })));
@@ -67,7 +68,7 @@ function DashboardShell() {
         <Route path="creator/:questId" element={<BoundCreator />} />
         <Route path="templates"       element={<TemplatesLibrary onUseTemplate={(tpl) => navigate('/creator', { state: { templateData: tpl } })} />} />
         <Route path="results"         element={<ResultsDashboard />} />
-        <Route path="settings"        element={<div className="p-8 text-white">Поставки — наскоро</div>} />
+        <Route path="settings"        element={<SettingsPage />} />
         <Route index                  element={<Navigate to="dashboard" replace />} />
       </Routes>
     </DashboardLayout>

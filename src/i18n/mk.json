@@ -1,0 +1,213 @@
+{
+  "common": {
+    "save": "Зачувај",
+    "cancel": "Откажи",
+    "delete": "Избриши",
+    "edit": "Уреди",
+    "create": "Создај",
+    "back": "Назад",
+    "next": "Следно",
+    "loading": "Се вчитува...",
+    "error": "Настана грешка",
+    "retry": "Обиди се повторно",
+    "close": "Затвори",
+    "search": "Пребарај",
+    "confirm": "Потврди",
+    "upgrade": "Надгради план",
+    "points": "Поени",
+    "stages": "Етапи",
+    "yes": "Да",
+    "no": "Не"
+  },
+  "nav": {
+    "myAdventures": "Мои Авантури",
+    "createAdventure": "Креирај Авантура",
+    "library": "Библиотека",
+    "results": "Резултати",
+    "settings": "Поставки",
+    "help": "Помош",
+    "logout": "Одјави се",
+    "pricing": "Цени"
+  },
+  "plan": {
+    "free": "Бесплатен",
+    "starter": "Starter",
+    "pro": "Pro",
+    "enterprise": "Enterprise",
+    "upgrade": "Надгради",
+    "adventuresLimit": "До {{max}} авантури",
+    "unlimited": "Неограничено"
+  },
+  "dashboard": {
+    "title": "Мои Авантури",
+    "subtitle": "{{count}} / {{max}} авантури",
+    "newAdventure": "Нова Авантура",
+    "searchPlaceholder": "Пребарај авантури...",
+    "filterAll": "Сите статуси",
+    "filterPublic": "Јавни",
+    "filterPrivate": "Приватни",
+    "stages": "{{count}} етапи",
+    "emptyTitle": "Нема авантури уште",
+    "emptyDesc": "Создај ја твојата прва интерактивна GPS авантура.",
+    "emptySearch": "Нема резултати за \"{{query}}\"",
+    "emptySearchDesc": "Пробај поинаков термин за пребарување.",
+    "createFirst": "Создај прва авантура",
+    "play": "Играј",
+    "quickEdit": "Уреди",
+    "deleteConfirm": "Дали сте сигурни дека сакате да ја избришете оваа авантура?",
+    "public": "Јавна",
+    "private": "Приватна",
+    "editModal": {
+      "title": "Брзо Уредување",
+      "labelTitle": "Наслов",
+      "labelDesc": "Опис"
+    }
+  },
+  "creator": {
+    "titlePlaceholder": "Наслов на авантурата...",
+    "saving": "Зачувување...",
+    "savedAt": "✓ {{time}}",
+    "unsaved": "● Незачувано",
+    "questSettings": "Поставки на Квестот",
+    "stageCount": "Етапи ({{count}})",
+    "noStages": "Нема етапи уште",
+    "selectStage": "Избери постоечка етапа или додај нова за да почнеш да уредуваш.",
+    "tabs": {
+      "profile": "Профил",
+      "characteristics": "Карактеристики",
+      "maps": "Мапи",
+      "dangerZone": "Опасна зона"
+    },
+    "fields": {
+      "title": "Наслов",
+      "description": "Опис",
+      "category": "Категорија",
+      "tags": "Тагови",
+      "tagsHint": "Максимум 10 тагови, притисни Enter за додавање",
+      "tagsPlaceholder": "npr. скопје, историја...",
+      "playingTime": "Проценето траење (минути)",
+      "playMode": "Режим на играње",
+      "visibility": "Видливост",
+      "sequence": "Редослед на етапи",
+      "publicResults": "Јавни резултати",
+      "publicResultsHint": "Играчите можат да ги гледаат резултатите",
+      "hasIntro": "Вовед (Intro)",
+      "hasIntroHint": "Прва етапа е посебен вовед",
+      "hasOutro": "Завршница (Outro)",
+      "hasOutroHint": "Последна етапа е посебна завршница",
+      "mapStyle": "Стил на мара",
+      "boundLength": "Должина на рутата (km)"
+    },
+    "playMode": {
+      "singleplayer": "Еден играч",
+      "multiplayer": "Повеќе играчи (тимски)"
+    },
+    "visibility": {
+      "public": "Јавна — видлива за сите",
+      "secret": "Тајна — само со линк"
+    },
+    "sequence": {
+      "fixed": "Фиксен (линеарен)",
+      "selectable": "Избор од играч",
+      "random": "Случаен редослед"
+    },
+    "stageTypes": {
+      "INFO": "Информација",
+      "QUIZ": "Квиз",
+      "MISSION": "Мисија",
+      "FIND_SPOT": "GPS Место",
+      "SCAN_CODE": "QR Код",
+      "SURVEY": "Анкета",
+      "TOURNAMENT": "Турнир"
+    },
+    "dangerZone": {
+      "label": "Опасна зона",
+      "deleteQuest": "🗑 Избриши квест"
+    }
+  },
+  "categories": {
+    "educational": "Образование",
+    "cultural": "Култура",
+    "teambuilding": "Тим-градење",
+    "tourism": "Туризам",
+    "personal": "Лично",
+    "other": "Друго"
+  },
+  "player": {
+    "enterName": "Внесете го вашето име...",
+    "startAdventure": "Започни Авантура",
+    "correctAnswer": "Точно! +{{points}}",
+    "wrongAnswer": "Погрешен одговор, обиди се повторно!",
+    "timeExpired": "Времето истече!",
+    "confirm": "Потврди",
+    "distance": "Растојание:",
+    "calculating": "Се пресметува...",
+    "found": "Ја најдов! (+{{points}})",
+    "continue": "Продолжи напред",
+    "understood": "Разбрав, понатаму",
+    "submitSurvey": "Поднеси анкета",
+    "finishMission": "Заврши ја мисијата (+{{points}})",
+    "exitConfirm": "Сигурно сакате да ја напуштите авантурата? Вашиот напредок ќе биде изгубен.",
+    "selectStage": "Избери следна етапа",
+    "completed": "Завршено",
+    "available": "Достапно за игра",
+    "congratulations": "Честитки, {{name}}!",
+    "adventureComplete": "Успешно ја завршивте авантурата.",
+    "totalPoints": "Освоени поени",
+    "feedback": "Дискусија и коментари",
+    "feedbackPlaceholder": "Споделете впечаток за авантурата...",
+    "sendFeedback": "Испрати коментар",
+    "thankYou": "Хвала за повратната информација!",
+    "goBack": "Врати се назад",
+    "openInMaps": "Отвори во Maps",
+    "unknownStage": "Непознат тип на етапа.",
+    "tournamentEnd": "Турнирот заврши (+{{points}})",
+    "teamsCompeting": "{{count}} тима се натпреваруваат",
+    "teamTask": "Задача за тимовите:"
+  },
+  "landing": {
+    "tagline": "Иновативен мултимедијален квест",
+    "subtitle": "Создавај мобилни авантури и интерактивни водичи за паметни телефони и таблети",
+    "playBound": "Играј Авантура",
+    "createBound": "Креирај Авантура",
+    "loginButton": "Влезете",
+    "loggedInButton": "Мои Авантури →",
+    "demoButton": "Пробај Демо",
+    "features": {
+      "gps": "GPS навигација",
+      "qr": "QR скенирање",
+      "quiz": "Квизови",
+      "mission": "Мисии",
+      "offline": "Офлајн режим",
+      "ai": "AI генерирање"
+    }
+  },
+  "pricing": {
+    "title": "Едноставни цени,",
+    "titleHighlight": "без скриени трошоци",
+    "subtitle": "Започни бесплатно. Надгради кога ќе пораснеш. Сите планови вклучуваат GPS, QR и квиз функции.",
+    "mostPopular": "Најпопуларен",
+    "cta": {
+      "free": "Започни бесплатно",
+      "starter": "Земи Starter",
+      "pro": "Земи Pro",
+      "enterprise": "Контактирај нè"
+    },
+    "contact": "Прашања? Пишете ни на"
+  },
+  "auth": {
+    "signInWithGoogle": "Најави се со Google",
+    "signingIn": "Се најавува...",
+    "noInternet": "Нема интернет конекција. Провери ја мрежата и обиди се повторно.",
+    "signInFailed": "Најавата не успеа. Обиди се повторно.",
+    "signOutFailed": "Одјавата не успеа.",
+    "allowPopups": "Дозволи попапи за овој сајт или обиди се повторно."
+  },
+  "errors": {
+    "questNotFound": "Авантурата не е пронајдена.",
+    "loadFailed": "Грешка при вчитување.",
+    "saveFailed": "Грешка при зачувување.",
+    "generic": "Настана грешка",
+    "tryAgain": "Обиди се повторно"
+  }
+}

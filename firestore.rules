@@ -127,6 +127,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ─── TEMPLATES ────────────────────────────────────────────────────────────
+    match /templates/{templateId} {
+      // Public approved templates readable by everyone (no auth needed for template library)
+      allow read: if true;
+      // Only admin can create/update/delete templates
+      allow write: if isAdmin();
+    }
+
     // ─── DENY EVERYTHING ELSE ─────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

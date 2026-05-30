@@ -79,14 +79,12 @@ export async function getQuestResults(questId?: string): Promise<QuestResult[]> 
 }
 
 export async function getPublicQuestResults(questId: string, pageSize = 20): Promise<QuestResult[]> {
-  const q = query(
-    collection(db, RESULTS),
-    where('questId', '==', questId),
-    orderBy('points', 'desc'),
-    limit(pageSize),
-  );
+  // Single equality filter — sort client-side to avoid composite index
+  const q = query(collection(db, RESULTS), where('questId', '==', questId), limit(pageSize * 3));
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as QuestResult);
+  const results = snap.docs.map(d => d.data() as QuestResult);
+  results.sort((a, b) => b.points - a.points);
+  return results.slice(0, pageSize);
 }
 
 // ─── TEMPLATES ────────────────────────────────────────────────────────────────
@@ -99,24 +97,24 @@ export interface TemplateFilters {
 }
 
 export async function getPublicTemplates(filters?: TemplateFilters): Promise<Template[]> {
-  const constraints: Parameters<typeof query>[1][] = [
-    where('isPublic', '==', true),
-    where('status', '==', 'approved'),
-    orderBy('isFeatured', 'desc'),
-    orderBy('usageCount', 'desc'),
-    limit(50),
-  ];
-  if (filters?.subject) constraints.push(where('subject', '==', filters.subject));
-  if (filters?.grade)   constraints.push(where('grade', '==', filters.grade));
-  const q = query(collection(db, TEMPLATES), ...constraints);
+  // Single equality filter + limit — no composite index needed; sort client-side
+  const q = query(collection(db, TEMPLATES), where('status', '==', 'approved'), limit(100));
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as Template);
+  let results = snap.docs.map(d => d.data() as Template);
+  if (filters?.subject) results = results.filter(t => t.subject === filters.subject);
+  if (filters?.grade)   results = results.filter(t => t.grade === filters.grade);
+  // Sort: featured first, then by usageCount
+  results.sort((a, b) => (b.isFeatured ? 1 : 0) - (a.isFeatured ? 1 : 0) || b.usageCount - a.usageCount);
+  return results;
 }
 
 export async function getPendingTemplates(): Promise<Template[]> {
-  const q = query(collection(db, TEMPLATES), where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
+  // Single equality filter — no composite index needed; sort client-side
+  const q = query(collection(db, TEMPLATES), where('status', '==', 'pending'), limit(100));
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as Template);
+  const results = snap.docs.map(d => d.data() as Template);
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results;
 }
 
 export async function saveTemplate(template: Template): Promise<void> {

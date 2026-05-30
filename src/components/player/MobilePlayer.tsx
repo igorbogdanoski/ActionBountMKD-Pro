@@ -6,6 +6,7 @@ import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, 
 import { getQuestById } from '../../utils/storage';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
+import { MathRenderer } from '../editor/MathRenderer';
 
 interface MobilePlayerProps {
   questId: string;
@@ -502,8 +503,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           <div className="flex-1 overflow-y-auto p-6 flex flex-col">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-4`}>{stage.title}</h2>
             {renderMedia()}
-            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'} p-6 rounded-2xl shadow-sm border leading-relaxed mb-6 transition-colors`}>
-              {stage.description}
+            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'} p-6 rounded-2xl shadow-sm border mb-6 transition-colors`}>
+              <MathRenderer text={stage.description} className="leading-relaxed" />
             </div>
             <div className="mt-auto">
               <button onClick={handleNextStage} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
@@ -523,8 +524,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
             </div>
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
             {renderMedia()}
-            <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`}>{stage.description}</p>
-            
+            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
+
             <div className="space-y-3 mb-6">
               {(stage as any).options?.map((opt: string) => (
                 <button 
@@ -611,7 +612,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
             <div className={`z-10 p-4 sticky top-0 ${isNightMode ? 'bg-gradient-to-b from-slate-900 via-slate-900/90 to-transparent' : 'bg-gradient-to-b from-slate-50 via-slate-50/90 to-transparent'} pt-6`}>
               <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'} p-4 rounded-2xl shadow-lg border`}>
                 <h2 className={`font-bold ${isNightMode ? 'text-white' : 'text-slate-800'} text-lg`}>{stage.title}</h2>
-                <p className={`text-xs ${isNightMode ? 'text-slate-400' : 'text-slate-500'} mt-1 mb-3`}>{stage.description}</p>
+                <MathRenderer text={stage.description} className={`text-xs ${isNightMode ? 'text-slate-400' : 'text-slate-500'} mt-1 mb-3`} />
                 <div className={`flex items-center justify-between p-3 rounded-xl border ${isNightMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-indigo-500" />
@@ -658,8 +659,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
         return (
           <div className="flex-1 flex flex-col p-6 items-center justify-center text-center">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
-            <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`}>{stage.description}</p>
-            
+            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
+
             {scanError && (
               <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold w-full mb-4 animate-pulse">
                  {scanError}
@@ -687,8 +688,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center text-center">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
-            <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`}>{stage.description}</p>
-            
+            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
+
             <div className={`w-full max-w-sm rounded-3xl border-2 border-dashed ${isNightMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-300 bg-slate-50'} flex flex-col items-center justify-center p-8 mb-6`}>
               {isAudio ? (
                  <>
@@ -769,7 +770,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2 text-center`}>{stage.title}</h2>
-            <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8 text-center`}>{stage.description}</p>
+            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8 text-center`} />
             
             <div className="mb-8">
               <label className={`block text-lg font-bold mb-4 text-center ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>Внесете го вашиот одговор:</label>

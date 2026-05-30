@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import type { QuizStage } from '../../../types';
-import { Tabs, Field, Toggle, inputCls, textareaCls } from './shared';
+import { Tabs, Field, Toggle, inputCls } from './shared';
+import { MathRichEditor } from '../../editor/MathRichEditor';
+
+// textareaCls no longer used directly — MathRichEditor replaces it
 
 interface Props {
   stage: QuizStage;
@@ -29,18 +32,18 @@ export function QuizStageEditor({ stage, onChange }: Props) {
               onChange={e => onChange({ title: e.target.value })}
             />
           </Field>
-          <Field label="Прашање / Опис">
-            <textarea
-              className={textareaCls}
-              rows={4}
-              placeholder="Внеси го прашањето..."
-              value={stage.description}
-              onChange={e => onChange({ description: e.target.value })}
-            />
-          </Field>
+          <MathRichEditor
+            label="Прашање / Опис"
+            rows={4}
+            placeholder="Внеси го прашањето... Користи $x^2$ за inline math или $$\frac{a}{b}$$ за блок формула"
+            value={stage.description}
+            onChange={v => onChange({ description: v })}
+            hint="Поддржува KaTeX математика: $формула$ или $$блок$$"
+          />
           <Field label="Поени">
             <input
               type="number"
+              aria-label="Поени"
               className={inputCls}
               min={0} max={10000}
               value={stage.points ?? 50}
@@ -55,6 +58,7 @@ export function QuizStageEditor({ stage, onChange }: Props) {
         <div className="space-y-4">
           <Field label="Тип на одговор">
             <select
+              aria-label="Тип на одговор"
               className={inputCls}
               value={stage.questionType}
               onChange={e => onChange({ questionType: e.target.value as QuizStage['questionType'] })}
@@ -83,6 +87,7 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                     />
                     <button
                       type="button"
+                      aria-label={`Избриши опција ${i + 1}`}
                       onClick={() => {
                         const opts = (stage.options ?? ['']).filter((_, j) => j !== i);
                         onChange({ options: opts });
@@ -157,6 +162,7 @@ export function QuizStageEditor({ stage, onChange }: Props) {
           <Field label="Временски лимит (секунди)" hint="0 = без лимит">
             <input
               type="number"
+              aria-label="Временски лимит во секунди"
               className={inputCls}
               min={0} max={3600}
               value={stage.timeLimitSeconds ?? 0}

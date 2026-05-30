@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2, Radio } from 'lucide-react';
+import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2, Radio, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getQuests, deleteQuest, saveQuest, cacheQuestResources } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { PlanUsageWidget } from './PlanUsageWidget';
+import { GenerateQuestModal } from '../ai/GenerateQuestModal';
 import type { Quest } from '../../types';
 
 interface BoundsDashboardProps {
@@ -16,9 +17,10 @@ type FilterStatus = 'all' | 'public' | 'secret';
 
 export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const { user } = useAuth();
-  const { limits, isPro } = usePlan();
+  const { limits, isPro, can } = usePlan();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [aiOpen, setAiOpen] = useState(false);
 
   const [quests, setQuests]               = useState<Quest[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -133,17 +135,30 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
             {t('dashboard.subtitle', { count: quests.length, max: limits.maxQuests === -1 ? '∞' : limits.maxQuests })}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onCreateNew}
-          disabled={atLimit}
-          title={atLimit ? 'Го достигнавте лимитот на вашиот план' : undefined}
-          className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Plus className="h-5 w-5" />
-          {t('dashboard.newAdventure')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => can('canUseAI') ? setAiOpen(true) : navigate('/pricing')}
+            title={can('canUseAI') ? 'Генерирај авантура со AI' : 'Достапно на Starter+ план'}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-600/20 hover:from-fuchsia-400 hover:to-indigo-500 transition-colors"
+          >
+            <Sparkles className="h-5 w-5" />
+            AI Генерирај
+          </button>
+          <button
+            type="button"
+            onClick={onCreateNew}
+            disabled={atLimit}
+            title={atLimit ? 'Го достигнавте лимитот на вашиот план' : undefined}
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="h-5 w-5" />
+            {t('dashboard.newAdventure')}
+          </button>
+        </div>
       </div>
+
+      <GenerateQuestModal open={aiOpen} onClose={() => setAiOpen(false)} />
 
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">

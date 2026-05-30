@@ -74,9 +74,13 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
   const prevPointsRef = useRef(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Feedback — declared here (not after early returns) to avoid Rules of Hooks violation
+  // Feedback — must be at top, never after early returns
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  // Timer — must be at top, BEFORE any useEffect to keep hook order stable
+  const [timeLeft, setTimeLeft]     = useState<number | null>(null);
+  const [timeExpired, setTimeExpired] = useState(false);
 
   const navigate = useNavigate();
   
@@ -154,11 +158,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
 
   const stages = quest?.stages || [];
   const stage = stages[currentStageIndex];
-  
-  // Handle Geolocation for FIND_SPOT
-  // Timer specific
-  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  // Timer effect — syncs timeLeft when stage changes (state declared at top)
   useEffect(() => {
     if (stage && (stage as any).timeLimitSeconds > 0) {
       setTimeLeft((stage as any).timeLimitSeconds);
@@ -168,8 +169,6 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     // Reset feedback on stage change
     setQuizFeedback(null);
   }, [stage]);
-
-  const [timeExpired, setTimeExpired] = useState(false);
 
   useEffect(() => {
     if (timeLeft !== null && timeLeft > 0 && !quizFeedback && !timeExpired) {

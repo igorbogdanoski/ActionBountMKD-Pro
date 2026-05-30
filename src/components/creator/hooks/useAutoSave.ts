@@ -10,7 +10,8 @@ export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void)
   questRef.current = quest;
 
   useEffect(() => {
-    if (!isDirty) return;
+    // Never save if creatorId is missing — Firestore will reject with permissions error
+    if (!isDirty || !questRef.current.creatorId) return;
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(async () => {

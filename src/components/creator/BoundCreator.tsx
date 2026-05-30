@@ -51,6 +51,13 @@ export function BoundCreator() {
   const { state, setField, addStage, dupStage, delStage, updateStage, reorder, select, load, setClean } = editor;
   const { quest, selectedStageId, isDirty } = state;
 
+  // Sync creatorId once user is confirmed (avoids Firestore permission error on cold load)
+  useEffect(() => {
+    if (user?.uid && !quest.creatorId) {
+      setField('creatorId', user.uid);
+    }
+  }, [user?.uid]);
+
   // Load existing quest
   useEffect(() => {
     if (!questId) return;

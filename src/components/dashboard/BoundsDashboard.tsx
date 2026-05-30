@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2 } from 'lucide-react';
+import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2, Radio } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getQuests, deleteQuest, saveQuest, cacheQuestResources } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
@@ -15,8 +16,9 @@ type FilterStatus = 'all' | 'public' | 'secret';
 
 export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const { user } = useAuth();
-  const { limits } = usePlan();
+  const { limits, isPro } = usePlan();
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [quests, setQuests]               = useState<Quest[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -297,6 +299,15 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
                   className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-sm font-semibold transition-colors"
                 >
                   <Play className="h-4 w-4" /> {t('dashboard.play')}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Игра во живо"
+                  title={isPro ? 'Започни игра во живо' : 'Достапно на Pro план'}
+                  onClick={() => navigate(isPro ? `/host/${quest.id}` : '/pricing')}
+                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-sm font-semibold transition-colors"
+                >
+                  <Radio className="h-4 w-4" />
                 </button>
                 <button
                   type="button"

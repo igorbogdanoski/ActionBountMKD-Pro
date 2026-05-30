@@ -21,6 +21,10 @@ interface MobilePlayerProps {
   questId: string;
   questProp?: Quest;
   isPreview?: boolean;
+  // ─── Real-time session (Phase 5A) ───
+  sessionCode?: string;       // when set, progress is reported to the live session
+  sessionPlayerId?: string;   // anonymous player id within the session
+  sessionPlayerName?: string; // pre-filled name (skips the name screen)
 }
 
 // Helper to calculate distance in meters (Haversine formula)
@@ -39,10 +43,10 @@ function getDistance(coord1: Coordinates, coord2: Coordinates): number {
   return R * c; 
 }
 
-export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProps) {
+export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
   const [quest, setQuest] = useState<Quest | null>(questProp || null);
-  const [hasStarted, setHasStarted] = useState(false);
-  const [playerName, setPlayerName] = useState('');
+  const [hasStarted, setHasStarted] = useState(!!sessionCode);
+  const [playerName, setPlayerName] = useState(sessionPlayerName ?? '');
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [points, setPoints] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -103,6 +107,38 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     };
   }, []);
 
+  // ─── Real-time session: report progress to the live leaderboard ──────────────
+  useEffect(() => {
+    if (!sessionCode || !sessionPlayerId) return;
+    import('../../utils/sessionStorage')
+      .then(({ updateProgress }) =>
+        updateProgress(sessionCode, sessionPlayerId, {
+          points,
+          stageIndex: currentStageIndex,
+          finished: isFinished,
+        }),
+      )
+      .catch(() => {});
+  }, [sessionCode, sessionPlayerId, points, currentStageIndex, isFinished]);
+
+  // ─── Real-time session: follow host pace in broadcast mode ───────────────────
+  useEffect(() => {
+    if (!sessionCode) return;
+    let unsub = () => {};
+    import('../../utils/sessionStorage')
+      .then(({ subscribeSession }) => {
+        unsub = subscribeSession(sessionCode, sess => {
+          if (sess && sess.mode === 'broadcast' && sess.status === 'active') {
+            setCurrentStageIndex(prev =>
+              prev === sess.currentStageIndex ? prev : sess.currentStageIndex,
+            );
+          }
+        });
+      })
+      .catch(() => {});
+    return () => unsub();
+  }, [sessionCode]);
+
   useEffect(() => {
     if (points > prevPointsRef.current) {
       const id = Math.random().toString();
@@ -123,7 +159,8 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
 
   useEffect(() => {
     if (quest && 'caches' in window) {
-      caches.open(`avanturakreator-quest-${quest.id}`).then(async cache => {
+      // Read from the Service Worker media cache (same name the SW serves from).
+      caches.open('av-media-v2').then(async cache => {
         const keys = await cache.keys();
         const urls = keys.map(req => req.url);
         const cached: Record<string, boolean> = {};
@@ -632,7 +669,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
               <MathRenderer text={stage.description} className="leading-relaxed" />
             </div>
             <div className="mt-auto">
-              <button onClick={handleNextStage} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+              <button onClick={() => handleNextStage()} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
                 Разбрав, понатаму
               </button>
             </div>
@@ -709,7 +746,7 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
               {quizFeedback === 'error' && timeLeft === 0 ? (
                 <button
                   type="button"
-                  onClick={handleNextStage}
+                  onClick={() => handleNextStage()}
                   className="w-full py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
                 >
                   Продолжи →

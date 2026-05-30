@@ -135,6 +135,42 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ─── GAME SESSIONS (Real-time collaboration, Phase 5A) ─────────────────────
+    function isSessionHost(resource) {
+      return isAuth() && resource.data.hostId == request.auth.uid;
+    }
+
+    function isValidSession(data) {
+      return data.keys().hasAll(['id', 'questId', 'hostId', 'players', 'status', 'mode', 'currentStageIndex', 'stageCount', 'createdAt'])
+        && data.hostId is string
+        && data.questId is string
+        && data.status in ['waiting', 'active', 'finished']
+        && data.mode in ['free', 'broadcast']
+        && data.players is list
+        && data.players.size() <= 500;
+    }
+
+    match /game_sessions/{code} {
+      // Anyone can read a session (players join without auth, like the player flow)
+      allow read: if true;
+
+      // Only an authenticated host can create their own session
+      allow create: if isAuth()
+                    && request.resource.data.hostId == request.auth.uid
+                    && isValidSession(request.resource.data);
+
+      // Host has full control; anonymous players may only touch the roster
+      allow update: if (isSessionHost(resource)
+                        && isValidSession(request.resource.data)
+                        && request.resource.data.hostId == resource.data.hostId)
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['players', 'updatedAt'])
+                        && request.resource.data.players is list
+                        && request.resource.data.players.size() <= 500);
+
+      // Only the host can delete the session
+      allow delete: if isSessionHost(resource);
+    }
+
     // ─── DENY EVERYTHING ELSE ─────────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

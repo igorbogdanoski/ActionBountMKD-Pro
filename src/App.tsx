@@ -14,6 +14,8 @@ const SettingsPage     = lazy(() => import('./components/settings/SettingsPage')
 const PricingPage         = lazy(() => import('./components/pricing/PricingPage').then(m => ({ default: m.PricingPage })));
 const AdminPanel          = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
 const PublicLeaderboard   = lazy(() => import('./components/leaderboard/PublicLeaderboard').then(m => ({ default: m.PublicLeaderboard })));
+const LiveSessionHost     = lazy(() => import('./components/session/LiveSessionHost').then(m => ({ default: m.LiveSessionHost })));
+const JoinSession         = lazy(() => import('./components/session/JoinSession').then(m => ({ default: m.JoinSession })));
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
@@ -92,6 +94,13 @@ function AppRoutes() {
 
         {/* Public leaderboard — no auth */}
         <Route path="/leaderboard/:questId" element={<PublicLeaderboard />} />
+
+        {/* Join a live session — public, no auth */}
+        <Route path="/join" element={<JoinSession />} />
+        <Route path="/join/:code" element={<JoinSession />} />
+
+        {/* Host a live session — Pro+, protected */}
+        <Route path="/host/:questId" element={<ProtectedRoute><LiveSessionHost /></ProtectedRoute>} />
 
         {/* Protected dashboard */}
         <Route path="/*" element={<ProtectedRoute><DashboardShell /></ProtectedRoute>} />

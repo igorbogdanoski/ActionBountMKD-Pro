@@ -232,6 +232,40 @@ export interface QuestFeedback {
   createdAt: string;
 }
 
+// ─── REAL-TIME GAME SESSION (Phase 5A) ────────────────────────────────────────
+
+export type SessionStatus = 'waiting' | 'active' | 'finished';
+export type SessionMode   = 'free' | 'broadcast';
+
+export interface SessionPlayer {
+  uid: string;          // anonymous client id (not a Firebase auth uid required)
+  name: string;
+  points: number;
+  stageIndex: number;   // current stage the player is on
+  finished: boolean;
+  joinedAt: string;
+  updatedAt: string;
+}
+
+export interface GameSession {
+  id: string;                 // 6-char join code (also the Firestore doc id)
+  questId: string;
+  questTitle: string;
+  hostId: string;             // Firebase auth uid of the host
+  players: SessionPlayer[];
+  status: SessionStatus;
+  mode: SessionMode;          // 'free' = self-paced, 'broadcast' = host-paced
+  currentStageIndex: number;  // broadcast pointer
+  stageCount: number;
+  maxPlayers: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LeaderboardEntry extends SessionPlayer {
+  rank: number;
+}
+
 // ─── USER SETTINGS ────────────────────────────────────────────────────────────
 
 export interface UserSettings {

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2 } from 'lucide-react';
+import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2, Sprout } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
 import { getPendingTemplates, saveTemplate } from '../../utils/storage';
+import { runSeedTemplates } from '../../utils/seedTemplates';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import { SEO } from '../SEO';
 import type { PlanId, Template } from '../../types';
@@ -26,6 +27,8 @@ function TemplatesTab() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  const [seedLog, setSeedLog] = useState<string[]>([]);
 
   const loadTemplates = () => {
     setLoading(true);
@@ -36,6 +39,19 @@ function TemplatesTab() {
   };
 
   useEffect(() => { loadTemplates(); }, []);
+
+  const handleSeed = async () => {
+    if (!window.confirm('Ова ќе додаде 6 стандардни шаблони во Firestore. Продолжи?')) return;
+    setSeeding(true);
+    setSeedLog([]);
+    try {
+      await runSeedTemplates(msg => setSeedLog(prev => [...prev, msg]));
+    } catch (e) {
+      setSeedLog(prev => [...prev, `⚠ Грешка: ${e}`]);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const approve = async (tpl: Template) => {
     setBusy(tpl.id);
@@ -68,15 +84,53 @@ function TemplatesTab() {
     </div>
   );
 
-  if (templates.length === 0) return (
-    <div className="text-center py-16 text-slate-600">
-      <BookOpen className="w-8 h-8 mx-auto mb-2" />
-      Нема шаблони на чекање.
-    </div>
-  );
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
+
+      {/* Seed section */}
+      <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 space-y-3">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <p className="text-sm font-semibold text-emerald-300 flex items-center gap-2">
+              <Sprout className="w-4 h-4" /> Seed стандардни шаблони
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Додај 6 готови образовни шаблони (Математика, Природни науки, Историја, Јазици, Физичко) директно во библиотеката.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleSeed}
+            disabled={seeding}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors shrink-0"
+          >
+            {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sprout className="w-3.5 h-3.5" />}
+            {seeding ? 'Се seed-ира...' : 'Seed шаблони'}
+          </button>
+        </div>
+        {seedLog.length > 0 && (
+          <div className="rounded-lg bg-slate-900 border border-slate-800 p-3 space-y-1 max-h-32 overflow-y-auto">
+            {seedLog.map((msg, i) => (
+              <p key={i} className={`text-xs font-mono ${msg.startsWith('✓') ? 'text-emerald-400' : msg.startsWith('⚠') ? 'text-rose-400' : 'text-slate-400'}`}>
+                {msg}
+              </p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pending templates */}
+      {loading ? (
+        <div className="flex items-center justify-center h-20 text-slate-500">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Вчитување...
+        </div>
+      ) : templates.length === 0 ? (
+        <div className="text-center py-10 text-slate-600">
+          <BookOpen className="w-8 h-8 mx-auto mb-2" />
+          Нема шаблони на чекање за одобрување.
+        </div>
+      ) : (
+      <div className="space-y-3">
       {templates.map(tpl => (
         <div key={tpl.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
           <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -134,6 +188,8 @@ function TemplatesTab() {
           </div>
         </div>
       ))}
+      </div>
+      )}
     </div>
   );
 }

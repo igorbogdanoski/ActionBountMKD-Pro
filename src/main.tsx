@@ -29,6 +29,12 @@ if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
+    // Sync any queued offline results when the app comes back online
+    window.addEventListener('online', () => {
+      import('./utils/offlineQueue').then(({ syncOfflineQueue }) => {
+        syncOfflineQueue().catch(() => {});
+      });
+    });
   } else {
     navigator.serviceWorker
       .getRegistrations()

@@ -4,7 +4,15 @@ import { Quest, Stage, Coordinates } from '../../types';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff } from 'lucide-react';
-import { getQuestById } from '../../utils/storage';
+import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
+import {
+  cacheQuestLocally,
+  getCachedQuest,
+  isCachedLocally,
+  saveOfflineResult,
+  syncOfflineQueue,
+  offlineQueueSize,
+} from '../../utils/offlineQueue';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
@@ -142,7 +150,26 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
       return;
     }
     async function load() {
-      const loadedQuest = await getQuestById(questId);
+      let loadedQuest = null;
+
+      if (navigator.onLine) {
+        try {
+          loadedQuest = await getQuestById(questId);
+          // Cache locally for future offline use
+          if (loadedQuest) cacheQuestLocally(loadedQuest);
+        } catch {
+          // Network error — fall through to local cache
+          loadedQuest = getCachedQuest(questId);
+        }
+      } else {
+        loadedQuest = getCachedQuest(questId);
+        if (loadedQuest) {
+          const id = Math.random().toString();
+          setToasts(prev => [...prev, { id, text: '📵 Офлајн режим — квестот е зачуван локално' }]);
+          setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+        }
+      }
+
       if (loadedQuest) {
         if (loadedQuest.sequence === 'random' && loadedQuest.stages.length > 0) {
           loadedQuest.stages = [...loadedQuest.stages].sort(() => Math.random() - 0.5);
@@ -301,6 +328,62 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
     }
   }, [stage, hasStarted, isFinished]);
 
+  const [isQuestCached, setIsQuestCached] = useState(false);
+  const [caching, setCaching] = useState(false);
+
+  useEffect(() => {
+    if (quest) setIsQuestCached(isCachedLocally(quest.id));
+  }, [quest]);
+
+  const downloadForOffline = async () => {
+    if (!quest || caching) return;
+    setCaching(true);
+    try {
+      // 1. Save quest JSON to localStorage
+      cacheQuestLocally(quest);
+      setIsQuestCached(true);
+      // 2. Ask SW to cache all media files
+      const mediaUrls = quest.stages.flatMap(s => {
+        const u: string[] = [];
+        if ('mediaUrl' in s && (s as { mediaUrl?: string }).mediaUrl) {
+          u.push((s as { mediaUrl: string }).mediaUrl);
+        }
+        if (s.audioUrl) u.push(s.audioUrl);
+        return u;
+      }).filter(u => u.startsWith('http') && !u.includes('youtube.com'));
+
+      if (navigator.serviceWorker?.controller && mediaUrls.length) {
+        navigator.serviceWorker.controller.postMessage({ type: 'CACHE_MEDIA', urls: mediaUrls });
+      }
+      const id = Math.random().toString();
+      setToasts(prev => [...prev, { id, text: '☁ Квестот е зачуван за офлајн играње!' }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    } finally {
+      setCaching(false);
+    }
+  };
+
+  const submitResult = (finalPoints: number, finalDurations: typeof stageDurations) => {
+    const result = {
+      questId,
+      playerName,
+      points: finalPoints,
+      completedAt: new Date().toISOString(),
+      stageDurations: finalDurations,
+    };
+    if (navigator.onLine) {
+      saveQuestResultOnline(result).catch(() => {
+        saveOfflineResult(result);
+      });
+    } else {
+      saveOfflineResult(result);
+      const pending = offlineQueueSize();
+      const id = Math.random().toString();
+      setToasts(prev => [...prev, { id, text: `📵 Резултатот ќе се синхронизира (${pending} на чекање)` }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+    }
+  };
+
   const jumpToStageById = (targetId: string) => {
     const idx = stages.findIndex(s => s.id === targetId);
     if (idx !== -1) setCurrentStageIndex(idx);
@@ -336,27 +419,24 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
       return;
     }
 
+    const finalDurations = [...stageDurations, { stageId: stage.id, durationSec: duration }];
+
     if (quest?.sequence === 'selectable') {
       const nonSwitchStages = stages.filter(s => s.type !== 'SWITCH');
       const completedNonSwitch = newCompleted.filter(id => stages.find(s => s.id === id && s.type !== 'SWITCH'));
       if (completedNonSwitch.length >= nonSwitchStages.length) {
         setIsFinished(true);
-        import('../../utils/storage').then(({ saveQuestResult }) => {
-           saveQuestResult({ questId, playerName, points, completedAt: new Date().toISOString(), stageDurations: [...stageDurations, { stageId: stage.id, durationSec: duration }]});
-        });
+        submitResult(points, finalDurations);
       } else {
         setIsSelectingStage(true);
       }
     } else {
       let nextIdx = currentStageIndex + 1;
-      // Skip any SWITCH stages that should be auto-evaluated (handled by useEffect below)
       if (nextIdx < stages.length) {
         setCurrentStageIndex(nextIdx);
       } else {
         setIsFinished(true);
-        import('../../utils/storage').then(({ saveQuestResult }) => {
-           saveQuestResult({ questId, playerName, points, completedAt: new Date().toISOString(), stageDurations: [...stageDurations, { stageId: stage.id, durationSec: duration }]});
-        });
+        submitResult(points, finalDurations);
       }
     }
     setStageStartMark(Date.now());
@@ -1007,6 +1087,20 @@ export function MobilePlayer({ questId, questProp, isPreview }: MobilePlayerProp
           </button>
           <button type="button" aria-label="Турнир" onClick={() => setShowTournament(true)} className="text-amber-400 hover:text-amber-300 transition-colors">
             <Trophy className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            aria-label={isQuestCached ? 'Квестот е зачуван офлајн' : 'Преземи за офлајн'}
+            onClick={downloadForOffline}
+            disabled={caching || isQuestCached}
+            title={isQuestCached ? 'Квестот е достапен офлајн' : 'Зачувај за офлајн'}
+            className="text-slate-300 hover:text-white transition-colors disabled:opacity-40"
+          >
+            {isQuestCached
+              ? <Cloud className="w-5 h-5 text-emerald-400" />
+              : caching
+                ? <RefreshCw className="w-5 h-5 animate-spin" />
+                : <CloudOff className="w-5 h-5" />}
           </button>
           <button type="button" aria-label="Смени тема" onClick={() => setIsNightMode(!isNightMode)} className="text-slate-300 hover:text-white transition-colors">
             {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}

@@ -184,6 +184,19 @@ export async function upsertUserProfile(profile: UserProfile): Promise<void> {
   }, { merge: true });
 }
 
+// ─── OFFLINE: re-export localStorage helpers from offlineQueue ───────────────
+// Keeps all storage concerns importable from one place.
+export {
+  cacheQuestLocally,
+  getCachedQuest,
+  clearCachedQuest,
+  isCachedLocally,
+  saveOfflineResult,
+  getOfflineQueue,
+  syncOfflineQueue,
+  offlineQueueSize,
+} from './offlineQueue';
+
 // ─── OFFLINE MEDIA CACHE (Service Worker) ─────────────────────────────────────
 
 export async function cacheQuestResources(quest: Quest): Promise<void> {

@@ -185,6 +185,7 @@ export default function QuestPlayerScreen() {
   const finish = async (finalPoints: number, finalCompleted: string[]) => {
     setIsFinished(true);
     await AsyncStorage.removeItem(progressKey(id as string));
+    await AsyncStorage.setItem(`quest_completed_${id}`, new Date().toISOString());
     try {
       await addDoc(collection(db, 'quest_results'), {
         questId: id,
@@ -256,7 +257,7 @@ export default function QuestPlayerScreen() {
   };
 
   const handleExit = () => {
-    Alert.alert('Напушти авантура', 'Напредокот ќе биде изгубен. Сигурен?', [
+    Alert.alert('Напушти авантура', 'Напредокот ќе биде зачуван. Можеш да продолжиш подоцна.', [
       { text: 'Откажи', style: 'cancel' },
       { text: 'Напушти', style: 'destructive', onPress: () => router.back() },
     ]);
@@ -565,7 +566,7 @@ export default function QuestPlayerScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#4f46e5" />
-        <Text style={styles.loadingText}>Се вчитува авантурата...</Text>
+        <Text style={styles.loadingText}>Се вчитува авантурата…</Text>
       </View>
     );
   }
@@ -574,6 +575,7 @@ export default function QuestPlayerScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.errorText}>Авантурата не е пронајдена.</Text>
+
         <TouchableOpacity style={styles.btnPrimary} onPress={() => router.back()}>
           <Text style={styles.btnPrimaryText}>Назад</Text>
         </TouchableOpacity>
@@ -622,7 +624,7 @@ export default function QuestPlayerScreen() {
           <Text style={styles.startTitle}>{quest.title}</Text>
           {quest.description ? <Text style={styles.startDesc}>{quest.description}</Text> : null}
           <View style={styles.startMeta}>
-            <Text style={styles.startMetaText}>📍 {stages.length} етапи</Text>
+            <Text style={styles.startMetaText}>📍 {stages.length} {stages.length === 1 ? 'етапа' : 'етапи'}</Text>
           </View>
           <Text style={styles.inputLabel}>Твоето име</Text>
           <TextInput
@@ -637,7 +639,7 @@ export default function QuestPlayerScreen() {
             onPress={() => setHasStarted(true)}
             disabled={!playerName.trim()}
           >
-            <Text style={styles.startBtnText}>Започни Авантура 🚀</Text>
+            <Text style={styles.startBtnText}>Започни Авантура  🚀</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

@@ -326,7 +326,7 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => openEdit(quest)}
+                  onClick={() => navigate(`/creator?id=${quest.id}`)}
                   className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold transition-colors"
                 >
                   <Edit2 className="h-4 w-4" /> {t('dashboard.quickEdit')}

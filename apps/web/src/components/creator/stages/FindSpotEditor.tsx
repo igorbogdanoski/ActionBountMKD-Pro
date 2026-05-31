@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, MapPin, Loader2 } from 'lucide-react';
 import type { FindSpotStage } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './shared';
 
@@ -12,6 +12,25 @@ const TABS = ['Мисија', 'Координати', 'Поставки'];
 
 export function FindSpotEditor({ stage, onChange }: Props) {
   const [tab, setTab] = useState(0);
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  const getMyLocation = () => {
+    if (!navigator.geolocation) return;
+    setGpsLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        onChange({
+          targetCoordinates: {
+            latitude: parseFloat(pos.coords.latitude.toFixed(6)),
+            longitude: parseFloat(pos.coords.longitude.toFixed(6)),
+          },
+        });
+        setGpsLoading(false);
+      },
+      () => setGpsLoading(false),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  };
 
   return (
     <div>
@@ -57,6 +76,17 @@ export function FindSpotEditor({ stage, onChange }: Props) {
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             <p>GPS функционалноста бара прецизност. Избери локација на отворен простор, подалеку од згради.</p>
           </div>
+          <button
+            type="button"
+            onClick={getMyLocation}
+            disabled={gpsLoading}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+          >
+            {gpsLoading
+              ? <><Loader2 className="w-4 h-4 animate-spin" /> Земање локација...</>
+              : <><MapPin className="w-4 h-4" /> Земи ја мојата локација</>
+            }
+          </button>
           <Field label="Географска ширина (Latitude)">
             <input
               type="number"

@@ -79,6 +79,7 @@ export type StageType =
   | 'MISSION'
   | 'FIND_SPOT'
   | 'SCAN_CODE'
+  | 'QR_TASK'
   | 'SURVEY'
   | 'TOURNAMENT'
   | 'SWITCH';
@@ -132,6 +133,20 @@ export interface ScanCodeStage extends BaseStage {
   targetQrPayload: string;
 }
 
+export type QrTaskAnswerType = 'text' | 'photo' | 'multiple_choice';
+
+export interface QrTaskStage extends BaseStage {
+  type: 'QR_TASK';
+  targetQrPayload: string;       // QR код за скенирање
+  taskTitle: string;             // Наслов на задачата (се прикажува ПОСЛЕ скенирање)
+  taskDescription: string;       // Прашање/задача (се прикажува ПОСЛЕ скенирање)
+  taskMediaUrl?: string;         // Опционална слика кон задачата
+  answerType: QrTaskAnswerType;  // Тип на одговор
+  options?: string[];            // За multiple_choice
+  correctAnswer?: string;        // За автоматско оценување (празно = рачно)
+  requiredToAdvance: boolean;
+}
+
 export interface SurveyStage extends BaseStage {
   type: 'SURVEY';
   surveyQuestions: string[];
@@ -166,6 +181,7 @@ export type Stage =
   | MissionStage
   | FindSpotStage
   | ScanCodeStage
+  | QrTaskStage
   | SurveyStage
   | TournamentStage
   | SwitchStage;

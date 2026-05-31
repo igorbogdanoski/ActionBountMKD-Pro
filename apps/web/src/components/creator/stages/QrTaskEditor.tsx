@@ -1,0 +1,198 @@
+import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { RefreshCw, Copy, Check, Download, Plus, Trash2 } from 'lucide-react';
+import type { QrTaskStage } from 'shared';
+import { Tabs, Field, Toggle, inputCls, textareaCls } from './shared';
+
+interface Props {
+  stage: QrTaskStage;
+  onChange: (u: Partial<QrTaskStage>) => void;
+}
+
+const TABS = ['QR Код', 'Задача', 'Поставки'];
+
+function randomPayload() {
+  return `avt-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+}
+
+export function QrTaskEditor({ stage, onChange }: Props) {
+  const [tab, setTab] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const copy = () => {
+    navigator.clipboard.writeText(stage.targetQrPayload || '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const downloadQR = () => {
+    const svg = document.getElementById('qrtask-preview-svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([svgData], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `qr-zadaca-${stage.targetQrPayload || 'kod'}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const addOption = () => onChange({ options: [...(stage.options || []), ''] });
+  const updateOption = (i: number, val: string) => {
+    const opts = [...(stage.options || [])];
+    opts[i] = val;
+    onChange({ options: opts });
+  };
+  const removeOption = (i: number) => {
+    const opts = [...(stage.options || [])];
+    opts.splice(i, 1);
+    onChange({ options: opts });
+  };
+
+  return (
+    <div>
+      <Tabs tabs={TABS} active={tab} onChange={setTab} />
+
+      {/* Tab 0: QR Code */}
+      {tab === 0 && (
+        <div className="space-y-4">
+          <Field label="Наслов на етапата">
+            <input type="text" className={inputCls}
+              placeholder="Скенирај QR и реши задача..."
+              value={stage.title}
+              onChange={e => onChange({ title: e.target.value })} />
+          </Field>
+          <Field label="Упатство за играчот" hint="Каде да го бараат QR кодот">
+            <textarea className={textareaCls} rows={2}
+              placeholder="Пронајди го QR кодот на таблата..."
+              value={stage.description}
+              onChange={e => onChange({ description: e.target.value })} />
+          </Field>
+          <Field label="QR Payload" hint="Уникатен текст во QR кодот">
+            <div className="flex gap-2">
+              <input type="text" className={inputCls}
+                placeholder="avt-ABC123"
+                value={stage.targetQrPayload}
+                onChange={e => onChange({ targetQrPayload: e.target.value })} />
+              <button type="button" title="Генерирај случаен"
+                onClick={() => onChange({ targetQrPayload: randomPayload() })}
+                className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button type="button" title="Копирај"
+                onClick={copy} disabled={!stage.targetQrPayload}
+                className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors disabled:opacity-40">
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
+          </Field>
+
+          {stage.targetQrPayload && (
+            <div className="flex flex-col items-center gap-3 p-4 bg-white rounded-xl border border-slate-200">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">QR Код за печатење</p>
+              <QRCodeSVG id="qrtask-preview-svg" value={stage.targetQrPayload}
+                size={180} level="M" includeMargin />
+              <p className="text-xs text-slate-400 font-mono">{stage.targetQrPayload}</p>
+              <button type="button" onClick={downloadQR}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">
+                <Download className="w-3.5 h-3.5" /> Симни QR (SVG)
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 1: Task (shown AFTER scan) */}
+      {tab === 1 && (
+        <div className="space-y-4">
+          <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg text-xs text-indigo-300">
+            💡 Оваа содржина се прикажува <strong>ОТКАКО играчот ќе го скенира QR кодот</strong>
+          </div>
+          <Field label="Наслов на задачата">
+            <input type="text" className={inputCls}
+              placeholder="Одговори на прашањето..."
+              value={stage.taskTitle}
+              onChange={e => onChange({ taskTitle: e.target.value })} />
+          </Field>
+          <Field label="Прашање / Задача">
+            <textarea className={textareaCls} rows={4}
+              placeholder="Кој е главниот лик во романот? / Пресметај ја вредноста на x..."
+              value={stage.taskDescription}
+              onChange={e => onChange({ taskDescription: e.target.value })} />
+          </Field>
+          <Field label="Слика кон задачата (URL)" hint="Опционално — дијаграм, фото, карта...">
+            <input type="url" className={inputCls}
+              placeholder="https://..."
+              value={stage.taskMediaUrl || ''}
+              onChange={e => onChange({ taskMediaUrl: e.target.value })} />
+          </Field>
+
+          <Field label="Тип на одговор">
+            <select title="Тип на одговор" className={inputCls}
+              value={stage.answerType}
+              onChange={e => onChange({ answerType: e.target.value as QrTaskStage['answerType'] })}>
+              <option value="text">✏️ Текстуален одговор</option>
+              <option value="multiple_choice">🔘 Избор на одговор (А/Б/В/Г)</option>
+              <option value="photo">📷 Фото доказ</option>
+            </select>
+          </Field>
+
+          {stage.answerType === 'multiple_choice' && (
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Понудени одговори</p>
+              {(stage.options || []).map((opt, i) => (
+                <div key={i} className="flex gap-2 items-center">
+                  <span className="text-slate-400 text-sm font-bold w-5 shrink-0">
+                    {String.fromCharCode(65 + i)}.
+                  </span>
+                  <input type="text" className={inputCls}
+                    placeholder={`Одговор ${String.fromCharCode(65 + i)}`}
+                    value={opt}
+                    onChange={e => updateOption(i, e.target.value)} />
+                  <button type="button" onClick={() => removeOption(i)}
+                    className="p-2 rounded-lg bg-slate-700 hover:bg-red-900/30 text-slate-400 hover:text-red-400 transition-colors">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              {(stage.options || []).length < 6 && (
+                <button type="button" onClick={addOption}
+                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
+                  <Plus className="w-3.5 h-3.5" /> Додади одговор
+                </button>
+              )}
+            </div>
+          )}
+
+          {(stage.answerType === 'text' || stage.answerType === 'multiple_choice') && (
+            <Field label="Точен одговор" hint="Оставете празно за рачно оценување">
+              <input type="text" className={inputCls}
+                placeholder="Точниот одговор (за автоматска проверка)..."
+                value={stage.correctAnswer || ''}
+                onChange={e => onChange({ correctAnswer: e.target.value })} />
+            </Field>
+          )}
+
+          <Field label="Поени">
+            <input type="number" className={inputCls} min={0} max={10000}
+              title="Поени" placeholder="100"
+              value={stage.points ?? 100}
+              onChange={e => onChange({ points: Number(e.target.value) })} />
+          </Field>
+        </div>
+      )}
+
+      {/* Tab 2: Settings */}
+      {tab === 2 && (
+        <div className="space-y-4">
+          <Toggle
+            label="Потребно за продолжување"
+            hint="Играчот мора да одговори за да продолжи"
+            checked={stage.requiredToAdvance ?? true}
+            onChange={v => onChange({ requiredToAdvance: v })} />
+        </div>
+      )}
+    </div>
+  );
+}

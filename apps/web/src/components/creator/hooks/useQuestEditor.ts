@@ -2,7 +2,7 @@ import { useReducer, useCallback } from 'react';
 import type {
   Quest, Stage, StageType,
   InfoStage, QuizStage, MissionStage,
-  FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage, SwitchStage,
+  FindSpotStage, ScanCodeStage, QrTaskStage, SurveyStage, TournamentStage, SwitchStage,
 } from 'shared';
 
 // ─── Action types ─────────────────────────────────────────────────────────────
@@ -48,6 +48,17 @@ function defaultStage(type: StageType, order: number): Stage {
       return { ...base, type: 'FIND_SPOT', targetCoordinates: { latitude: 41.9981, longitude: 21.4254 }, radiusMeters: 30, showMode: 'map', requiredToAdvance: true } satisfies FindSpotStage;
     case 'SCAN_CODE':
       return { ...base, type: 'SCAN_CODE', targetQrPayload: '' } satisfies ScanCodeStage;
+    case 'QR_TASK':
+      return {
+        ...base,
+        type: 'QR_TASK',
+        points: 100,
+        targetQrPayload: '',
+        taskTitle: '',
+        taskDescription: '',
+        answerType: 'text',
+        requiredToAdvance: true,
+      } satisfies QrTaskStage;
     case 'SURVEY':
       return { ...base, type: 'SURVEY', surveyQuestions: [''] } satisfies SurveyStage;
     case 'TOURNAMENT':

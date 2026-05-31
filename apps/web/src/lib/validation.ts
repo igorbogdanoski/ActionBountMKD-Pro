@@ -56,6 +56,18 @@ export const ScanCodeStageSchema = StageBaseSchema.extend({
   targetQrPayload: z.string().min(1).max(500),
 });
 
+export const QrTaskStageSchema = StageBaseSchema.extend({
+  type:            z.literal('QR_TASK'),
+  targetQrPayload: z.string().min(1).max(500),
+  taskTitle:       z.string().max(200),
+  taskDescription: z.string().max(2000),
+  taskMediaUrl:    z.string().url().max(500).optional().or(z.literal('')),
+  answerType:      z.enum(['text', 'photo', 'multiple_choice']),
+  options:         z.array(z.string().max(200)).max(6).optional(),
+  correctAnswer:   z.string().max(500).optional(),
+  requiredToAdvance: z.boolean(),
+});
+
 export const SurveyStageSchema = StageBaseSchema.extend({
   type:            z.literal('SURVEY'),
   surveyQuestions: z.array(z.string().max(500)).min(1).max(20),

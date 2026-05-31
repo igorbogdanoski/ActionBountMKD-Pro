@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff } from 'lucide-react';
@@ -66,6 +66,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // QR Scanner specific
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [qrTaskScanned, setQrTaskScanned] = useState(false);
   
   const [isNightMode, setIsNightMode] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
@@ -226,7 +227,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Auto-route SWITCH stages (when showPathsToPlayer is false)
   useEffect(() => {
     if (!stage || stage.type !== 'SWITCH') return;
-    const sw = stage as import('../../types').SwitchStage;
+    const sw = stage as import('shared').SwitchStage;
     if (sw.showPathsToPlayer) return;
     const targetId = evaluateSwitch(sw, points, completedStageIds);
     if (targetId) {
@@ -325,7 +326,12 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   // Handle QR code scanner initialization
   useEffect(() => {
-    if (stage?.type === 'SCAN_CODE' && hasStarted && !isFinished) {
+    const isScanStage = stage?.type === 'SCAN_CODE' || stage?.type === 'QR_TASK';
+    // For QR_TASK the scanner is only active until the code is matched
+    const scannerActive = isScanStage && hasStarted && !isFinished &&
+      !(stage?.type === 'QR_TASK' && qrTaskScanned);
+
+    if (scannerActive) {
       // Need a bit of delay to ensure the DOM element is rendered
       const timer = setTimeout(() => {
         try {
@@ -340,8 +346,15 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
              scannerRef.current.render((decodedText) => {
                  if (decodedText === (stage as any).targetQrPayload) {
                      scannerRef.current?.clear().catch(console.error);
-                     setPoints(p => p + (stage.points || 0));
-                     handleNextStage();
+                     scannerRef.current = null;
+                     setScanError(null);
+                     if (stage.type === 'QR_TASK') {
+                         // Reveal the task; points awarded after the answer
+                         setQrTaskScanned(true);
+                     } else {
+                         setPoints(p => p + (stage.points || 0));
+                         handleNextStage();
+                     }
                  } else {
                      setScanError('Погрешен QR код. Обиди се повторно.');
                      setTimeout(() => setScanError(null), 3000);
@@ -363,7 +376,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         }
       };
     }
-  }, [stage, hasStarted, isFinished]);
+  }, [stage, hasStarted, isFinished, qrTaskScanned]);
 
   const [isQuestCached, setIsQuestCached] = useState(false);
   const [caching, setCaching] = useState(false);
@@ -426,7 +439,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     if (idx !== -1) setCurrentStageIndex(idx);
   };
 
-  const evaluateSwitch = (switchStage: import('../../types').SwitchStage, currentPoints: number, completed: string[]): string | null => {
+  const evaluateSwitch = (switchStage: import('shared').SwitchStage, currentPoints: number, completed: string[]): string | null => {
     for (const cond of switchStage.conditions) {
       const minOk = cond.minPoints === undefined || currentPoints >= cond.minPoints;
       const maxOk = cond.maxPoints === undefined || currentPoints <= cond.maxPoints;
@@ -445,6 +458,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setQuizFeedback(null);
     setDistanceToTarget(null);
     setScanError(null);
+    setQrTaskScanned(false);
 
     const newCompleted = [...completedStageIds, stage.id];
     setCompletedStageIds(newCompleted);
@@ -483,6 +497,29 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     const correct = (stage as any).correctAnswer;
     // Normalize both to trimmed strings for comparison (handles string + number types)
     const isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).trim().toLowerCase();
+    if (isCorrect) {
+      setPoints(prev => prev + (stage.points || 0));
+      setQuizFeedback('success');
+      setTimeout(() => handleNextStage(), 1500);
+    } else {
+      setQuizFeedback('error');
+    }
+  };
+
+  const submitQrTask = () => {
+    const qr = stage as QrTaskStage;
+    const correct = qr.correctAnswer?.trim();
+    // Manual grading (photo or no correct answer set) — always accept
+    const autoGrade = qr.answerType !== 'photo' && !!correct;
+
+    if (!autoGrade) {
+      setPoints(prev => prev + (stage.points || 0));
+      setQuizFeedback('success');
+      setTimeout(() => handleNextStage(), 1200);
+      return;
+    }
+
+    const isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).toLowerCase();
     if (isCorrect) {
       setPoints(prev => prev + (stage.points || 0));
       setQuizFeedback('success');
@@ -877,6 +914,150 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           </div>
         );
 
+      case 'QR_TASK': {
+        const qr = stage as QrTaskStage;
+
+        // Phase 1 — scan the QR code to reveal the task
+        if (!qrTaskScanned) {
+          return (
+            <div className="flex-1 flex flex-col p-6 items-center justify-center text-center">
+              <div className="bg-teal-100 text-teal-700 py-1.5 px-4 rounded-full font-bold text-xs uppercase shadow-sm mb-3">
+                QR Задача · {stage.points} поени
+              </div>
+              <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
+              <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
+
+              {scanError && (
+                <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold w-full mb-4 animate-pulse">
+                   {scanError}
+                </div>
+              )}
+
+              <div className="w-full max-w-[280px] bg-slate-900 rounded-3xl border-4 border-slate-200 flex flex-col items-center justify-center text-slate-500 mb-6 shadow-xl relative overflow-hidden">
+                 <div id="reader" className="w-full bg-black min-h-[280px] rounded-2xl overflow-hidden [&_video]:object-cover" />
+              </div>
+
+              <button
+                onClick={() => { setScanError(null); setQrTaskScanned(true); }}
+                className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-slate-900 active:scale-95 transition-all mt-auto"
+              >
+                Скип Скен (За Демо)
+              </button>
+            </div>
+          );
+        }
+
+        // Phase 2 — answer the revealed task
+        const qrAutoGrade = qr.answerType !== 'photo' && !!qr.correctAnswer?.trim();
+        const qrCanSubmit =
+          qr.answerType === 'photo'
+            ? !!quizAnswer
+            : !!quizAnswer && String(quizAnswer).trim().length > 0;
+
+        return (
+          <div className="flex-1 overflow-y-auto p-6 flex flex-col">
+            <div className="flex items-center gap-2 text-emerald-500 text-xs font-bold uppercase mb-3">
+              <CheckCircle2 className="w-4 h-4" /> QR скениран
+            </div>
+            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>
+              {qr.taskTitle || stage.title}
+            </h2>
+
+            {qr.taskMediaUrl && (
+              <img src={qr.taskMediaUrl} alt="" className="w-full rounded-2xl mb-4 max-h-64 object-cover" />
+            )}
+
+            <MathRenderer text={qr.taskDescription} className={`${isNightMode ? 'text-slate-300' : 'text-slate-700'} mb-6`} />
+
+            {/* Multiple choice */}
+            {qr.answerType === 'multiple_choice' && (
+              <div className="space-y-3 mb-4">
+                {(qr.options || []).map((opt, i) => (
+                  <button
+                    key={i}
+                    disabled={quizFeedback !== null}
+                    onClick={() => setQuizAnswer(opt)}
+                    className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
+                      quizAnswer === opt
+                        ? 'border-teal-500 bg-teal-500/10 text-teal-500 shadow-sm'
+                        : isNightMode
+                          ? 'border-slate-700 bg-slate-800 text-slate-300 hover:border-teal-400'
+                          : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>{opt}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Free text */}
+            {qr.answerType === 'text' && (
+              <textarea
+                rows={4}
+                value={quizAnswer || ''}
+                onChange={e => setQuizAnswer(e.target.value)}
+                disabled={quizFeedback === 'success'}
+                placeholder="Внеси го твојот одговор..."
+                className={`w-full p-4 rounded-xl border-2 mb-4 outline-none transition-colors ${
+                  isNightMode
+                    ? 'border-slate-700 bg-slate-800 text-slate-200 focus:border-teal-400'
+                    : 'border-slate-200 bg-white text-slate-800 focus:border-teal-400'
+                } disabled:opacity-60`}
+              />
+            )}
+
+            {/* Photo proof */}
+            {qr.answerType === 'photo' && (
+              <div className={`w-full rounded-2xl border-2 border-dashed ${isNightMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-300 bg-slate-50'} flex flex-col items-center justify-center p-8 mb-4`}>
+                <div className={`w-14 h-14 rounded-full ${isNightMode ? 'bg-teal-500/20 text-teal-400' : 'bg-teal-100 text-teal-600'} flex items-center justify-center mb-3`}>
+                  <Camera className="w-7 h-7" />
+                </div>
+                <label className={`mt-2 px-6 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all ${quizAnswer ? 'bg-emerald-500 text-white' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200')}`}>
+                  {quizAnswer ? 'Прикачено!' : 'Сликај / Избери фото'}
+                  <input type="file" accept="image/*" capture="environment" className="hidden"
+                    onChange={() => setQuizAnswer('uploaded')} />
+                </label>
+              </div>
+            )}
+
+            {quizFeedback === 'error' && (
+              <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-semibold">Погрешен одговор, обиди се повторно!</span>
+              </div>
+            )}
+            {quizFeedback === 'success' && (
+              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center gap-2 mb-4 border border-emerald-100">
+                <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
+                <span className="font-bold text-lg">{qrAutoGrade ? `Точно! +${stage.points}` : `Зачувано! +${stage.points}`}</span>
+              </div>
+            )}
+
+            <div className="mt-auto">
+              {!qr.requiredToAdvance && quizFeedback === 'error' ? (
+                <button
+                  type="button"
+                  onClick={() => handleNextStage()}
+                  className="w-full py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+                >
+                  Продолжи →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={submitQrTask}
+                  disabled={!qrCanSubmit || quizFeedback === 'success'}
+                  className="w-full py-4 bg-teal-600 disabled:bg-slate-300 hover:bg-teal-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-teal-600/20 active:scale-95 transition-all"
+                >
+                  Потврди
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      }
+
       case 'MISSION':
         const isAudio = (stage as any).submissionType === 'audio';
         
@@ -1023,7 +1204,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         );
 
       case 'SWITCH': {
-        const sw = stage as import('../../types').SwitchStage;
+        const sw = stage as import('shared').SwitchStage;
         if (!sw.showPathsToPlayer) {
           return (
             <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">

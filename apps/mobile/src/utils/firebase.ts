@@ -1,5 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeAuth } from 'firebase/auth';
+// @ts-ignore getReactNativePersistence е типизиран само во RN bundle-от (firebase-js-sdk#9316)
+import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 

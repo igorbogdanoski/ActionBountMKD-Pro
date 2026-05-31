@@ -28,7 +28,7 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 // ─── Stage type icons ─────────────────────────────────────────────────────────
 const STAGE_ICONS: Record<string, string> = {
   INFO: '📖', QUIZ: '❓', FIND_SPOT: '📍', MISSION: '📷',
-  SCAN_CODE: '📱', SURVEY: '📝', TOURNAMENT: '🏆', SWITCH: '🔀',
+  SCAN_CODE: '📱', QR_TASK: '🎯', SURVEY: '📝', TOURNAMENT: '🏆', SWITCH: '🔀',
 };
 
 export default function QuestPlayerScreen() {
@@ -59,6 +59,7 @@ export default function QuestPlayerScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [qrTaskScanned, setQrTaskScanned] = useState(false);
 
   // Mission
   const [photoUri, setPhotoUri] = useState<string|null>(null);
@@ -113,6 +114,7 @@ export default function QuestPlayerScreen() {
     setQuizAnswer('');
     setScanned(false);
     setScanError('');
+    setQrTaskScanned(false);
     setPhotoUri(null);
     setSurveyAnswers({});
   }, [currentIdx]);
@@ -220,12 +222,51 @@ export default function QuestPlayerScreen() {
     if (scanned) return;
     setScanned(true);
     if (data === stage.targetQrPayload) {
-      setPoints(p => p + (stage.points || 0));
-      showToast(`✅ QR скениран! +${stage.points || 0} поени`);
-      setTimeout(() => handleNext(), 1000);
+      if (stage.type === 'QR_TASK') {
+        // Reveal the task; points are awarded after the answer
+        setScanError('');
+        setQrTaskScanned(true);
+        showToast('✅ QR скениран! Реши ја задачата.');
+      } else {
+        setPoints(p => p + (stage.points || 0));
+        showToast(`✅ QR скениран! +${stage.points || 0} поени`);
+        setTimeout(() => handleNext(), 1000);
+      }
     } else {
       setScanError('Погрешен QR код. Обиди се повторно.');
       setTimeout(() => { setScanError(''); setScanned(false); }, 2000);
+    }
+  };
+
+  const submitQrTask = () => {
+    const answerType: string = stage.answerType || 'text';
+    const correct = String(stage.correctAnswer ?? '').trim();
+    const autoGrade = answerType !== 'photo' && !!correct;
+
+    if (answerType === 'photo') {
+      if (!photoUri) { showToast('Прикачи фотографија'); return; }
+    } else if (!quizAnswer.trim()) {
+      showToast('Внеси одговор'); return;
+    }
+
+    // Manual grading (photo or no correct answer set) — always accept
+    if (!autoGrade) {
+      setPoints(p => p + (stage.points || 0));
+      setQuizFeedback('success');
+      showToast(`✅ Зачувано! +${stage.points || 0} поени`);
+      setTimeout(() => handleNext(), 1200);
+      return;
+    }
+
+    const isCorrect = quizAnswer.trim().toLowerCase() === correct.toLowerCase();
+    if (isCorrect) {
+      setPoints(p => p + (stage.points || 0));
+      setQuizFeedback('success');
+      showToast(`✅ Точно! +${stage.points || 0} поени`);
+      setTimeout(() => handleNext(), 1500);
+    } else {
+      setQuizFeedback('error');
+      showToast('❌ Погрешно. Обиди се повторно.');
     }
   };
 
@@ -447,6 +488,143 @@ export default function QuestPlayerScreen() {
           </View>
         );
 
+      // ─── QR_TASK ───────────────────────────────────────────────────────────
+      case 'QR_TASK': {
+        // Phase 1 — scan the QR code to reveal the task
+        if (!qrTaskScanned) {
+          if (!cameraPermission?.granted) {
+            return (
+              <View>
+                <Text style={styles.stageDesc}>{stage.description}</Text>
+                <Text style={styles.permText}>Потребна е дозвола за камера</Text>
+                <TouchableOpacity style={styles.btnPrimary} onPress={requestCameraPermission}>
+                  <Text style={styles.btnPrimaryText}>Дозволи камера</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          }
+          return (
+            <View>
+              <Text style={styles.stageDesc}>{stage.description}</Text>
+              {scanError ? <Text style={styles.errorText}>{scanError}</Text> : null}
+              <View style={styles.qrContainer}>
+                <CameraView
+                  style={styles.qrCamera}
+                  facing="back"
+                  onBarcodeScanned={scanned ? undefined : handleQRScan}
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                />
+                <View style={styles.qrOverlay}>
+                  <View style={styles.qrFrame} />
+                </View>
+              </View>
+              <Text style={styles.qrHint}>Скенирај го QR кодот за да ја откриеш задачата</Text>
+            </View>
+          );
+        }
+
+        // Phase 2 (photo answer) — fullscreen camera capture
+        if (stage.answerType === 'photo' && showCamera) {
+          if (!cameraPermission?.granted) {
+            requestCameraPermission();
+            return null;
+          }
+          return (
+            <View style={styles.fullCamera}>
+              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={cameraFacing} />
+              <View style={styles.cameraControls}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCamera(false)}>
+                  <Text style={styles.cancelBtnText}>✕</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.captureBtn} onPress={takePhoto}>
+                  <View style={styles.captureBtnInner} />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => setCameraFacing(f => f === 'back' ? 'front' : 'back')}>
+                  <Text style={styles.cancelBtnText}>🔄</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        }
+
+        // Phase 2 — answer the revealed task
+        return (
+          <View>
+            <Text style={styles.qrScannedBadge}>✅ QR скениран</Text>
+            {stage.taskTitle ? <Text style={styles.qrTaskTitle}>{stage.taskTitle}</Text> : null}
+            {stage.taskMediaUrl ? (
+              <Image source={{ uri: stage.taskMediaUrl }} style={styles.media} resizeMode="cover" />
+            ) : null}
+            <Text style={styles.stageDesc}>{stage.taskDescription || stage.description}</Text>
+
+            {/* Multiple choice */}
+            {stage.answerType === 'multiple_choice' && (
+              <View style={styles.optionsContainer}>
+                {(stage.options || []).map((opt: string, i: number) => (
+                  <TouchableOpacity
+                    key={i}
+                    style={[
+                      styles.optionBtn,
+                      quizAnswer === opt && styles.optionSelected,
+                      quizFeedback === 'success' && quizAnswer === opt && styles.optionCorrect,
+                      quizFeedback === 'error' && quizAnswer === opt && styles.optionWrong,
+                    ]}
+                    onPress={() => !quizFeedback && setQuizAnswer(opt)}
+                    disabled={!!quizFeedback}
+                  >
+                    <Text style={[styles.optionText, quizAnswer === opt && styles.optionTextSelected]}>
+                      {String.fromCharCode(65 + i)}. {opt}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            {/* Free text */}
+            {stage.answerType === 'text' && (
+              <TextInput
+                style={[styles.input, quizFeedback === 'error' && styles.inputError]}
+                placeholder="Внеси го твојот одговор..."
+                value={quizAnswer}
+                onChangeText={setQuizAnswer}
+                editable={quizFeedback !== 'success'}
+                multiline
+              />
+            )}
+
+            {/* Photo proof */}
+            {stage.answerType === 'photo' && (
+              photoUri ? (
+                <View>
+                  <Image source={{ uri: photoUri }} style={styles.previewPhoto} resizeMode="cover" />
+                  {quizFeedback !== 'success' && (
+                    <TouchableOpacity style={styles.btnSecondary} onPress={() => setPhotoUri(null)}>
+                      <Text style={styles.btnSecondaryText}>Слика повторно</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                <TouchableOpacity style={styles.photoBtn} onPress={() => setShowCamera(true)}>
+                  <Text style={styles.photoBtnIcon}>📷</Text>
+                  <Text style={styles.photoBtnText}>Сликај</Text>
+                </TouchableOpacity>
+              )
+            )}
+
+            {quizFeedback !== 'success' && (
+              <TouchableOpacity style={styles.btnPrimary} onPress={submitQrTask}>
+                <Text style={styles.btnPrimaryText}>Потврди →</Text>
+              </TouchableOpacity>
+            )}
+            {quizFeedback === 'error' && !stage.requiredToAdvance && (
+              <TouchableOpacity style={styles.btnSecondary} onPress={() => handleNext()}>
+                <Text style={styles.btnSecondaryText}>Прескокни →</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+      }
+
       // ─── MISSION ───────────────────────────────────────────────────────────
       case 'MISSION':
         if (showCamera) {
@@ -456,7 +634,7 @@ export default function QuestPlayerScreen() {
           }
           return (
             <View style={styles.fullCamera}>
-              <CameraView ref={cameraRef} style={StyleSheet.absoluteFillObject} facing={cameraFacing} />
+              <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={cameraFacing} />
               <View style={styles.cameraControls}>
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowCamera(false)}>
                   <Text style={styles.cancelBtnText}>✕</Text>
@@ -777,10 +955,12 @@ const styles = StyleSheet.create({
   // QR
   qrContainer: { width: '100%', aspectRatio: 1, borderRadius: 20, overflow: 'hidden', marginBottom: 12 },
   qrCamera: { flex: 1 },
-  qrOverlay: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center' },
+  qrOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center' },
   qrFrame: { width: 200, height: 200, borderWidth: 3, borderColor: '#4f46e5', borderRadius: 16, backgroundColor: 'transparent' },
   qrHint: { textAlign: 'center', color: '#9ca3af', fontSize: 13 },
   permText: { color: '#6b7280', textAlign: 'center', marginBottom: 12, fontSize: 14 },
+  qrScannedBadge: { alignSelf: 'flex-start', color: '#0d9488', backgroundColor: '#ccfbf1', fontSize: 12, fontWeight: '700', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, overflow: 'hidden', marginBottom: 12 },
+  qrTaskTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 12 },
 
   // Mission
   photoBtn: { height: 160, backgroundColor: '#eef2ff', borderRadius: 20, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#c7d2fe', borderStyle: 'dashed', marginBottom: 16 },

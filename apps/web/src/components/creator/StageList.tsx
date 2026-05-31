@@ -1,4 +1,4 @@
-import { Plus, GripVertical, Copy, Trash2, MapPin, HelpCircle, Camera, QrCode, ListTodo, AlignLeft, Trophy, GitBranch } from 'lucide-react';
+import { Plus, GripVertical, Copy, Trash2, MapPin, HelpCircle, Camera, QrCode, ScanLine, ListTodo, AlignLeft, Trophy, GitBranch } from 'lucide-react';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
   useSensor, useSensors, type DragEndEvent,
@@ -21,6 +21,7 @@ export const STAGE_TYPE_CONFIG: Record<StageType, {
   MISSION:    { label: 'Мисија',      icon: Camera,      color: 'text-purple-400',  bg: 'bg-purple-500/10' },
   FIND_SPOT:  { label: 'GPS Место',   icon: MapPin,      color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
   SCAN_CODE:  { label: 'QR Код',      icon: QrCode,      color: 'text-cyan-400',    bg: 'bg-cyan-500/10' },
+  QR_TASK:    { label: 'QR Задача',   icon: ScanLine,    color: 'text-teal-400',    bg: 'bg-teal-500/10' },
   SURVEY:     { label: 'Анкета',      icon: ListTodo,    color: 'text-rose-400',    bg: 'bg-rose-500/10' },
   TOURNAMENT: { label: 'Турнир',      icon: Trophy,      color: 'text-orange-400',  bg: 'bg-orange-500/10' },
   SWITCH:     { label: 'Услов/Гранка', icon: GitBranch,  color: 'text-violet-400',  bg: 'bg-violet-500/10' },

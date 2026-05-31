@@ -1,10 +1,11 @@
-import type { Stage, InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, SurveyStage, TournamentStage, SwitchStage } from 'shared';
+import type { Stage, InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, QrTaskStage, SurveyStage, TournamentStage, SwitchStage } from 'shared';
 import { STAGE_TYPE_CONFIG } from './StageList';
 import { InfoStageEditor }    from './stages/InfoStageEditor';
 import { QuizStageEditor }    from './stages/QuizStageEditor';
 import { MissionStageEditor } from './stages/MissionStageEditor';
 import { FindSpotEditor }     from './stages/FindSpotEditor';
 import { ScanCodeEditor }     from './stages/ScanCodeEditor';
+import { QrTaskEditor }       from './stages/QrTaskEditor';
 import { SurveyEditor }       from './stages/SurveyEditor';
 import { TournamentEditor }   from './stages/TournamentEditor';
 import { SwitchStageEditor }  from './stages/SwitchStageEditor';
@@ -41,6 +42,7 @@ export function StageEditor({ stage, allStages, onChange }: Props) {
         {stage.type === 'MISSION'    && <MissionStageEditor stage={stage as MissionStage}    onChange={u => onChange(u)} />}
         {stage.type === 'FIND_SPOT'  && <FindSpotEditor     stage={stage as FindSpotStage}   onChange={u => onChange(u)} />}
         {stage.type === 'SCAN_CODE'  && <ScanCodeEditor     stage={stage as ScanCodeStage}   onChange={u => onChange(u)} />}
+        {stage.type === 'QR_TASK'    && <QrTaskEditor       stage={stage as QrTaskStage}     onChange={u => onChange(u)} />}
         {stage.type === 'SURVEY'     && <SurveyEditor       stage={stage as SurveyStage}     onChange={u => onChange(u)} />}
         {stage.type === 'TOURNAMENT' && <TournamentEditor   stage={stage as TournamentStage} onChange={u => onChange(u)} />}
         {stage.type === 'SWITCH'     && <SwitchStageEditor  stage={stage as SwitchStage} allStages={allStages} onChange={u => onChange(u as Partial<Stage>)} />}

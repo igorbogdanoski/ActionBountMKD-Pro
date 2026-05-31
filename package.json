@@ -7,8 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspaces",
-    "build": "npm run build --workspaces"
+    "dev": "npm run dev --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
   },
   "dependencies": {
     "is-arrayish": "^0.3.4"

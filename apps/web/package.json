@@ -39,7 +39,6 @@
     "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.16.0",
     "recharts": "^3.8.1",
-    "shared": "^1.0.0",
     "vite": "^6.2.3",
     "zod": "^4.4.3"
   },

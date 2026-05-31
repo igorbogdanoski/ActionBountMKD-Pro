@@ -412,6 +412,71 @@ if ('serviceWorker' in navigator) {
 
 ---
 
+## ✅ Phase 5B — Native App (Expo / React Native) — Статус: IN PROGRESS
+
+**Commit:** `df9def3` + uncommitted работа
+
+### Извршено (2026-05-31)
+- Expo SDK 56 + monorepo setup (`apps/mobile/`)
+- Firebase Auth (email/лозинка) + AsyncStorage persistence
+- EAS Build (development APK) — инсталиран и тестиран на Samsung SM-A556B
+- Tab навигација: Почетна / Играј / Поставки
+- Dashboard — листа на авантури од Firestore (свои + јавни)
+- **Quest Player** — целосен порт на MobilePlayer:
+  - INFO, QUIZ (multiple choice + free text + timer), FIND_SPOT (GPS),
+    MISSION (фото + flip камера), SCAN_CODE (QR), SURVEY, SWITCH
+  - Resume напредок (AsyncStorage)
+  - Прескокни копче за тест режим
+  - Зачувување резултат во Firestore
+- metro.config.js за monorepo module resolution
+- Firestore rules: `isPublic` поддршка за `isPublic == true`
+
+### Тестирано (end-to-end, 2026-05-31)
+| Етапа | Статус | Забелешка |
+|-------|--------|-----------|
+| INFO | ✅ | Слика + текст се прикажуваат |
+| QUIZ (free text) | ✅ | Прескокни при погрешен одговор |
+| MISSION (фото) | ✅ | Flip камера работи |
+| FIND_SPOT (GPS) | ✅ | Прескокни (тест) при далечина |
+| SCAN_CODE (QR) | ✅ | Прескокни достапно |
+| SURVEY | ✅ | surveyQuestions поле читано |
+| Финиш екран | ✅ | Поени + зачуван резултат |
+
+---
+
+## 🐛 Познати пропусти — за корекција (Phase 5B cleanup)
+
+### Мобилна апликација
+
+| # | Пропуст | Приоритет | Тест |
+|---|---------|-----------|------|
+| M1 | Google Sign-In не работи (`expo-auth-session` не поддржува Android без androidClientId) | 🔴 Висок | Unit: auth flow; E2E: логин со Google |
+| M2 | Завршена авантура се прикажува исто на dashboard (нема "Продолжи" vs "Играј") | 🟡 Среден | E2E: заврши авантура → провери статус на картичка |
+| M3 | Поставки иконата (⚙) плови погрешно на dashboard | 🟢 Низок | UI snapshot тест |
+| M4 | "Quest/квест" наместо "Авантура" на неколку места | 🟢 Низок | String search тест |
+| M5 | `SafeAreaView` deprecation warning | 🟢 Низок | Замени со `react-native-safe-area-context` |
+| M6 | Нема индикатор за завршени авантури на картичка | 🟡 Среден | E2E: заврши → ✅ значка видлива |
+| M7 | QUIZ multiple choice: нема Прескокни при погрешен избор | 🟡 Среден | Unit: quizFeedback error + requiredToAdvance |
+| M8 | Нема offline поддршка (AsyncStorage quest cache) | 🔴 Висок | E2E: offline режим |
+| M9 | Push notifications не се имплементирани | 🟡 Среден | - |
+
+### Веб апликација
+
+| # | Пропуст | Приоритет | Тест |
+|---|---------|-----------|------|
+| W1 | "Уреди" копче отвора само Брзо уредување наместо `/creator?id=` | 🔴 Висок | E2E: клик Уреди → правилна навигација |
+| W2 | Нема email/лозинка логин (само Google OAuth) | 🟡 Среден | E2E: login со live.com |
+| W3 | GPS координати треба рачно внесување — нема "Земи моја локација" | 🟡 Среден | E2E: клик → auto-fill координати |
+| W4 | `isPublic` поле не се пишува при креирање (само `visibility`) | 🟡 Среден | Unit: креирај квест → провери isPublic |
+| W5 | Терминот "квест" наместо "авантура" на некои места | 🟢 Низок | String consistency тест |
+
+### Следен EAS Build (треба за):
+- `@react-native-google-signin/google-signin` (M1)
+- `expo-notifications` (M9)
+- `react-native-maps` (подобрување на FIND_SPOT)
+
+---
+
 ## 📅 Phase 5 — Enterprise & Scale
 
 ### 5B — Native App (Expo / React Native)

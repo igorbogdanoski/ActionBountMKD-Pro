@@ -29,7 +29,8 @@ service cloud.firestore {
     }
 
     function isPublic(resource) {
-      return resource.data.visibility == 'public';
+      return resource.data.visibility == 'public'
+          || resource.data.isPublic == true;
     }
 
     // Hardcoded admin UIDs — update in src/config/payment.ts AND here

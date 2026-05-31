@@ -9,5 +9,8 @@
   "scripts": {
     "dev": "npm run dev --workspaces",
     "build": "npm run build --workspaces"
+  },
+  "dependencies": {
+    "is-arrayish": "^0.3.4"
   }
 }

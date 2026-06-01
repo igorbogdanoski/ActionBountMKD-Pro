@@ -1,4 +1,6 @@
 import { saveTemplate } from './storage';
+import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { db } from './firebase';
 import type { Template } from 'shared';
 
 function uid() {
@@ -707,7 +709,472 @@ export const SEED_TEMPLATES: Template[] = [
       },
     ],
   },
+
+  // ─── 10. Скопје низ вековите — Туристичка тура ───────────────────────────────
+  {
+    id: 'seed-skopje-tura',
+    title: 'Скопје низ вековите — Туристичка тура',
+    subject: 'Историја',
+    grade: 'Сите',
+    description: 'Водена прошетка низ старото градско јадро на Скопје. Идеална за туристички агенции, екскурзии и семејства — открива знаменитости преку GPS точки и QR станици.',
+    difficulty: 'лесно',
+    estimatedMinutes: 75,
+    playMode: 'singleplayer',
+    tags: ['туризам', 'скопје', 'историја', 'екскурзија', 'gps', 'qr'],
+    stageCount: 6,
+    rating: 4.9,
+    ratingCount: 21,
+    usageCount: 88,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: true,
+    isPro: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Добредојдовте во Скопје!',
+        description: '🏛️ Започнуваме незаборавна прошетка низ историјата на главниот град.\n\nЌе поминеме покрај Камен Мост, Старата чаршија и Калето. На секоја станица ве чека задача.\n\n👟 Подгответе удобни чевли и полна батерија — авантурата трае околу 75 минути.',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'FIND_SPOT', order: 1, points: 50,
+        title: 'Камен Мост',
+        description: 'Упатете се кон **Камен Мост** — симболот на градот што го поврзува плоштадот со Старата чаршија. Кога ќе застанете на средината на мостот, продолжете.',
+        targetCoordinates: { latitude: 41.9962, longitude: 21.4318 },
+        radiusMeters: 25,
+        showMode: 'map',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 2, points: 100,
+        title: 'QR Станица — Старата чаршија',
+        description: 'Влезете во Старата чаршија и пронајдете го QR кодот залепен кај информативната табла на влезот.',
+        targetQrPayload: 'SKOPJE_CARSIJA_001',
+        taskTitle: 'Срцето на старото Скопје',
+        taskDescription: 'Старата скопска чаршија е една од најголемите на Балканот.\n\n**Од кој историски период потекнува чаршијата?**',
+        answerType: 'multiple_choice',
+        options: ['Римско време', 'Османлиско време', 'Византиско време', 'Современо доба'],
+        correctAnswer: 'Османлиско време',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'QUIZ', order: 3, points: 80,
+        title: 'Тврдината Кале',
+        description: 'Погледнете нагоре кон тврдината **Кале**, која доминира над градот. На кој хидрографски објект е изградена таа за да го штити градот?',
+        questionType: 'multiple_choice',
+        options: ['Реката Вардар', 'Охридско Езеро', 'Реката Треска', 'Морето'],
+        correctAnswer: 'Реката Вардар',
+        hintText: 'Истата река тече под Камен Мост.',
+        requiredToAdvance: false,
+        timeLimitSeconds: 45,
+      },
+      {
+        id: uid(), type: 'MISSION', order: 4, points: 100,
+        title: 'Фотографирај го твоето Скопје',
+        description: '📸 Направете една фотографија од омилената знаменитост што ја видовте денес.\n\nНека биде кадар достоен за разгледница!',
+        submissionType: 'photo',
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 5, points: 20,
+        title: 'Впечатоци од турата',
+        description: 'Поделете ги вашите впечатоци:',
+        surveyQuestions: [
+          'Која знаменитост ви остави најголем впечаток?',
+          'Дали научивте нешто ново за историјата на Скопје?',
+          'Дали би ја препорачале оваа тура на пријател?',
+        ],
+      },
+    ],
+  },
+
+  // ─── 11. City Quest — English in the City (Јазици) ───────────────────────────
+  {
+    id: 'seed-angliski-grad',
+    title: 'City Quest — Англиски низ градот',
+    subject: 'Јазици',
+    grade: '6-8 одд.',
+    description: 'Забавна авантура за вежбање англиски вокабулар на отворено. Учениците читаат натписи, бараат предмети и одговараат на англиски.',
+    difficulty: 'средно',
+    estimatedMinutes: 40,
+    playMode: 'singleplayer',
+    tags: ['англиски', 'вокабулар', 'јазици', 'теренска', 'qr'],
+    stageCount: 5,
+    rating: 4.7,
+    ratingCount: 9,
+    usageCount: 27,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: false,
+    isPro: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Welcome to the City Quest!',
+        description: '🇬🇧 Today you become a word detective!\n\nYou will explore your surroundings and answer in **English**. Read the signs around you and have fun.\n\nLet\'s start! 🚀',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'QUIZ', order: 1, points: 80,
+        title: 'Find the colours',
+        description: 'Погледнете околу себе. **What colour is the sky right now?** Напишете го одговорот на англиски.',
+        questionType: 'free_text',
+        correctAnswer: 'blue',
+        hintText: 'On a clear day it is "blue".',
+        requiredToAdvance: false,
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 2, points: 100,
+        title: 'QR Station — Shopping words',
+        description: 'Find the QR code near the shop / school entrance and scan it.',
+        targetQrPayload: 'ENGLISH_SHOP_001',
+        taskTitle: 'At the shop',
+        taskDescription: 'You want to buy something to read.\n\n**What is the English word for a place where you buy books?**',
+        answerType: 'multiple_choice',
+        options: ['Bakery', 'Bookshop', 'Pharmacy', 'Butcher'],
+        correctAnswer: 'Bookshop',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'MISSION', order: 3, points: 100,
+        title: 'Spell it with objects',
+        description: '📸 Find objects around you whose English names start with the letters **C - A - T**.\n\nTake a photo of all three together (e.g. Car, Apple, Tree).',
+        submissionType: 'photo',
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 4, points: 20,
+        title: 'Reflection',
+        description: 'Think about today\'s quest:',
+        surveyQuestions: [
+          'Which new English word did you learn today?',
+          'Was it easier to remember words outside the classroom?',
+          'Which task was the most fun?',
+        ],
+      },
+    ],
+  },
+
+  // ─── 12. Дрвја и растенија во паркот (Природни науки / Биологија) ─────────────
+  {
+    id: 'seed-biologija-park',
+    title: 'Дрвја и растенија во паркот',
+    subject: 'Природни науки',
+    grade: '5-6 одд.',
+    description: 'Истражувачка авантура на отворено за препознавање дрвја, листови и растенија. Поттикнува љубов кон природата и набљудување.',
+    difficulty: 'лесно',
+    estimatedMinutes: 45,
+    playMode: 'singleplayer',
+    tags: ['биологија', 'природа', 'растенија', 'парк', 'екологија'],
+    stageCount: 5,
+    rating: 4.8,
+    ratingCount: 11,
+    usageCount: 31,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: false,
+    isPro: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Мали природонаучници',
+        description: '🌳 Денес паркот е наша лабораторија!\n\nЌе набљудуваме дрвја, листови и тревки, и ќе откриеме како растенијата дишат и растат.\n\n🔍 Отворете ги очите и започнете да истражувате!',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'MISSION', order: 1, points: 100,
+        title: 'Колекција на листови',
+        description: '🍃 Пронајдете три различни видови листови (различни форми).\n\n📸 Подредете ги еден до друг и фотографирајте ги.',
+        submissionType: 'photo',
+      },
+      {
+        id: uid(), type: 'QUIZ', order: 2, points: 80,
+        title: 'Како дишат растенијата?',
+        description: 'Растенијата „дишат" преку ситни отвори на листовите. Кој гас го испуштаат растенијата дење, а ни е неопходен за живот?',
+        questionType: 'multiple_choice',
+        options: ['Јаглерод диоксид', 'Кислород', 'Азот', 'Водена пареа'],
+        correctAnswer: 'Кислород',
+        hintText: 'Истиот гас што ние го вдишуваме.',
+        requiredToAdvance: false,
+        timeLimitSeconds: 45,
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 3, points: 100,
+        title: 'QR Станица — Делови на растението',
+        description: 'Пронајдете го QR кодот кај информативната табла во паркот и скенирајте го.',
+        targetQrPayload: 'BIO_PLANT_001',
+        taskTitle: 'Кореновиот систем',
+        taskDescription: 'Секое растение има дел кој го држи во земјата и ги црпи водата и хранливите материи.\n\n**Како се вика тој дел на растението?**',
+        answerType: 'text',
+        correctAnswer: 'корен',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 4, points: 20,
+        title: 'Размислување за природата',
+        description: 'Заврши со размислување:',
+        surveyQuestions: [
+          'Кое растение или дрво ти беше најинтересно денес?',
+          'Зошто е важно да ги чуваме зелените површини?',
+          'Што ново научи за тоа како растат растенијата?',
+        ],
+      },
+    ],
+  },
+
+  // ─── 13. Физика на игралиштето (Природни науки / Физика) ─────────────────────
+  {
+    id: 'seed-fizika-igraliste',
+    title: 'Физика на игралиштето',
+    subject: 'Природни науки',
+    grade: '7-8 одд.',
+    description: 'Учениците ги откриваат законите на физиката преку лулашки, тобогани и вртелешки. Сила, гравитација и движење — во акција!',
+    difficulty: 'средно',
+    estimatedMinutes: 45,
+    playMode: 'singleplayer',
+    tags: ['физика', 'сила', 'гравитација', 'движење', 'игралиште'],
+    stageCount: 5,
+    rating: 4.9,
+    ratingCount: 8,
+    usageCount: 19,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: false,
+    isPro: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Игралиштето е лабораторија',
+        description: '⚙️ Секоја лулашка, тобоган и вртелешка крие физика!\n\nДенес ќе ги откриеме гравитацијата, силата на триење и претворањето на енергијата — додека се забавуваме.\n\nДа започнеме! 🛝',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'QUIZ', order: 1, points: 80,
+        title: 'Лулашка и нишало',
+        description: 'Лулашката се однесува како нишало. Што ќе се случи со времето на едно нишање ако детето седне (центарот на маса се спушти подолу)?',
+        questionType: 'multiple_choice',
+        options: ['Ќе се нишка побрзо', 'Ќе се нишка побавно', 'Нема да се промени', 'Ќе застане'],
+        correctAnswer: 'Ќе се нишка побавно',
+        hintText: 'Подолго нишало = подолг период на нишање.',
+        requiredToAdvance: false,
+        timeLimitSeconds: 60,
+      },
+      {
+        id: uid(), type: 'MISSION', order: 2, points: 100,
+        title: 'Тобоган и триење',
+        description: '🎥 Снимете кратко видео како предмет (на пр. чанта или другар) се лизга по тобоганот.\n\nНабљудувајте: каде забрзува, а каде успорува поради триење.',
+        submissionType: 'video',
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 3, points: 120,
+        title: 'QR Станица — Гравитација',
+        description: 'Пронајдете го QR кодот кај вртелешката и скенирајте го.',
+        targetQrPayload: 'PHYS_GRAVITY_001',
+        taskTitle: 'Слободен пад',
+        taskDescription: 'Галилео докажал дека сите тела паѓаат со исто забрзување (ако нема воздушен отпор).\n\n**Колку приближно изнесува гравитациското забрзување на Земјата (m/s²)?**',
+        answerType: 'multiple_choice',
+        options: ['1.6', '9.8', '20', '100'],
+        correctAnswer: '9.8',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 4, points: 20,
+        title: 'Физика околу нас',
+        description: 'Размисли:',
+        surveyQuestions: [
+          'Каде на игралиштето ја почувствува силата на гравитацијата најсилно?',
+          'Како триењето ни помага, а како ни пречи?',
+          'Што ново откри за движењето денес?',
+        ],
+      },
+    ],
+  },
+
+  // ─── 14. Авантура во музеј (Уметност) ────────────────────────────────────────
+  {
+    id: 'seed-muzej-umetnost',
+    title: 'Авантура во музеј',
+    subject: 'Уметност',
+    grade: 'Сите',
+    description: 'Интерактивна тура низ музеј или галерија со QR станици кај експонатите. Совршена за училишни посети и туристички групи.',
+    difficulty: 'лесно',
+    estimatedMinutes: 50,
+    playMode: 'singleplayer',
+    tags: ['уметност', 'музеј', 'галерија', 'култура', 'туризам', 'qr'],
+    stageCount: 5,
+    rating: 4.8,
+    ratingCount: 7,
+    usageCount: 22,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: true,
+    isPro: false,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Добредојдовте во музејот',
+        description: '🖼️ Музејот е полн со приказни што чекаат да бидат откриени!\n\nСледете ги QR станиците кај експонатите, набљудувајте внимателно и одговарајте на задачите.\n\n🤫 Не заборавајте — во музеј зборуваме тивко!',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 1, points: 100,
+        title: 'QR Станица — Боите на сликата',
+        description: 'Пронајдете го QR кодот до првата изложена слика и скенирајте го.',
+        targetQrPayload: 'MUSEUM_PAINT_001',
+        taskTitle: 'Топли и студени бои',
+        taskDescription: 'Уметниците користат бои за да предизвикаат чувства.\n\n**Која од овие бои се смета за „топла" боја?**',
+        answerType: 'multiple_choice',
+        options: ['Сина', 'Зелена', 'Црвена', 'Виолетова'],
+        correctAnswer: 'Црвена',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'MISSION', order: 2, points: 100,
+        title: 'Омилен експонат',
+        description: '📸 Прошетајте низ една сала и фотографирајте го експонатот што најмногу ви се допадна.\n\n(Проверете дали е дозволено фотографирање!)',
+        submissionType: 'photo',
+      },
+      {
+        id: uid(), type: 'QUIZ', order: 3, points: 80,
+        title: 'Видови уметност',
+        description: 'Уметничко дело создадено со длето од камен или дрво, кое има три димензии, се нарекува:',
+        questionType: 'multiple_choice',
+        options: ['Слика', 'Скулптура', 'Фотографија', 'Цртеж'],
+        correctAnswer: 'Скулптура',
+        hintText: 'Можеш да ја обиколиш од сите страни.',
+        requiredToAdvance: false,
+        timeLimitSeconds: 45,
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 4, points: 20,
+        title: 'Впечатоци од музејот',
+        description: 'Поделете ги мислите:',
+        surveyQuestions: [
+          'Кој експонат ве воодушеви најмногу и зошто?',
+          'Какво чувство ви предизвикаа боите на омилената слика?',
+          'Дали би сакале повторно да посетите музеј?',
+        ],
+      },
+    ],
+  },
+
+  // ─── 15. Тимбилдинг авантура за компании (Останато) ──────────────────────────
+  {
+    id: 'seed-teambuilding-firma',
+    title: 'Тимбилдинг авантура за компании',
+    subject: 'Останато',
+    grade: 'Возрасни',
+    description: 'Динамична тимска авантура на отворено за фирми и организации. Соработка, комуникација и забава — идеална за team-building настани.',
+    difficulty: 'средно',
+    estimatedMinutes: 90,
+    playMode: 'multiplayer',
+    tags: ['тимбилдинг', 'компании', 'соработка', 'возрасни', 'qr'],
+    stageCount: 6,
+    rating: 5.0,
+    ratingCount: 5,
+    usageCount: 16,
+    authorId: 'admin',
+    authorName: 'Авантура тим',
+    status: 'approved',
+    isPublic: true,
+    isFeatured: true,
+    isPro: true,
+    createdAt: NOW,
+    updatedAt: NOW,
+    stages: [
+      {
+        id: uid(), type: 'INFO', order: 0, points: 0,
+        title: 'Добредојдовте, тимови!',
+        description: '🤝 Денес не сте колеги — вие сте екипа на авантуристи!\n\nЌе решавате загатки, ќе наоѓате локации и ќе соработувате. Победува тимот со најмногу поени и најдобар тимски дух.\n\nГотови? Да започнеме! 🏁',
+        mediaType: 'none',
+      },
+      {
+        id: uid(), type: 'TOURNAMENT', order: 1, points: 0,
+        title: 'Формирање тимови',
+        description: 'Поделете се во тимови. Секој тим избира име и лидер. Запишете го името кога ќе бидете подготвени.',
+        teamCount: 4,
+        taskDescription: 'Секој тим смислува име и боен поклич за 5 минути.',
+        judgingMode: 'manual',
+      },
+      {
+        id: uid(), type: 'FIND_SPOT', order: 2, points: 80,
+        title: 'Прва точка за средба',
+        description: 'Сите тимови треба да стигнат до договорената почетна локација. Кога ќе бидете таму, продолжете.',
+        targetCoordinates: { latitude: 41.9981, longitude: 21.4254 },
+        radiusMeters: 30,
+        showMode: 'map',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'QR_TASK', order: 3, points: 120,
+        title: 'QR Загатка — Шифра на тимот',
+        description: 'Пронајдете го скриениот QR код на локацијата и скенирајте го заедно.',
+        targetQrPayload: 'TEAM_RIDDLE_001',
+        taskTitle: 'Заедничка одлука',
+        taskDescription: 'Загатка: „Растам кога ме делиш, а исчезнувам кога ме кријам. Што сум јас?"\n\n**Договорете се во тимот и впишете го одговорот.**',
+        answerType: 'text',
+        correctAnswer: 'знаење',
+        requiredToAdvance: true,
+      },
+      {
+        id: uid(), type: 'MISSION', order: 4, points: 100,
+        title: 'Тимска фотографија',
+        description: '📸 Целиот тим креира креативна групна фотографија со договорена поза или формација.\n\nКреативноста носи бонус поени!',
+        submissionType: 'photo',
+      },
+      {
+        id: uid(), type: 'SURVEY', order: 5, points: 20,
+        title: 'Рефлексија на тимот',
+        description: 'Разговарајте и одговорете:',
+        surveyQuestions: [
+          'Која беше клучната одлука што го зближи тимот?',
+          'Кој член се истакна со неочекувана улога?',
+          'Што ќе пренесете од оваа авантура на работното место?',
+        ],
+      },
+    ],
+  },
 ];
+
+/**
+ * Брише стари дупликати на seed шаблоните што останале од порано
+ * (кога ID-то беше случајно генерирано). Ги препознава по наслов:
+ * секој документ со наслов на seed-шаблон, но со ID различно од стабилното, се брише.
+ */
+export async function cleanupDuplicateTemplates(onProgress?: (msg: string) => void): Promise<number> {
+  const seedTitleToId = new Map(SEED_TEMPLATES.map(t => [t.title, t.id]));
+  const snap = await getDocs(collection(db, 'templates'));
+  let deleted = 0;
+  for (const d of snap.docs) {
+    const data = d.data() as Template;
+    const stableId = seedTitleToId.get(data.title);
+    if (stableId && d.id !== stableId) {
+      onProgress?.(`Бришам дупликат: "${data.title}"`);
+      await deleteDoc(doc(db, 'templates', d.id));
+      deleted++;
+    }
+  }
+  onProgress?.(deleted > 0 ? `✓ Избришани ${deleted} дупликати.` : '✓ Нема дупликати за бришење.');
+  return deleted;
+}
 
 export async function runSeedTemplates(onProgress?: (msg: string) => void): Promise<void> {
   for (const template of SEED_TEMPLATES) {

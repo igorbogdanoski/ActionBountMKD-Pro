@@ -4,7 +4,7 @@ import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2, Sprou
 import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
 import { getPendingTemplates, saveTemplate } from '../../utils/storage';
-import { runSeedTemplates } from '../../utils/seedTemplates';
+import { runSeedTemplates, cleanupDuplicateTemplates } from '../../utils/seedTemplates';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import { SEO } from '../SEO';
 import type { PlanId, Template } from 'shared';
@@ -42,11 +42,23 @@ function TemplatesTab() {
   useEffect(() => { loadTemplates(); }, []);
 
   const handleSeed = async () => {
-    if (!window.confirm('Ова ќе додаде/освежи 9 стандардни шаблони во Firestore. Продолжи?')) return;
+    if (!window.confirm('Ова ќе додаде/освежи 15 стандардни шаблони во Firestore. Продолжи?')) return;
     setSeeding(true);
     setSeedLog([]);
     try {
       await runSeedTemplates(msg => setSeedLog(prev => [...prev, msg]));
+    } catch (e) {
+      setSeedLog(prev => [...prev, `⚠ Грешка: ${e}`]);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  const handleCleanup = async () => {
+    if (!window.confirm('Ова ќе ги избрише старите дупликати на стандардните шаблони (по наслов). Продолжи?')) return;
+    setSeeding(true);
+    try {
+      await cleanupDuplicateTemplates(msg => setSeedLog(prev => [...prev, msg]));
     } catch (e) {
       setSeedLog(prev => [...prev, `⚠ Грешка: ${e}`]);
     } finally {
@@ -96,18 +108,29 @@ function TemplatesTab() {
               <Sprout className="w-4 h-4" /> Seed стандардни шаблони
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Додај 9 готови образовни шаблони (Математика, Природни науки, Историја, Јазици, Физичко, Уметност) — вклучувајќи QR_TASK демоа — директно во библиотеката. Безбедно за повторно кликање (не прави дупликати).
+              Додај 15 готови образовни шаблони (Математика, Природни науки, Историја, Јазици, Уметност, Туризам, Тимбилдинг) — вклучувајќи QR_TASK демоа — директно во библиотеката. Безбедно за повторно кликање (не прави дупликати).
             </p>
           </div>
-          <button
-            type="button"
-            onClick={handleSeed}
-            disabled={seeding}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors shrink-0"
-          >
-            {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sprout className="w-3.5 h-3.5" />}
-            {seeding ? 'Се seed-ира...' : 'Seed шаблони'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleCleanup}
+              disabled={seeding}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-200 text-xs font-bold transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              Исчисти дупликати
+            </button>
+            <button
+              type="button"
+              onClick={handleSeed}
+              disabled={seeding}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+            >
+              {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sprout className="w-3.5 h-3.5" />}
+              {seeding ? 'Се обработува...' : 'Seed шаблони'}
+            </button>
+          </div>
         </div>
         {seedLog.length > 0 && (
           <div className="rounded-lg bg-slate-900 border border-slate-800 p-3 space-y-1 max-h-32 overflow-y-auto">

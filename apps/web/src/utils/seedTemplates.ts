@@ -16,7 +16,7 @@ const LEKTIRA_SURVEY_ID   = uid();
 export const SEED_TEMPLATES: Template[] = [
   // ─── 1. Синтетичка геометрија во реалниот простор ────────────────────────────
   {
-    id: uid(),
+    id: 'seed-geometrija-8',
     title: 'Синтетичка геометрија во реалниот простор',
     subject: 'Математика',
     grade: '8 одд.',
@@ -85,7 +85,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 2. Процентополис — QR Квест ─────────────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-procentopolis-7',
     title: 'Процентополис — QR Авантура',
     subject: 'Математика',
     grade: '7 одд.',
@@ -156,7 +156,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 3. Лов на екосистеми — Биологија ────────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-ekosistemi-6',
     title: 'Лов на екосистеми — Биологија',
     subject: 'Природни науки',
     grade: '6 одд.',
@@ -232,7 +232,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 4. Дигитален Времеплов — Историја ───────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-vremeplov-9',
     title: 'Дигитален Времеплов — Историја',
     subject: 'Историја',
     grade: '9 одд.',
@@ -304,7 +304,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 5. Интерактивна Лектира — Storytelling со SWITCH ───────────────────────
   {
-    id: uid(),
+    id: 'seed-lektira-79',
     title: 'Интерактивна Лектира — Раскажувај приказна!',
     subject: 'Јазици',
     grade: '7-9 одд.',
@@ -391,7 +391,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 6. Ориентационо трчање и здравје ────────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-orientacisko',
     title: 'Ориентационо трчање и здравје',
     subject: 'Физичко',
     grade: 'Сите',
@@ -481,7 +481,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 7. Камен Мост — QR Историска Авантура (демо за QR_TASK) ─────────────────
   {
-    id: uid(),
+    id: 'seed-kamen-most',
     title: 'Камен Мост — QR Историска Авантура',
     subject: 'Историја',
     grade: '8-9 одд.',
@@ -557,7 +557,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 8. Бои и Емоции — Уметничка Авантура ────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-boi-emocii',
     title: 'Бои и Емоции — Уметничка Авантура',
     subject: 'Уметност',
     grade: '5-7 одд.',
@@ -628,7 +628,7 @@ export const SEED_TEMPLATES: Template[] = [
 
   // ─── 9. Тајните на Водата — Хемија ───────────────────────────────────────────
   {
-    id: uid(),
+    id: 'seed-voda-hemija',
     title: 'Тајните на Водата — Хемија',
     subject: 'Природни науки',
     grade: '7-8 одд.',

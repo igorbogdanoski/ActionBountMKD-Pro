@@ -42,7 +42,7 @@ function TemplatesTab() {
   useEffect(() => { loadTemplates(); }, []);
 
   const handleSeed = async () => {
-    if (!window.confirm('Ова ќе додаде 6 стандардни шаблони во Firestore. Продолжи?')) return;
+    if (!window.confirm('Ова ќе додаде/освежи 9 стандардни шаблони во Firestore. Продолжи?')) return;
     setSeeding(true);
     setSeedLog([]);
     try {
@@ -96,7 +96,7 @@ function TemplatesTab() {
               <Sprout className="w-4 h-4" /> Seed стандардни шаблони
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              Додај 6 готови образовни шаблони (Математика, Природни науки, Историја, Јазици, Физичко) директно во библиотеката.
+              Додај 9 готови образовни шаблони (Математика, Природни науки, Историја, Јазици, Физичко, Уметност) — вклучувајќи QR_TASK демоа — директно во библиотеката. Безбедно за повторно кликање (не прави дупликати).
             </p>
           </div>
           <button

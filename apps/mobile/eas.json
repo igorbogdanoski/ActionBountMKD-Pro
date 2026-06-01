@@ -6,13 +6,52 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDeg2axQffj-sTbWqlkw6mlW6UJQUAfV5o",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "avanturakreator.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "avanturakreator",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "avanturakreator.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "215702727273",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:215702727273:web:d9c40532c2b52ff72b10f8",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-1RM48ZK6LJ",
+        "EXPO_PUBLIC_APP_URL": "https://avantura.mismath.net",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "215702727273-4oeqchtig78qifrdnopcouj0lrpivev7.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "215702727273-evussgiqvg44uo9nk3sav9639mj4cq97.apps.googleusercontent.com"
+      }
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDeg2axQffj-sTbWqlkw6mlW6UJQUAfV5o",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "avanturakreator.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "avanturakreator",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "avanturakreator.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "215702727273",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:215702727273:web:d9c40532c2b52ff72b10f8",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-1RM48ZK6LJ",
+        "EXPO_PUBLIC_APP_URL": "https://avantura.mismath.net",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "215702727273-4oeqchtig78qifrdnopcouj0lrpivev7.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "215702727273-evussgiqvg44uo9nk3sav9639mj4cq97.apps.googleusercontent.com"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDeg2axQffj-sTbWqlkw6mlW6UJQUAfV5o",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "avanturakreator.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "avanturakreator",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "avanturakreator.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "215702727273",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:215702727273:web:d9c40532c2b52ff72b10f8",
+        "EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID": "G-1RM48ZK6LJ",
+        "EXPO_PUBLIC_APP_URL": "https://avantura.mismath.net",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "215702727273-4oeqchtig78qifrdnopcouj0lrpivev7.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "215702727273-evussgiqvg44uo9nk3sav9639mj4cq97.apps.googleusercontent.com"
+      }
     }
   },
   "submit": {

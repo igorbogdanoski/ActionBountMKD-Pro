@@ -1,4 +1,4 @@
-import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, ArrowRight, Play, PenTool } from 'lucide-react';
+import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, Play, PenTool, Sparkles, GraduationCap, Landmark, Share2, Heart, Puzzle } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -18,6 +18,7 @@ export function LandingPage() {
   const navigate = useNavigate();
   const onNavigateToCreator = () => navigate('/creator');
   const onNavigateToPlayerDemo = () => navigate('/play/demo-quest-123');
+  const scrollToHowItWorks = () => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
   const [textIndex, setTextIndex] = useState(0);
 
   useEffect(() => {
@@ -66,68 +67,165 @@ export function LandingPage() {
 
       {/* Hero Section */}
       <section className="relative bg-[#2a2522] text-white overflow-hidden" style={{ backgroundImage: 'radial-gradient(circle at center, #3d322c 0%, #2a2522 100%)' }}>
-        {/* Background bokeh effect placeholder */}
+        {/* Background bokeh effect */}
         <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
            <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-amber-500 rounded-full mix-blend-screen filter blur-[80px]"></div>
            <div className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-[#e66c4f] rounded-full mix-blend-screen filter blur-[100px]"></div>
         </div>
-        
-        <div className="relative z-20 max-w-5xl mx-auto px-6 py-24 md:py-36 flex flex-col items-center text-center h-[50vh] min-h-[400px] justify-center">
-          
-          <div className="absolute left-10 md:left-20 top-1/4 animate-bounce z-30 hidden md:block" style={{ animationDuration: '3s' }}>
-             <div className="bg-white rounded-full p-2 shadow-2xl relative w-32 h-32 flex items-center justify-center -rotate-12 border-4 border-white">
-                <span className="absolute -top-3 -rotate-6 text-[10px] font-black uppercase text-black">Get in touch!</span>
-                <div className="bg-slate-200 w-full h-full rounded-full overflow-hidden flex items-center justify-center">
-                   <Users className="w-12 h-12 text-slate-400" />
+
+        <div className="relative z-20 max-w-7xl mx-auto px-6 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+
+          {/* LEFT: Value proposition */}
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+            className="lg:col-span-7 text-center lg:text-left space-y-6"
+          >
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#e66c4f]/15 text-[#e66c4f] tracking-wide uppercase border border-[#e66c4f]/30">
+              <Sparkles className="w-3.5 h-3.5" /> Нова димензија на учење
+            </span>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
+              Претворете го светот во{' '}
+              <span className="font-cursive text-[#e66c4f] font-normal pr-1">училница во живо</span>
+            </h1>
+
+            <div className="h-9 relative">
+              <AnimatePresence mode="popLayout">
+                <motion.p
+                  key={textIndex}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -14 }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
+                  className="absolute w-full text-base md:text-lg font-semibold text-amber-300/90 text-center lg:text-left"
+                >
+                  {ROTATING_TEXTS[textIndex]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+
+            <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              Креирајте интерактивни GPS авантури, квизови на отворено и потраги по богатство за само неколку минути. Подигнете го ангажманот на учениците преку гемификација и теренска настава.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+              <button
+                onClick={user ? onNavigateToCreator : signInWithGoogle}
+                className="w-full sm:w-auto px-8 py-4 text-white bg-[#e66c4f] hover:bg-[#d65b3f] font-bold rounded-xl shadow-lg hover:shadow-[#e66c4f]/30 transform hover:-translate-y-0.5 transition-all duration-200"
+              >
+                Започни бесплатно
+              </button>
+              <button
+                onClick={scrollToHowItWorks}
+                className="w-full sm:w-auto px-8 py-4 text-white bg-white/5 hover:bg-white/10 font-semibold rounded-xl border border-white/15 transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                <Play className="w-5 h-5 text-[#e66c4f]" />
+                Погледни како работи
+              </button>
+            </div>
+
+            {/* Social proof */}
+            <div className="pt-4 flex items-center justify-center lg:justify-start gap-3 text-xs text-slate-400">
+              <div className="flex -space-x-2">
+                <span className="w-6 h-6 rounded-full bg-[#e66c4f] border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">М</span>
+                <span className="w-6 h-6 rounded-full bg-amber-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Е</span>
+                <span className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Т</span>
+              </div>
+              <span>Креирано од македонски едукатори за теренска настава</span>
+            </div>
+          </motion.div>
+
+          {/* RIGHT: Interactive phone mockup */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: 'easeOut' }}
+            className="lg:col-span-5 flex justify-center"
+          >
+            <div className="relative w-[280px] h-[560px] bg-slate-900 rounded-[40px] p-3 shadow-2xl border-4 border-slate-800">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 h-4 w-28 bg-slate-900 rounded-b-2xl z-30"></div>
+
+              <div className="relative w-full h-full bg-white rounded-[32px] overflow-hidden flex flex-col justify-between p-4 select-none">
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-xs font-bold text-slate-400">Патека: „Стар Прилеп“</span>
+                  <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">3 / 5 Точки</span>
                 </div>
-                <span className="absolute -bottom-2 text-2xl font-cursive text-black pt-1">А</span>
-             </div>
+
+                {/* Simulated map */}
+                <div className="my-3 bg-slate-50 rounded-2xl p-3 border border-slate-100 relative overflow-hidden h-56">
+                  <div className="absolute inset-0 bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] opacity-60"></div>
+                  <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 z-10">
+                    <span className="absolute inline-flex h-8 w-8 rounded-full bg-[#e66c4f] opacity-75 animate-ping"></span>
+                    <div className="relative bg-[#e66c4f] text-white p-2 rounded-full shadow-lg">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl border border-slate-200/60 z-20">
+                    <p className="text-[11px] font-bold text-slate-800">Следна станица: Саат Кула</p>
+                    <p className="text-[9px] text-slate-500">Потребна е точност од 15 метри.</p>
+                  </div>
+                </div>
+
+                {/* Current task */}
+                <div className="space-y-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
+                  <h4 className="text-xs font-bold text-[#2a2522]">Загатка бр. 3:</h4>
+                  <p className="text-[11px] text-slate-700 leading-normal">
+                    Која година е изградена Саат кулата во Прилеп? Внеси го точниот одговор за да го отклучиш следниот клуч.
+                  </p>
+                  <input type="text" placeholder="Внеси година..." disabled className="w-full text-[10px] p-2 rounded-md border border-slate-200 bg-white" />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* How it works — Три чекори */}
+      <section id="how-it-works" className="py-20 px-6 scroll-mt-20">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">Три чекори до авантура</h2>
+          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">Без комплициран софтвер — од идеја до игра на терен за неколку минути.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <Step number="01" icon={MapPin} title="Мапирај" text="Постави точки на GPS мапата низ градот или училишниот двор." />
+            <Step number="02" icon={Puzzle} title="Предизвикај" text="Додај загатки, прашања или задачи кои треба да се решат на локацијата." />
+            <Step number="03" icon={Share2} title="Активирај" text="Сподели код или QR со учениците и гледај како истражуваат во реално време." />
           </div>
 
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-[8rem] text-[#e66c4f] font-cursive drop-shadow-md mb-8 tracking-wide transform -rotate-1">
-            Авантура
-          </h1>
-          
-          <div className="h-20 flex items-center justify-center w-full relative">
-            <AnimatePresence mode="popLayout">
-              <motion.p
-                key={textIndex}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeInOut" }}
-                className="absolute w-full text-lg sm:text-xl md:text-3xl lg:text-5xl font-light text-slate-200 text-center px-4"
-              >
-                {ROTATING_TEXTS[textIndex]}
-              </motion.p>
-            </AnimatePresence>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14">
+            <button onClick={onNavigateToCreator} className="px-7 py-3.5 bg-[#2a2522] text-white font-bold rounded-xl hover:bg-[#3d322c] transition-colors flex items-center gap-2">
+              <PenTool className="w-5 h-5 text-[#e66c4f]" /> Креирај Авантура
+            </button>
+            <button onClick={onNavigateToPlayerDemo} className="px-7 py-3.5 bg-white text-slate-700 font-semibold rounded-xl border border-slate-300 hover:bg-slate-50 transition-colors flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-emerald-600" /> Пробај демо игра
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Sub-hero Section */}
-      <section className="py-16 px-6 max-w-6xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-light text-slate-700 mb-16 max-w-4xl mx-auto leading-tight">
-          Креирајте мобилни авантури и интерактивни водичи за паметни телефони и таблети
-        </h2>
+      {/* За кого е ова */}
+      <section className="py-20 px-6 bg-[#dbe3cc]">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-14">За кого е ова?</h2>
 
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
-          <div className="bg-white p-4 rounded-xl shadow-xl border-4 border-slate-800 w-full max-w-sm relative cursor-pointer hover:scale-105 transition-transform" onClick={onNavigateToCreator}>
-            <div className="aspect-[4/3] bg-slate-100 rounded flex items-center justify-center relative overflow-hidden">
-               <div className="absolute inset-0 bg-indigo-900/10"></div>
-               <PenTool className="w-16 h-16 text-indigo-600 mb-4" />
-               <span className="absolute bottom-4 font-bold text-indigo-900">Креатор на Авантури</span>
-            </div>
-          </div>
-
-          <ArrowRight className="hidden md:block w-12 h-12 text-slate-400" />
-
-          <div className="bg-white p-4 rounded-3xl shadow-xl w-full max-w-[240px] border-8 border-slate-800 relative cursor-pointer hover:scale-105 transition-transform" onClick={onNavigateToPlayerDemo}>
-            <div className="aspect-[9/19] bg-slate-100 rounded-xl flex items-center justify-center relative overflow-hidden">
-               <div className="absolute inset-0 bg-emerald-900/10"></div>
-               <Smartphone className="w-12 h-12 text-emerald-600 mb-4" />
-               <span className="absolute bottom-8 font-bold text-emerald-900 text-center px-4">Мобилен Играч<br/><span className="text-xs text-emerald-600 font-normal">Скенирај и играј</span></span>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Audience
+              icon={GraduationCap}
+              title="За наставници"
+              text="Зголемете го ангажманот на часот по историја, биологија или географија преку теренска настава и гемификација."
+            />
+            <Audience
+              icon={Heart}
+              title="За родители"
+              text="Организирајте уникатни родендени и семејни прошетки кои ги одвојуваат децата од екраните и ги носат надвор."
+            />
+            <Audience
+              icon={Landmark}
+              title="За општини и музеи"
+              text="Дигитализирајте ги туристичките тури и направете ги локалните знаменитости интерактивни и незаборавни."
+            />
           </div>
         </div>
       </section>
@@ -188,6 +286,31 @@ function Feature({ icon: Icon, label }: { icon: any, label: string }) {
     <div className="flex items-center gap-4 text-slate-700">
       <Icon className="w-6 h-6 text-slate-800" />
       <span className="text-lg font-light">{label}</span>
+    </div>
+  );
+}
+
+function Step({ number, icon: Icon, title, text }: { number: string, icon: any, title: string, text: string }) {
+  return (
+    <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center md:text-left">
+      <span className="absolute -top-4 right-5 text-5xl font-extrabold text-[#e66c4f]/15 select-none">{number}</span>
+      <div className="w-12 h-12 rounded-xl bg-[#e66c4f]/10 flex items-center justify-center mb-4 mx-auto md:mx-0">
+        <Icon className="w-6 h-6 text-[#e66c4f]" />
+      </div>
+      <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
+      <p className="text-sm text-slate-500 leading-relaxed">{text}</p>
+    </div>
+  );
+}
+
+function Audience({ icon: Icon, title, text }: { icon: any, title: string, text: string }) {
+  return (
+    <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-200/60 hover:-translate-y-1 transition-transform">
+      <div className="w-14 h-14 rounded-2xl bg-[#2a2522] flex items-center justify-center mb-5">
+        <Icon className="w-7 h-7 text-[#e66c4f]" />
+      </div>
+      <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
+      <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
     </div>
   );
 }

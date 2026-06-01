@@ -30,6 +30,27 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
 });
 
+function isMobileDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  // Phones, tablets and iPadOS (which reports as "Macintosh" but is touch).
+  return /Android|iPhone|iPad|iPod|Mobi|Windows Phone/i.test(ua)
+    || (/Macintosh/.test(ua) && typeof navigator.maxTouchPoints === 'number' && navigator.maxTouchPoints > 1);
+}
+
+function describeAuthError(code?: string): string {
+  switch (code) {
+    case 'auth/unauthorized-domain':
+      return 'Овој домен не е авторизиран во Firebase. Додај го во Authentication → Settings → Authorized domains.';
+    case 'auth/network-request-failed':
+      return 'Нема интернет конекција. Провери ја мрежата и обиди се повторно.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Веќе постои сметка со овој е-маил, но со друг начин на најава.';
+    default:
+      return 'Најавата не успеа. Обиди се повторно.';
+  }
+}
+
 async function ensureProfile(firebaseUser: User): Promise<UserProfile | null> {
   try {
     let p = await getUserProfile(firebaseUser.uid);
@@ -58,8 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Handle redirect result (fires after signInWithRedirect returns)
-    getRedirectResult(auth).catch(() => {});
+    // Handle redirect result (fires after signInWithRedirect returns).
+    // Surface a helpful message if the redirect sign-in failed.
+    getRedirectResult(auth).catch((err) => {
+      const code = (err as { code?: string }).code;
+      if (code) setAuthError(describeAuthError(code));
+    });
 
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
@@ -75,8 +100,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     setAuthError(null);
+
+    // Mobile browsers handle OAuth popups poorly (blocked / broken on iOS Safari
+    // & Android Chrome) → go straight to a full-page redirect.
+    if (isMobileDevice()) {
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        setAuthError(describeAuthError(code));
+        console.error('[Auth] redirect signIn error', err);
+      }
+      return;
+    }
+
     try {
-      // Try popup first — fastest UX
+      // Desktop: try popup first — fastest UX
       await signInWithPopup(auth, provider);
     } catch (err) {
       const code = (err as { code?: string }).code;
@@ -93,12 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (code === 'auth/network-request-failed') {
-        setAuthError('Нема интернет конекција. Провери ја мрежата и обиди се повторно.');
-        return;
-      }
-
-      setAuthError('Најавата не успеа. Обиди се повторно.');
+      setAuthError(describeAuthError(code));
       console.error('[Auth] signIn error', err);
     }
   };

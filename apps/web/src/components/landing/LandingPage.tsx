@@ -1,4 +1,4 @@
-import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, Play, PenTool, Sparkles, GraduationCap, Landmark, Share2, Heart, Puzzle } from 'lucide-react';
+import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, Play, PenTool, Sparkles, GraduationCap, Landmark, Share2, Heart, Puzzle, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -230,6 +230,35 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Social proof — изјави */}
+      <section className="py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">Што велат едукаторите</h2>
+          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">Искуства од наставници и водичи кои веќе ја пробаа Авантура на терен.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Testimonial
+              quote="Моите ученици за прв пат беа навистина возбудени за час по историја. Трчаа од точка до точка за да ја решат следната загатка!"
+              name="Марија С."
+              role="Наставник по историја"
+              initial="М"
+            />
+            <Testimonial
+              quote="За половина час направив математички лов низ училишниот двор. Децата воопшто не сфатија дека всушност решаваат задачи."
+              name="Елена П."
+              role="Наставник по математика"
+              initial="Е"
+            />
+            <Testimonial
+              quote="Ја искористивме за туристичка тура низ стариот дел на градот. QR кодовите на знаменитостите оставија одличен впечаток кај посетителите."
+              name="Тони К."
+              role="Туристички водич"
+              initial="Т"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section className="py-20 bg-[#dbe3cc] px-6">
         <div className="max-w-6xl mx-auto">
@@ -276,8 +305,86 @@ export function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <section className="py-20 px-6">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-12">Често поставувани прашања</h2>
+          <div className="space-y-3">
+            <FaqItem
+              q="Дали е потребен постојан интернет?"
+              a="Не. Авантура има офлајн режим — играчот може да ја преземе авантурата додека има Wi-Fi, а потоа GPS-от и загатките работат и без интернет. Одговорите се синхронизираат автоматски штом ќе се врати конекцијата."
+            />
+            <FaqItem
+              q="Дали работи на iPhone и Android?"
+              a="Да. Авантура работи во прелистувач на секој модерен телефон (iPhone и Android), а достапна е и како инсталирана апликација за Android."
+            />
+            <FaqItem
+              q="Дали е бесплатно?"
+              a="Да, можете да започнете бесплатно и да креирате авантура без плаќање. За поголеми групи и напредни функции имаме платени планови."
+            />
+            <FaqItem
+              q="Дали ученикот мора да инсталира апликација?"
+              a="Не мора. Доволно е да го отвори линкот или да скенира QR код за да започне со играње директно во прелистувач."
+            />
+            <FaqItem
+              q="Дали можам да користам QR кодови наместо GPS?"
+              a="Да. За внатрешни простори како музеи и училишта, точките може да се отклучуваат со скенирање на QR код наместо со GPS локација."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-20 px-6 bg-[#2a2522] text-white text-center">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <h2 className="text-3xl md:text-4xl font-extrabold">Подготвени за прва авантура?</h2>
+          <p className="text-slate-300">Креирајте ја вашата прва GPS авантура за неколку минути — бесплатно.</p>
+          <button
+            onClick={user ? onNavigateToCreator : signInWithGoogle}
+            className="px-8 py-4 bg-[#e66c4f] hover:bg-[#d65b3f] text-white font-bold rounded-xl shadow-lg transition-colors"
+          >
+            Започни бесплатно
+          </button>
+        </div>
+      </section>
     </div>
     </>
+  );
+}
+
+function Testimonial({ quote, name, role, initial }: { quote: string, name: string, role: string, initial: string }) {
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 flex flex-col">
+      <div className="text-[#e66c4f] text-5xl font-cursive leading-none mb-2">“</div>
+      <p className="text-sm text-slate-600 leading-relaxed flex-1">{quote}</p>
+      <div className="flex items-center gap-3 mt-5 pt-4 border-t border-slate-100">
+        <span className="w-10 h-10 rounded-full bg-[#2a2522] text-[#e66c4f] flex items-center justify-center font-bold">{initial}</span>
+        <div>
+          <p className="text-sm font-bold text-slate-800">{name}</p>
+          <p className="text-xs text-slate-500">{role}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FaqItem({ q, a }: { q: string, a: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="bg-white rounded-xl border border-slate-200/70 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+      >
+        <span className="font-semibold text-slate-800">{q}</span>
+        <ChevronDown className={`w-5 h-5 text-[#e66c4f] shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="px-5 pb-5 -mt-1 text-sm text-slate-600 leading-relaxed">{a}</div>
+      )}
+    </div>
   );
 }
 

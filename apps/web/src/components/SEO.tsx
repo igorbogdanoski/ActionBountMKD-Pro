@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async';
 
 const APP_NAME = 'АвантураКреатор';
-const APP_URL = import.meta.env.VITE_APP_URL || 'https://avanturakreator.mk';
+const APP_URL = import.meta.env.VITE_APP_URL || 'https://avantura.mismath.net';
 const DEFAULT_IMAGE = `${APP_URL}/og-image.png`;
 
 interface SEOProps {

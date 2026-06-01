@@ -7,4 +7,4 @@ Disallow: /results
 Disallow: /settings
 Disallow: /admin
 
-Sitemap: https://actionbound.mk/sitemap.xml
+Sitemap: https://avantura.mismath.net/sitemap.xml

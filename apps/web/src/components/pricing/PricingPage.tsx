@@ -112,7 +112,7 @@ export function PricingPage() {
 
   const handleCta = async (plan: Plan) => {
     if (plan.id === 'enterprise') {
-      window.location.href = 'mailto:contact@avanturakreator.mk?subject=Enterprise план';
+      window.location.href = 'mailto:igor.bogdanoski@mismath.net?subject=Enterprise план';
       return;
     }
     if (plan.id === 'free') {
@@ -225,8 +225,8 @@ export function PricingPage() {
             </p>
             <p className="text-slate-600 text-sm mt-2">
               Прашања?{' '}
-              <a href="mailto:contact@avanturakreator.mk" className="text-indigo-400 hover:underline">
-                contact@avanturakreator.mk
+              <a href="mailto:igor.bogdanoski@mismath.net" className="text-indigo-400 hover:underline">
+                igor.bogdanoski@mismath.net
               </a>
             </p>
           </div>

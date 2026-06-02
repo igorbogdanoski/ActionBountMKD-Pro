@@ -170,6 +170,12 @@ export async function getUserTheme(uid: string): Promise<UserSettings['theme']> 
   return 'dark';
 }
 
+export async function getUserSettings(uid: string): Promise<UserSettings | null> {
+  const snap = await getDoc(doc(db, USER_SETTINGS, uid));
+  if (!snap.exists()) return null;
+  return snap.data() as UserSettings;
+}
+
 // ─── USER PROFILES ────────────────────────────────────────────────────────────
 
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {

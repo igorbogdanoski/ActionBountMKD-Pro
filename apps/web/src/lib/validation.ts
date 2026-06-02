@@ -27,11 +27,20 @@ export const QuestMetaSchema = z.object({
   sequence:    z.enum(['fixed', 'random', 'selectable']),
 });
 
+export const InventoryItemSchema = z.object({
+  id: z.string().min(1).max(64),
+  name: safeString(80),
+  icon: z.string().max(32).optional().or(z.literal('')),
+  mediaUrl: z.string().url().max(500).optional().or(z.literal('')),
+});
+
 export const StageBaseSchema = z.object({
   title:       safeString(200),
   description: safeString(2000),
   points:      z.number().min(0).max(10_000).optional(),
   audioUrl:    z.string().url().max(500).optional().or(z.literal('')),
+  grantsItemId: z.string().max(64).optional().or(z.literal('')),
+  requiresItemId: z.string().max(64).optional().or(z.literal('')),
 });
 
 export const QuizStageSchema = StageBaseSchema.extend({

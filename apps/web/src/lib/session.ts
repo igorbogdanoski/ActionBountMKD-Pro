@@ -1,4 +1,4 @@
-import type { GameSession, SessionPlayer, LeaderboardEntry } from 'shared';
+import type { GameSession, SessionPlayer, LeaderboardEntry, SessionSosAlert } from 'shared';
 
 // ─── Join codes ──────────────────────────────────────────────────────────────
 // Unambiguous alphabet — no 0/O, 1/I/L to avoid player typos.
@@ -59,6 +59,49 @@ export function applyProgress(
   const next = players.slice();
   next[idx] = { ...next[idx], ...patch, updatedAt: now };
   return next;
+}
+
+export interface SessionLocationPatch {
+  lastLat: number;
+  lastLng: number;
+  lastSeenAt: string;
+}
+
+export function applyLocation(
+  players: SessionPlayer[],
+  uid: string,
+  patch: SessionLocationPatch,
+): SessionPlayer[] {
+  const idx = players.findIndex(p => p.uid === uid);
+  if (idx === -1) return players;
+  const next = players.slice();
+  next[idx] = {
+    ...next[idx],
+    lastLat: patch.lastLat,
+    lastLng: patch.lastLng,
+    lastSeenAt: patch.lastSeenAt,
+    updatedAt: patch.lastSeenAt,
+  };
+  return next;
+}
+
+export function clearLocations(players: SessionPlayer[]): SessionPlayer[] {
+  return players.map(({ lastLat: _lastLat, lastLng: _lastLng, lastSeenAt: _lastSeenAt, ...player }) => player);
+}
+
+export function raiseSos(
+  alerts: SessionSosAlert[],
+  nextAlert: SessionSosAlert,
+): SessionSosAlert[] {
+  const idx = alerts.findIndex(alert => alert.playerId === nextAlert.playerId);
+  if (idx === -1) return [nextAlert, ...alerts];
+  const next = alerts.slice();
+  next[idx] = nextAlert;
+  return next.sort((a, b) => b.ts.localeCompare(a.ts));
+}
+
+export function clearSos(alerts: SessionSosAlert[], playerId: string): SessionSosAlert[] {
+  return alerts.filter(alert => alert.playerId !== playerId);
 }
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────

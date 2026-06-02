@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Plus, Trash2, GitBranch } from 'lucide-react';
 import { Tabs, Field, Toggle, inputCls } from './shared';
-import type { SwitchStage, SwitchCondition, Stage } from 'shared';
+import type { SwitchStage, SwitchCondition, Stage, InventoryItem } from 'shared';
 
 interface Props {
   stage: SwitchStage;
   allStages: Stage[];
+  inventoryItems: InventoryItem[];
   onChange: (updates: Partial<SwitchStage>) => void;
 }
 
@@ -13,7 +14,7 @@ function makeConditionId() {
   try { return crypto.randomUUID(); } catch { return Math.random().toString(36).slice(2); }
 }
 
-export function SwitchStageEditor({ stage, allStages, onChange }: Props) {
+export function SwitchStageEditor({ stage, allStages, inventoryItems, onChange }: Props) {
   const [tab, setTab] = useState(0);
 
   const otherStages = allStages.filter(s => s.id !== stage.id);
@@ -125,6 +126,21 @@ export function SwitchStageEditor({ stage, allStages, onChange }: Props) {
                     ))}
                   </select>
                 </Field>
+
+                {inventoryItems.length > 0 && (
+                  <Field label="Потребен предмет" hint="Остави празно ако условот не зависи од предмет">
+                    <select
+                      className={inputCls}
+                      value={cond.requiredItemId ?? ''}
+                      onChange={e => updateCondition(cond.id, { requiredItemId: e.target.value || undefined })}
+                    >
+                      <option value="">— Без предмет —</option>
+                      {inventoryItems.map(item => (
+                        <option key={item.id} value={item.id}>{item.icon ? `${item.icon} ` : ''}{item.name}</option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
               </div>
             ))}
 

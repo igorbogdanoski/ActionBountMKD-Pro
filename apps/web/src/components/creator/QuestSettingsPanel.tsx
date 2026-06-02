@@ -17,6 +17,9 @@ const TABS = ['Профил', 'Карактеристики', 'Мапи', 'Оп�
 export function QuestSettingsPanel({ quest, onChange }: Props) {
   const [tab, setTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
+  const [inventoryName, setInventoryName] = useState('');
+  const [inventoryIcon, setInventoryIcon] = useState('');
+  const [inventoryMediaUrl, setInventoryMediaUrl] = useState('');
   const { planId } = usePlan();
   const canLeaderboard = planId === 'pro' || planId === 'enterprise';
 
@@ -30,6 +33,24 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
   };
 
   const removeTag = (t: string) => onChange('tags', (quest.tags ?? []).filter(x => x !== t));
+  const addInventoryItem = () => {
+    const name = inventoryName.trim();
+    const icon = inventoryIcon.trim();
+    if (!name) return;
+    const id = name
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[^a-z0-9а-шѓжчќљњѕј_-]+/gi, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 64) || `item-${Date.now()}`;
+    const items = quest.inventoryItems ?? [];
+    if (items.some(item => item.id === id)) return;
+    onChange('inventoryItems', [...items, { id, name, icon: icon || undefined, mediaUrl: inventoryMediaUrl.trim() || undefined }]);
+    setInventoryName('');
+    setInventoryIcon('');
+    setInventoryMediaUrl('');
+  };
+  const removeInventoryItem = (id: string) => onChange('inventoryItems', (quest.inventoryItems ?? []).filter(item => item.id !== id));
 
   return (
     <div className="h-full flex flex-col">
@@ -101,6 +122,38 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                   value={quest.playingTimeMinutes ?? ''}
                   placeholder="npr. 45"
                   onChange={e => onChange('playingTimeMinutes', Number(e.target.value) || undefined)} />
+              </Field>
+              <Field label="Инвентар" hint="Предмети што играчите ги собираат во текот на авантурата">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input type="text" className={inputCls} placeholder="Име на предмет"
+                      value={inventoryName}
+                      onChange={e => setInventoryName(e.target.value)} />
+                    <input type="text" className={inputCls} placeholder="Икона, напр. 🗝️"
+                      value={inventoryIcon}
+                      onChange={e => setInventoryIcon(e.target.value)} />
+                    <input type="url" className={inputCls} placeholder="Media URL (опц.)"
+                      value={inventoryMediaUrl}
+                      onChange={e => setInventoryMediaUrl(e.target.value)} />
+                  </div>
+                  <button type="button" onClick={addInventoryItem}
+                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors">
+                    Додај предмет
+                  </button>
+                  {(quest.inventoryItems ?? []).length > 0 && (
+                    <div className="space-y-2">
+                      {(quest.inventoryItems ?? []).map(item => (
+                        <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-slate-200 truncate">{item.icon ? `${item.icon} ` : ''}{item.name}</div>
+                            <div className="text-xs text-slate-500 truncate">{item.id}</div>
+                          </div>
+                          <button type="button" onClick={() => removeInventoryItem(item.id)} className="text-slate-500 hover:text-rose-400">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </Field>
             </>
           )}

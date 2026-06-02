@@ -15,6 +15,10 @@ import {
   upsertPlayer,
   removePlayer,
   applyProgress,
+  applyLocation,
+  clearLocations,
+  raiseSos,
+  clearSos,
   makeSessionPlayer,
   isSessionJoinable,
   clampBroadcastIndex,
@@ -55,6 +59,7 @@ export async function createSession(input: CreateSessionInput): Promise<GameSess
       questTitle: input.questTitle,
       hostId: input.hostId,
       players: [],
+      sosAlerts: [],
       status: 'waiting',
       mode: input.mode ?? 'free',
       currentStageIndex: 0,
@@ -141,9 +146,88 @@ export async function updateProgress(
   });
 }
 
+export async function updatePlayerLocation(
+  code: string,
+  uid: string,
+  location: { latitude: number; longitude: number },
+): Promise<void> {
+  const ref = doc(db, SESSIONS, normalizeJoinCode(code));
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const session = snap.data() as GameSession;
+    if (session.status !== 'active') return;
+
+    const ts = nowIso();
+    const players = applyLocation(session.players, uid, {
+      lastLat: location.latitude,
+      lastLng: location.longitude,
+      lastSeenAt: ts,
+    });
+
+    if (players === session.players) return;
+    tx.update(ref, { players, updatedAt: ts });
+  });
+}
+
+export async function raiseSosAlert(
+  code: string,
+  uid: string,
+  location: { latitude: number; longitude: number },
+): Promise<void> {
+  const ref = doc(db, SESSIONS, normalizeJoinCode(code));
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const session = snap.data() as GameSession;
+    if (session.status !== 'active') return;
+
+    const player = session.players.find(p => p.uid === uid);
+    if (!player) return;
+
+    const ts = nowIso();
+    const players = applyLocation(session.players, uid, {
+      lastLat: location.latitude,
+      lastLng: location.longitude,
+      lastSeenAt: ts,
+    });
+    const sosAlerts = raiseSos(session.sosAlerts ?? [], {
+      playerId: uid,
+      lat: location.latitude,
+      lng: location.longitude,
+      ts,
+    });
+
+    tx.update(ref, { players, sosAlerts, updatedAt: ts });
+  });
+}
+
+export async function clearSosAlert(code: string, playerId: string): Promise<void> {
+  const ref = doc(db, SESSIONS, normalizeJoinCode(code));
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const session = snap.data() as GameSession;
+    const sosAlerts = clearSos(session.sosAlerts ?? [], playerId);
+    if (sosAlerts.length === (session.sosAlerts ?? []).length) return;
+    tx.update(ref, { sosAlerts, updatedAt: nowIso() });
+  });
+}
+
 export async function setSessionStatus(code: string, status: GameSession['status']): Promise<void> {
   const ref = doc(db, SESSIONS, normalizeJoinCode(code));
-  await updateDoc(ref, { status, updatedAt: nowIso() });
+  if (status !== 'finished') {
+    await updateDoc(ref, { status, updatedAt: nowIso() });
+    return;
+  }
+
+  await runTransaction(db, async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return;
+    const session = snap.data() as GameSession;
+    const ts = nowIso();
+    tx.update(ref, { status, players: clearLocations(session.players), sosAlerts: [], updatedAt: ts });
+  });
 }
 
 /** Move the broadcast pointer (host-paced mode), clamped to valid bounds. */

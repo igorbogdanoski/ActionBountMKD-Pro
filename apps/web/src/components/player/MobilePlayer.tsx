@@ -16,6 +16,9 @@ import {
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
+import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
+import { trackEvent } from '../../utils/analytics';
+import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
 
 interface MobilePlayerProps {
   questId: string;
@@ -50,6 +53,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [points, setPoints] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [collectedItemIds, setCollectedItemIds] = useState<string[]>([]);
   
   // Specific stage states
   const [quizAnswer, setQuizAnswer] = useState<string>('');
@@ -71,6 +75,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [isNightMode, setIsNightMode] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
   const [showLiveMap, setShowLiveMap] = useState(false);
+  const [isSessionActive, setIsSessionActive] = useState(false);
+  const [sendingSos, setSendingSos] = useState(false);
   const [stageStartMark, setStageStartMark] = useState<number>(Date.now());
   const [stageDurations, setStageDurations] = useState<{stageId: string, durationSec: number}[]>([]);
 
@@ -85,6 +91,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [teamCode, setTeamCode] = useState('');
   const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
   const prevPointsRef = useRef(0);
+  const lastSessionLocationSentAtRef = useRef(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
   // Feedback — must be at top, never after early returns
@@ -132,6 +139,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     import('../../utils/sessionStorage')
       .then(({ subscribeSession }) => {
         unsub = subscribeSession(sessionCode, sess => {
+          setIsSessionActive(sess?.status === 'active');
           if (sess && sess.mode === 'broadcast' && sess.status === 'active') {
             setCurrentStageIndex(prev =>
               prev === sess.currentStageIndex ? prev : sess.currentStageIndex,
@@ -142,6 +150,48 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       .catch(() => {});
     return () => unsub();
   }, [sessionCode]);
+
+  // ─── Real-time session: send throttled GPS while the session is active ─────
+  useEffect(() => {
+    if (!sessionCode || !sessionPlayerId || !hasStarted || isFinished || !isSessionActive) return;
+    if (!('geolocation' in navigator)) return;
+    const activeStage = quest?.stages[currentStageIndex];
+
+    let cancelled = false;
+    let sendLocation: ((code: string, uid: string, location: { latitude: number; longitude: number }) => Promise<void>) | null = null;
+
+    import('../../utils/sessionStorage')
+      .then(mod => {
+        if (!cancelled) sendLocation = mod.updatePlayerLocation;
+      })
+      .catch(() => {});
+
+    const watchId = navigator.geolocation.watchPosition(
+      position => {
+        const now = Date.now();
+        if (now - lastSessionLocationSentAtRef.current < 10_000) return;
+        lastSessionLocationSentAtRef.current = now;
+
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+
+        if (activeStage?.type === 'FIND_SPOT') {
+          setCurrentLocation(location);
+        }
+
+        sendLocation?.(sessionCode, sessionPlayerId, location).catch(() => {});
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10_000, timeout: 20_000 },
+    );
+
+    return () => {
+      cancelled = true;
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [sessionCode, sessionPlayerId, hasStarted, isFinished, isSessionActive, quest, currentStageIndex]);
 
   useEffect(() => {
     if (points > prevPointsRef.current) {
@@ -226,13 +276,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   const stages = quest?.stages || [];
   const stage = stages[currentStageIndex];
+  const inventoryItems = quest?.inventoryItems ?? [];
+  const stageLocked = stage ? !canAccessStage(stage, collectedItemIds) : false;
+  const missingRequiredItem = inventoryItems.find(item => item.id === stage?.requiresItemId);
 
   // Auto-route SWITCH stages (when showPathsToPlayer is false)
   useEffect(() => {
     if (!stage || stage.type !== 'SWITCH') return;
     const sw = stage as import('shared').SwitchStage;
     if (sw.showPathsToPlayer) return;
-    const targetId = evaluateSwitch(sw, points, completedStageIds);
+    const targetId = evaluateSwitchTarget(sw, points, completedStageIds, collectedItemIds);
     if (targetId) {
       jumpToStageById(targetId);
     } else {
@@ -240,7 +293,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       const nextIdx = currentStageIndex + 1;
       if (nextIdx < stages.length) setCurrentStageIndex(nextIdx);
     }
-  }, [stage?.id]);
+  }, [stage?.id, points, completedStageIds, collectedItemIds, currentStageIndex, stages.length]);
 
   // Timer effect — syncs timeLeft when stage changes (state declared at top)
   useEffect(() => {
@@ -265,6 +318,36 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       }
     }
   }, [timeLeft, quizFeedback, timeExpired, stage]);
+
+  useEffect(() => {
+    const actorId = (sessionPlayerId ?? playerName.trim().toLowerCase()).trim();
+    if (!questId || !hasStarted || !actorId) return;
+    const saved = loadCollectedItemIds(questId, actorId);
+    setCollectedItemIds(normalizeCollectedItemIds(saved, inventoryItems));
+  }, [questId, sessionPlayerId, playerName, hasStarted, inventoryItems]);
+
+  useEffect(() => {
+    if (!hasStarted || !quest) return;
+    trackEvent('quest_start', {
+      quest_id: quest.id,
+      stage_count: quest.stages.length,
+      sequence: quest.sequence,
+      session_mode: Boolean(sessionCode),
+      preview: Boolean(isPreview),
+    });
+  }, [hasStarted, quest, sessionCode, isPreview]);
+
+  useEffect(() => {
+    const actorId = (sessionPlayerId ?? playerName.trim().toLowerCase()).trim();
+    if (!questId || !hasStarted || !actorId) return;
+    saveCollectedItemIds(questId, actorId, collectedItemIds);
+  }, [questId, sessionPlayerId, playerName, hasStarted, collectedItemIds]);
+
+  useEffect(() => {
+    const actorId = (sessionPlayerId ?? playerName.trim().toLowerCase()).trim();
+    if (!questId || !actorId || !isFinished) return;
+    clearCollectedItemIds(questId, actorId);
+  }, [questId, sessionPlayerId, playerName, isFinished]);
 
   // YouTube Helper
   const getYouTubeId = (url: string) => {
@@ -416,7 +499,57 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     }
   };
 
+  const handleSos = () => {
+    if (!sessionCode || !sessionPlayerId || sendingSos || !isSessionActive) return;
+    if (!('geolocation' in navigator)) {
+      const id = Math.random().toString();
+      setToasts(prev => [...prev, { id, text: '🆘 GPS не е достапен на овој уред.' }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+      return;
+    }
+
+    setSendingSos(true);
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setCurrentLocation(location);
+        import('../../utils/sessionStorage')
+          .then(({ raiseSosAlert }) => raiseSosAlert(sessionCode, sessionPlayerId, location))
+          .then(() => {
+            const id = Math.random().toString();
+            setToasts(prev => [...prev, { id, text: '🆘 SOS е испратен до наставникот.' }]);
+            setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+          })
+          .catch(() => {
+            const id = Math.random().toString();
+            setToasts(prev => [...prev, { id, text: 'Не успеа испраќањето на SOS. Обиди се повторно.' }]);
+            setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+          })
+          .finally(() => setSendingSos(false));
+      },
+      () => {
+        const id = Math.random().toString();
+        setToasts(prev => [...prev, { id, text: 'Не може да се земе моменталната GPS локација.' }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+        setSendingSos(false);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+    );
+  };
+
   const submitResult = (finalPoints: number, finalDurations: typeof stageDurations) => {
+    trackEvent('quest_finish', {
+      quest_id: questId,
+      points: finalPoints,
+      total_stages: stages.length,
+      completed_stages: completedStageIds.length + 1,
+      duration_sec: finalDurations.reduce((sum, item) => sum + item.durationSec, 0),
+      session_mode: Boolean(sessionCode),
+    });
+
     const result = {
       questId,
       playerName,
@@ -442,20 +575,19 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     if (idx !== -1) setCurrentStageIndex(idx);
   };
 
-  const evaluateSwitch = (switchStage: import('shared').SwitchStage, currentPoints: number, completed: string[]): string | null => {
-    for (const cond of switchStage.conditions) {
-      const minOk = cond.minPoints === undefined || currentPoints >= cond.minPoints;
-      const maxOk = cond.maxPoints === undefined || currentPoints <= cond.maxPoints;
-      const reqOk = !cond.requiredStageIds?.length || cond.requiredStageIds.every(id => completed.includes(id));
-      if (minOk && maxOk && reqOk && cond.targetStageId) return cond.targetStageId;
-    }
-    return switchStage.defaultTargetStageId || null;
-  };
-
   const handleNextStage = (overrideNextId?: string) => {
     const now = Date.now();
     const duration = Math.floor((now - stageStartMark) / 1000);
     setStageDurations(prev => [...prev, { stageId: stage.id, durationSec: duration }]);
+    trackEvent('stage_complete', {
+      quest_id: questId,
+      stage_id: stage.id,
+      stage_type: stage.type,
+      stage_order: currentStageIndex,
+      points_awarded: stage.points || 0,
+      duration_sec: duration,
+      session_mode: Boolean(sessionCode),
+    });
 
     setQuizAnswer('');
     setQuizFeedback(null);
@@ -464,7 +596,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setQrTaskScanned(false);
 
     const newCompleted = [...completedStageIds, stage.id];
+    const nextCollectedItemIds = collectGrantedItem(collectedItemIds, stage);
     setCompletedStageIds(newCompleted);
+    setCollectedItemIds(nextCollectedItemIds);
 
     // SWITCH stage: jump to evaluated target directly
     if (overrideNextId) {
@@ -614,10 +748,12 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {stages.map((s, index) => {
             const isCompleted = completedStageIds.includes(s.id);
+            const isAccessible = canAccessStage(s, collectedItemIds);
+            const requiredItem = inventoryItems.find(item => item.id === s.requiresItemId);
             return (
               <button
                 key={s.id}
-                disabled={isCompleted}
+                disabled={isCompleted || !isAccessible}
                 onClick={() => {
                   setCurrentStageIndex(index);
                   setIsSelectingStage(false);
@@ -633,10 +769,13 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                   <h3 className={`font-bold ${isCompleted ? 'text-emerald-500' : (isNightMode ? 'text-slate-200' : 'text-slate-800')}`}>
                     {s.title || `Етапа ${index + 1}`}
                   </h3>
-                  <p className="text-xs text-slate-500 mt-1">{isCompleted ? 'Завршено' : 'Достапно за игра'}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {isCompleted ? 'Завршено' : isAccessible ? 'Достапно за игра' : `Заклучено${requiredItem ? ` • треба ${requiredItem.icon ? `${requiredItem.icon} ` : ''}${requiredItem.name}` : ''}`}
+                  </p>
                 </div>
                 {isCompleted && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
-                {!isCompleted && <ChevronRight className="w-5 h-5 text-slate-400" />}
+                {!isCompleted && isAccessible && <ChevronRight className="w-5 h-5 text-slate-400" />}
+                {!isCompleted && !isAccessible && <span className="text-xs font-bold text-amber-500">Заклучено</span>}
               </button>
             );
           })}
@@ -686,6 +825,19 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             <p className={`text-sm uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-1`}>Освоени поени</p>
             <p className="text-4xl font-black text-indigo-500">{points}</p>
           </div>
+
+          {inventoryItems.length > 0 && collectedItemIds.length > 0 && (
+            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>
+              <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-2`}>Собрани предмети</p>
+              <div className="flex flex-wrap gap-2">
+                {inventoryItems.filter(item => collectedItemIds.includes(item.id)).map(item => (
+                  <span key={item.id} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-indigo-500/15 text-indigo-300 text-sm font-semibold">
+                    {item.icon ? `${item.icon} ` : ''}{item.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {!feedbackSubmitted ? (
             <div className="mb-6 space-y-3 text-left">
@@ -1247,7 +1399,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             </div>
           );
         }
-        const matchedId = evaluateSwitch(sw, points, completedStageIds);
+        const matchedId = evaluateSwitchTarget(sw, points, completedStageIds, collectedItemIds);
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
             <h2 className={`text-xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'}`}>
@@ -1263,21 +1415,27 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                   const minOk = c.minPoints === undefined || points >= c.minPoints;
                   const maxOk = c.maxPoints === undefined || points <= c.maxPoints;
                   const reqOk = !c.requiredStageIds?.length || c.requiredStageIds.every(id => completedStageIds.includes(id));
-                  return minOk && maxOk && reqOk && c.targetStageId;
+                  const itemOk = !c.requiredItemId || collectedItemIds.includes(c.requiredItemId);
+                  return minOk && maxOk && reqOk && itemOk && c.targetStageId;
                 })?.id;
+                const neededItem = inventoryItems.find(item => item.id === cond.requiredItemId);
                 return (
                   <button
                     key={cond.id}
                     type="button"
                     onClick={() => handleNextStage(cond.targetStageId)}
+                    disabled={!!cond.requiredItemId && !collectedItemIds.includes(cond.requiredItemId)}
                     className={`w-full text-left p-4 rounded-xl border transition-all active:scale-95 ${
                       isRecommended
                         ? 'border-violet-500 bg-violet-500/10 text-violet-300'
                         : isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'
-                    }`}
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     <p className="font-semibold text-sm">{cond.label || `Патека ${cond.id.slice(-4)}`}</p>
                     {target && <p className={`text-xs mt-1 ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>{target.title || `Етапа ${target.order + 1}`}</p>}
+                    {neededItem && !collectedItemIds.includes(neededItem.id) && (
+                      <p className="text-xs mt-1 text-amber-400">Потребно: {neededItem.icon ? `${neededItem.icon} ` : ''}{neededItem.name}</p>
+                    )}
                   </button>
                 );
               })}
@@ -1326,6 +1484,18 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           </span>
         </div>
         <div className="flex items-center gap-3 border-l border-indigo-800 pl-4 ml-2">
+          {sessionCode && isSessionActive && !isFinished && (
+            <button
+              type="button"
+              aria-label="Испрати SOS"
+              onClick={handleSos}
+              disabled={sendingSos}
+              className="text-rose-400 hover:text-rose-300 disabled:opacity-50 transition-colors"
+              title="Испрати SOS"
+            >
+              <AlertCircle className={`w-5 h-5 ${sendingSos ? 'animate-pulse' : ''}`} />
+            </button>
+          )}
           {!isOnline && <WifiOff className="w-4 h-4 text-rose-500" aria-label="Офлајн" />}
           {isOnline && stages && Object.keys(cachedStages).length < stages.length && (
             <div className="relative group cursor-pointer" title="Некои ресурси не се кеширани">
@@ -1369,6 +1539,22 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           />
         </div>
       </header>
+
+      {inventoryItems.length > 0 && (
+        <div className={`px-4 py-2 border-b shrink-0 ${isNightMode ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className="flex items-center gap-2 overflow-x-auto">
+            <span className={`text-[10px] font-bold uppercase tracking-wider shrink-0 ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>Инвентар</span>
+            {inventoryItems.map(item => {
+              const active = collectedItemIds.includes(item.id);
+              return (
+                <span key={item.id} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${active ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : (isNightMode ? 'bg-slate-800 text-slate-500 border border-slate-700' : 'bg-slate-100 text-slate-400 border border-slate-200')}`}>
+                  {item.icon ? `${item.icon} ` : ''}{item.name}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Tournament Modal */}
       <AnimatePresence>
@@ -1452,7 +1638,26 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           transition={{ duration: 0.3 }}
           className="flex-1 flex flex-col overflow-hidden relative"
         >
-          {timeExpired && stage.type !== 'QUIZ' ? (
+          {stageLocked ? (
+             <div className="flex-1 flex flex-col p-6 items-center justify-center text-center">
+               <AlertCircle className="w-16 h-16 text-amber-500 mb-4" />
+               <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>Оваа етапа е заклучена</h2>
+               <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-6`}>
+                 {missingRequiredItem
+                   ? `За да продолжиш, прво треба да го собереш предметот ${missingRequiredItem.icon ? `${missingRequiredItem.icon} ` : ''}${missingRequiredItem.name}.`
+                   : 'Потребен е предмет за да се отвори оваа етапа.'}
+               </p>
+               {quest?.sequence === 'selectable' ? (
+                 <button onClick={() => setIsSelectingStage(true)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl transition-all">
+                   Избери друга етапа
+                 </button>
+               ) : (
+                 <button onClick={handleExit} className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold uppercase shadow-xl transition-all">
+                   Излези од авантурата
+                 </button>
+               )}
+             </div>
+          ) : timeExpired && stage.type !== 'QUIZ' ? (
              <div className="flex-1 flex flex-col p-6 items-center justify-center text-center">
                <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
                <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>Времето истече!</h2>

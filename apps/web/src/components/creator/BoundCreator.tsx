@@ -8,8 +8,9 @@ import { useAutoSave }    from './hooks/useAutoSave';
 import { StageList }      from './StageList';
 import { StageEditor }    from './StageEditor';
 import { QuestSettingsPanel } from './QuestSettingsPanel';
+import { FindSpotPlannerPanel } from './FindSpotPlannerPanel';
 import { ShareModal }     from './ShareModal';
-import type { Quest, StageType } from 'shared';
+import type { Coordinates, Quest, StageType } from 'shared';
 
 // ─── Default empty quest ──────────────────────────────────────────────────────
 
@@ -25,6 +26,7 @@ function makeNewQuest(creatorId: string): Quest {
     publicResults: false,
     hasIntro: false,
     hasOutro: false,
+    inventoryItems: [],
     stages: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
@@ -48,6 +50,7 @@ export function BoundCreator() {
   const [shareOpen, setShareOpen]   = useState(false);
   // Mobile: which panel is visible (stages | editor)
   const [mobilePanel, setMobilePanel] = useState<'stages' | 'editor'>('stages');
+  const [pendingFindSpotCoordinates, setPendingFindSpotCoordinates] = useState<Coordinates | null>(null);
 
   // Editor state managed by useReducer
   const editor = useQuestEditor(makeNewQuest(user?.uid ?? ''));
@@ -90,6 +93,22 @@ export function BoundCreator() {
   };
 
   const selectedStage = quest.stages.find(s => s.id === selectedStageId) ?? null;
+
+  useEffect(() => {
+    if (!pendingFindSpotCoordinates || !selectedStageId) return;
+    const pendingStage = quest.stages.find(stage => stage.id === selectedStageId);
+    if (!pendingStage || pendingStage.type !== 'FIND_SPOT') return;
+
+    updateStage(pendingStage.id, { targetCoordinates: pendingFindSpotCoordinates });
+    setPendingFindSpotCoordinates(null);
+  }, [pendingFindSpotCoordinates, quest.stages, selectedStageId, updateStage]);
+
+  const handleAddFindSpotAtCoordinates = (coordinates: Coordinates) => {
+    setPendingFindSpotCoordinates(coordinates);
+    addStage('FIND_SPOT');
+    setRightPanel('stage');
+    setMobilePanel('editor');
+  };
 
   if (loading) {
     return (
@@ -172,6 +191,13 @@ export function BoundCreator() {
               onReorder={reorder}
             />
           </div>
+          <FindSpotPlannerPanel
+            stages={quest.stages}
+            selectedStageId={selectedStageId}
+            onSelectStage={id => { select(id); setRightPanel('stage'); setMobilePanel('editor'); }}
+            onMoveStage={(id, coordinates) => updateStage(id, { targetCoordinates: coordinates })}
+            onAddStageAtCoordinates={handleAddFindSpotAtCoordinates}
+          />
         </div>
 
         {/* Right panel: Stage editor OR Quest settings — hidden on mobile when stages panel is active */}
@@ -195,6 +221,7 @@ export function BoundCreator() {
             <StageEditor
               stage={selectedStage}
               allStages={quest.stages}
+              inventoryItems={quest.inventoryItems ?? []}
               onChange={updates => updateStage(selectedStage.id, updates)}
             />
           ) : (

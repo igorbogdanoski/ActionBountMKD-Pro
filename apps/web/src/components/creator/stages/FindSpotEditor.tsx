@@ -115,7 +115,7 @@ export function FindSpotEditor({ stage, onChange }: Props) {
           {/* Interactive map */}
           {showMap && (
             <div className="space-y-1">
-              <p className="text-xs text-slate-400">Кликни на мапата за да поставиш локација</p>
+              <p className="text-xs text-slate-400">Кликни или повлечи го маркерот за да ја наместиш точната локација</p>
               <Suspense fallback={
                 <div className="h-64 rounded-xl bg-slate-800 flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />

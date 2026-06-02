@@ -9,6 +9,8 @@ coverage/
 
 # Firebase credentials — use .env.local instead
 firebase-applet-config.json
+apps/mobile/google-services.json
+apps/mobile/GoogleService-Info.plist
 
 # Temp fix scripts
 fix-sidebar.cjs

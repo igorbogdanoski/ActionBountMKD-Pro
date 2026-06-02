@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { updateProfile } from 'firebase/auth';
-import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight } from 'lucide-react';
+import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight, BellRing } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
-import { upsertUserProfile, getUserTheme, saveUserTheme } from '../../utils/storage';
+import { upsertUserProfile, getUserTheme, getUserSettings, saveUserTheme } from '../../utils/storage';
+import { sendTestPushNotification } from '../../utils/pushNotifications';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import type { PlanId } from 'shared';
@@ -59,12 +60,23 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [pushToken, setPushToken] = useState<string | null>(null);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushPermission, setPushPermission] = useState<string>('undetermined');
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [sendingPush, setSendingPush] = useState(false);
 
   const isAdmin = user ? (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid) : false;
 
   useEffect(() => {
     if (user) {
       getUserTheme(user.uid).then(t => setIsDark(t !== 'light'));
+      getUserSettings(user.uid).then(settings => {
+        setPushToken(settings?.expoPushToken ?? null);
+        setPushEnabled(Boolean(settings?.notificationsEnabled && settings?.expoPushToken));
+        setPushPermission(settings?.notificationPermissionStatus ?? 'undetermined');
+        setPushError(settings?.notificationError ?? null);
+      });
     }
   }, [user]);
 
@@ -94,6 +106,19 @@ export function SettingsPage() {
   };
 
   const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
+
+  const sendPushTest = async () => {
+    if (!pushToken) return;
+    setSendingPush(true);
+    setPushError(null);
+    try {
+      await sendTestPushNotification(pushToken);
+    } catch (error) {
+      setPushError(error instanceof Error ? error.message : 'Не успеа тест push барањето.');
+    } finally {
+      setSendingPush(false);
+    }
+  };
 
   const TABS = [
     { id: 'profile' as const,    label: 'Профил',   icon: User },
@@ -293,6 +318,37 @@ export function SettingsPage() {
                 {user?.uid}
               </code>
             </Row>
+          </SectionCard>
+
+          <SectionCard>
+            <Row label="Mobile push" hint="Статус на регистрираниот мобилен уред за известувања">
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${pushEnabled ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
+                {pushEnabled ? '✓ Активно' : `✗ ${pushPermission}`}
+              </span>
+            </Row>
+            <div className="px-5 py-4 space-y-3">
+              <div className="rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Expo Push Token</p>
+                <code className="block text-[11px] leading-5 text-slate-300 break-all min-h-[20px]">
+                  {pushToken || 'Нема регистриран token. Вклучи известувања од mobile Settings.'}
+                </code>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-500">
+                  Тестот праќа push кон тековниот мобилен уред и отвора `/settings` при tap.
+                </p>
+                <button
+                  type="button"
+                  onClick={sendPushTest}
+                  disabled={!pushToken || sendingPush}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {sendingPush ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
+                  Испрати тест push
+                </button>
+              </div>
+              {pushError && <p className="text-xs text-rose-400">{pushError}</p>}
+            </div>
           </SectionCard>
 
           <SectionCard>

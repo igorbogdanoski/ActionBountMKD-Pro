@@ -20,7 +20,11 @@
 | Phase 5A | Real-time Collaboration (game_sessions + onSnapshot) | ✅ Завршена |
 | Phase 5B | Native App (Expo) + White-label + AI + CSV | 🔜 Следна |
 | Phase 5C–5E | White-label + AI Quest Generator + CSV/XLSX | 📅 Планирана |
-| Phase 6 | Engagement & Field Tools (Сертификати, Жива мапа, SOS, Инвентар, PWA икони, Analytics) | 🚧 Во тек |
+| Phase 6A | PDF Сертификати/беџови | ✅ Завршена |
+| Phase 6B | PWA икони (192/512 PNG) + Add-to-Home промпт | ✅ Завршена |
+| Phase 6C | Жива мапа во Live Monitor | ✅ Завршена |
+| Phase 6D | SOS / Панично копче | ✅ Завршена |
+| Phase 6 | PDF, PWA, Live Map, SOS, Inventory, Map DnD, Analytics | ✅ Завршена |
 
 ---
 
@@ -451,15 +455,15 @@ if ('serviceWorker' in navigator) {
 
 | # | Пропуст | Приоритет | Тест |
 |---|---------|-----------|------|
-| M1 | Google Sign-In не работи (`expo-auth-session` не поддржува Android без androidClientId) | 🔴 Висок | Unit: auth flow; E2E: логин со Google |
-| M2 | Завршена авантура се прикажува исто на dashboard (нема "Продолжи" vs "Играј") | 🟡 Среден | E2E: заврши авантура → провери статус на картичка |
-| M3 | Поставки иконата (⚙) плови погрешно на dashboard | 🟢 Низок | UI snapshot тест |
-| M4 | "Quest/квест" наместо "Авантура" на неколку места | 🟢 Низок | String search тест |
-| M5 | `SafeAreaView` deprecation warning | 🟢 Низок | Замени со `react-native-safe-area-context` |
-| M6 | Нема индикатор за завршени авантури на картичка | 🟡 Среден | E2E: заврши → ✅ значка видлива |
-| M7 | QUIZ multiple choice: нема Прескокни при погрешен избор | 🟡 Среден | Unit: quizFeedback error + requiredToAdvance |
-| M8 | Нема offline поддршка (AsyncStorage quest cache) | 🔴 Висок | E2E: offline режим |
-| M9 | Push notifications не се имплементирани | 🟡 Среден | - |
+| M1 | 🚧 Во тек — native Google Sign-In flow е внесен, `google-services.json` + `GoogleService-Info.plist` се внесени и Android SHA-linked OAuth client е конфигуриран; останува real-device dev/EAS build проверка | 🔴 Висок | E2E: логин со Google на Android build |
+| M2 | ✅ Решено — dashboard разликува `Играј`, `Продолжи` и повторно отворање на завршена авантура | 🟡 Среден | E2E: заврши авантура → провери статус на картичка |
+| M3 | ✅ Решено — dashboard header има стабилно закотвено `Поставки` quick action копче | 🟢 Низок | UI snapshot тест |
+| M4 | ✅ Решено — mobile user-facing copy користи `Авантура`; `quest*` останува само како технички route/storage/backend surface | 🟢 Низок | String search тест |
+| M5 | ✅ Решено — `quest/[id].tsx` користи `SafeAreaView` од `react-native-safe-area-context` | 🟢 Низок | Замени со `react-native-safe-area-context` |
+| M6 | ✅ Решено — dashboard картичката има `Завршено` badge и визуелен completed state | 🟡 Среден | E2E: заврши → ✅ значка видлива |
+| M7 | ✅ Решено — QUIZ multiple choice при грешка покажува `Прескокни` кога `requiredToAdvance` е false | 🟡 Среден | Unit: quizFeedback error + requiredToAdvance |
+| M8 | ✅ Решено — dashboard list и quest detail имаат AsyncStorage cache fallback за offline режим | 🔴 Висок | E2E: offline режим |
+| M9 | 🚧 Во тек — mobile registration scaffold, web self-test sender flow и EAS FCM V1 Google Service Account credential се внесени (`expo-notifications`, permission/token sync, Expo push send од Settings, Android FCM V1 key upload), но треба physical-device receive/tap верификација | 🟡 Среден | E2E: device push receive + tap deep-link |
 
 ### Веб апликација
 
@@ -567,21 +571,25 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 6B — PWA икони + Add-to-Home 🔴
+### ✅ 6B — PWA икони + Add-to-Home
 
 **Цел:** Вистинско „апликациско" чувство на мобилен + предуслов за Play Store / TWA.
 
-- Генерирај `icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png` (од брендот, преку `sharp` скрипта)
-- Ажурирај `public/manifest.json` — повеќе `icons` со `purpose: any maskable`
-- `<link rel="apple-touch-icon">` во `index.html`
-- `InstallPrompt` компонента — фати `beforeinstallprompt`, прикажи дискретен banner „Додај на почетен екран"
-- Поправи `maximum-scale=1.0,user-scalable=no` (a11y) → дозволи zoom
+### Извршено
+- `scripts/gen-icons.mjs` — pure-Node.js PNG encoder (без надворешни зависности); генерира брендирани икони со корал позадина + бело „layers" лого
+- `public/icon-192.png`, `public/icon-512.png`, `public/icon-512-maskable.png`, `public/apple-touch-icon.png` — генерирани
+- `public/manifest.json` — ажуриран со 4 `icons` записи (`purpose: any` + `purpose: maskable`), `orientation`, `categories`, подобрен `description`
+- `index.html` — додадени PNG `<link rel="icon">` + `<link rel="apple-touch-icon" sizes="180x180">`, исправен viewport (отстранет `user-scalable=no` за a11y)
+- `src/components/InstallPrompt.tsx` (нов) — фаќа `beforeinstallprompt`, дискретен bottom banner по 3s; dismiss со localStorage cooldown (7 дена); не се прикажува ако веќе инсталирано (standalone/iOS)
+- `src/index.css` — `@keyframes slide-up` анимација за banner
+- `src/App.tsx` — `<InstallPrompt />` монтиран глобално
+- TypeScript: **0 грешки**
 
-**Фајлови:** `public/icon-*.png` (нови), `public/manifest.json`, `index.html`, `src/components/InstallPrompt.tsx` (нов), `App.tsx`
+**Фајлови:** `public/icon-*.png` (нови), `public/manifest.json`, `index.html`, `src/index.css`, `src/components/InstallPrompt.tsx` (нов), `src/App.tsx`, `scripts/gen-icons.mjs` (нов)
 
 ---
 
-### 6C — Жива мапа во Live Monitor 🟡
+### 6C — Жива мапа во Live Monitor ✅
 
 **Цел:** Наставникот на излет со 30 деца да гледа каде е секој тим во реално време.
 
@@ -594,7 +602,7 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 6D — SOS / Панично копче 🟡
+### 6D — SOS / Панично копче ✅
 
 **Цел:** Тим што се изгубил/има проблем со еден клик ја испраќа точната локација на наставникот.
 
@@ -606,7 +614,7 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 6E — Инвентар (виртуелни предмети) 🟢
+### 6E — Инвентар (виртуелни предмети) ✅
 
 **Цел:** Играчите „собираат" предмети на локации кои подоцна се потребни за финална загатка (gamification 2.0).
 
@@ -615,11 +623,13 @@ if ('serviceWorker' in navigator) {
 - `MobilePlayer` — инвентар лента/торба; gating на задачи кои бараат предмет
 - Состојба во resume (AsyncStorage/localStorage)
 
+**Статус:** завршено и валидирано (`tsc --noEmit`, `213/213` web тестови зелени)
+
 **Фајлови:** `types.ts`, `QuestSettingsPanel.tsx`, stage editors, `MobilePlayer.tsx`
 
 ---
 
-### 6F — Drag-and-Drop точки на мапа (Creator) 🟢
+### 6F — Drag-and-Drop точки на мапа (Creator) ✅
 
 **Цел:** Наставникот да поставува/реди GPS точки визуелно на мапа, не само листа.
 
@@ -627,11 +637,13 @@ if ('serviceWorker' in navigator) {
 - Синхронизација со `FIND_SPOT` stages (lat/lng) и редослед
 - Опционално: цртање рута (polyline) меѓу точки
 
+**Статус:** завршено и валидирано (`tsc --noEmit`, `217/217` web тестови зелени)
+
 **Фајлови:** `MapSelector.tsx`, `BoundCreator.tsx`, `FindSpotEditor.tsx`
 
 ---
 
-### 6G — Продукт аналитика 🟢
+### 6G — Продукт аналитика ✅
 
 **Цел:** Каде корисниците се откажуваат (product-level, не само per-quest).
 
@@ -640,13 +652,15 @@ if ('serviceWorker' in navigator) {
 - Env-gated (`VITE_POSTHOG_KEY`), без PII, со consent
 - Dashboard funnel во PostHog
 
+**Статус:** завршено и валидирано (`tsc --noEmit`, `221/221` web тестови зелени)
+
 **Фајлови:** `src/utils/analytics.ts` (нов), `main.tsx`, клучни точки во `MobilePlayer`/`PricingPage`
 
 ---
 
 ### Редослед на имплементација (Phase 6)
-1. **6A** PDF Сертификати ← *започнато*
-2. **6B** PWA икони + Add-to-Home
+1. **6A** PDF Сертификати ✅
+2. **6B** PWA икони + Add-to-Home ✅
 3. **6C** Жива мапа + **6D** SOS (заедно — делат session GPS)
 4. **6E** Инвентар
 5. **6F** Map DnD

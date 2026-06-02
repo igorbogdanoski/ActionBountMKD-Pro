@@ -556,7 +556,7 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 6A — PDF Сертификати/беџови 🔴
+### 6A — PDF Сертификати/беџови ✅
 
 **Цел:** По завршување на авантура, играчот добива персонализиран PDF сертификат (име, наслов на авантура, поени, датум).
 
@@ -567,7 +567,9 @@ if ('serviceWorker' in navigator) {
 - Опционално: toggle во `QuestSettingsPanel` „Овозможи сертификат" + custom потпис/организација
 - Достапност по план: Free = со watermark; Starter+ = чист брендиран
 
-**Фајлови:** `src/utils/certificate.ts` (нов), `MobilePlayer.tsx`, (опц.) `QuestSettingsPanel.tsx`, `types.ts` (`certificateEnabled?: boolean`)
+**Статус:** завршено и валидирано — Canvas-рендер (Cyrillic-safe) → jsPDF A4 landscape; копче „Преземи сертификат" на финиш екранот; `QuestSettingsPanel` toggle „Сертификат за завршување" со plan-based watermark (`certificateEnabled` + `certificateWatermark`)
+
+**Фајлови:** `src/utils/certificate.ts` (нов), `MobilePlayer.tsx`, `QuestSettingsPanel.tsx`, `types.ts` (`certificateEnabled`, `certificateWatermark`)
 
 ---
 
@@ -661,10 +663,10 @@ if ('serviceWorker' in navigator) {
 ### Редослед на имплементација (Phase 6)
 1. **6A** PDF Сертификати ✅
 2. **6B** PWA икони + Add-to-Home ✅
-3. **6C** Жива мапа + **6D** SOS (заедно — делат session GPS)
-4. **6E** Инвентар
-5. **6F** Map DnD
-6. **6G** Analytics
+3. **6C** Жива мапа + **6D** SOS (заедно — делат session GPS) ✅
+4. **6E** Инвентар ✅
+5. **6F** Map DnD ✅
+6. **6G** Analytics ✅
 
 ---
 

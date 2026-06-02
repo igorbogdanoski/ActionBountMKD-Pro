@@ -805,6 +805,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         score: points,
         maxScore,
         date: new Date(),
+        watermark: quest?.certificateWatermark ?? false,
       });
     } catch (e) {
       console.error('Certificate generation failed', e);
@@ -862,14 +863,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             </div>
           )}
 
-          <button
-            onClick={handleDownloadCertificate}
-            disabled={generatingCert}
-            className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-[#e66c4f] hover:bg-[#d65b3f] disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
-          >
-            <Award className="w-5 h-5" />
-            {generatingCert ? 'Се генерира…' : 'Преземи сертификат'}
-          </button>
+          {(quest?.certificateEnabled ?? true) && (
+            <button
+              onClick={handleDownloadCertificate}
+              disabled={generatingCert}
+              className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-[#e66c4f] hover:bg-[#d65b3f] disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
+            >
+              <Award className="w-5 h-5" />
+              {generatingCert ? 'Се генерира…' : 'Преземи сертификат'}
+            </button>
+          )}
 
           <button onClick={() => navigate('/')} className={`px-6 py-3 font-bold rounded-xl transition-colors ${isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
             Врати се назад

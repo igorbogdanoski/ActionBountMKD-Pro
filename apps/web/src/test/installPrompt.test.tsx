@@ -30,7 +30,7 @@ function fireInstallEvent(outcome: 'accepted' | 'dismissed' = 'accepted') {
     preventDefault: vi.fn(),
   });
 
-  window.dispatchEvent(event);
+  act(() => { window.dispatchEvent(event); });
   return { promptFn, event };
 }
 

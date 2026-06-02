@@ -22,6 +22,7 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
   const [inventoryMediaUrl, setInventoryMediaUrl] = useState('');
   const { planId } = usePlan();
   const canLeaderboard = planId === 'pro' || planId === 'enterprise';
+  const cleanCertificate = planId !== 'free';
 
   const addTag = () => {
     const t = tagInput.trim().toLowerCase().replace(/[^a-zа-шѓ0-9-_]/gi, '');
@@ -198,6 +199,15 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                   Јавна табела со резултати — достапна со Pro план
                 </div>
               )}
+              <Toggle label="Сертификат за завршување"
+                hint={cleanCertificate
+                  ? 'Играчот добива чист брендиран PDF сертификат на крајот'
+                  : 'Играчот добива PDF сертификат (со водено втиснат знак — отстранете го со Starter+ план)'}
+                checked={quest.certificateEnabled ?? true}
+                onChange={v => {
+                  onChange('certificateEnabled', v);
+                  if (v) onChange('certificateWatermark', !cleanCertificate);
+                }} />
               <Toggle label="Вовед (Intro)"
                 hint="Прва етапа е посебен вовед (не брои во редослед)"
                 checked={quest.hasIntro ?? false}

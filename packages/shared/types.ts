@@ -58,6 +58,8 @@ export interface Quest {
   sequence: SequenceType;
   publicResults?: boolean;   // whether results page is public
   publicLeaderboard?: boolean; // whether a live leaderboard page is public (Pro+)
+  certificateEnabled?: boolean;   // offer a downloadable PDF certificate on finish (default on)
+  certificateWatermark?: boolean; // Free plan certificates carry a watermark; Starter+ are clean
   playingTimeMinutes?: number;
 
   // Structure

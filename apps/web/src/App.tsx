@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from './utils/AuthContext';
+import { AnalyticsConsentBanner } from './components/AnalyticsConsentBanner';
+import { InstallPrompt } from './components/InstallPrompt';
 
 // ─── Lazy-loaded routes (code splitting) ─────────────────────────────────────
 const LandingPage      = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -113,6 +115,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AppRoutes />
+      <AnalyticsConsentBanner />
+      <InstallPrompt />
     </BrowserRouter>
   );
 }

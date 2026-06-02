@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @variant dark (&:where(.dark, .dark *));
+
+/* PWA Install Prompt animation */
+@keyframes slide-up {
+  from { transform: translateX(-50%) translateY(120%); opacity: 0; }
+  to   { transform: translateX(-50%) translateY(0);    opacity: 1; }
+}
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+

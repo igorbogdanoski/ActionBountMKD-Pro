@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { SEO, SoftwareAppSchema } from '../SEO';
+import { Footer } from '../layout/Footer';
 
 const ROTATING_TEXTS = [
   "Креативна едукативна апликација",
@@ -348,6 +349,8 @@ export function LandingPage() {
           </button>
         </div>
       </section>
+
+      <Footer />
     </div>
     </>
   );

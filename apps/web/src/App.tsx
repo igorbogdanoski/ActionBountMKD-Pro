@@ -18,6 +18,8 @@ const AdminPanel          = lazy(() => import('./components/admin/AdminPanel').t
 const PublicLeaderboard   = lazy(() => import('./components/leaderboard/PublicLeaderboard').then(m => ({ default: m.PublicLeaderboard })));
 const LiveSessionHost     = lazy(() => import('./components/session/LiveSessionHost').then(m => ({ default: m.LiveSessionHost })));
 const JoinSession         = lazy(() => import('./components/session/JoinSession').then(m => ({ default: m.JoinSession })));
+const PrivacyPolicy       = lazy(() => import('./components/legal/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const TermsOfService      = lazy(() => import('./components/legal/TermsOfService').then(m => ({ default: m.TermsOfService })));
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +91,8 @@ function AppRoutes() {
         {/* Public pages */}
         <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
 
         {/* Mobile player — public, no auth */}

@@ -31,6 +31,13 @@ export interface Coordinates {
   longitude: number;
 }
 
+export interface InventoryItem {
+  id: string;
+  name: string;
+  icon?: string;
+  mediaUrl?: string;
+}
+
 // ─── QUEST ────────────────────────────────────────────────────────────────────
 
 export interface Quest {
@@ -66,6 +73,9 @@ export interface Quest {
   track?: Coordinates[];     // route polyline parsed from a GPX/KML upload
   trackName?: string;        // original uploaded file name
 
+  // Inventory
+  inventoryItems?: InventoryItem[];
+
   // Timestamps
   createdAt: string;
   updatedAt: string;
@@ -92,6 +102,8 @@ export interface BaseStage {
   order: number;
   points?: number;
   audioUrl?: string;
+  grantsItemId?: string;
+  requiresItemId?: string;
   isIntro?: boolean;   // special non-scoring intro stage
   isOutro?: boolean;   // special non-scoring outro stage
 }
@@ -165,6 +177,7 @@ export interface SwitchCondition {
   minPoints?: number;
   maxPoints?: number;
   requiredStageIds?: string[]; // all listed stages must be completed
+  requiredItemId?: string;
   targetStageId: string;       // jump to this stage if condition matches
 }
 
@@ -259,8 +272,18 @@ export interface SessionPlayer {
   points: number;
   stageIndex: number;   // current stage the player is on
   finished: boolean;
+  lastLat?: number;
+  lastLng?: number;
+  lastSeenAt?: string;
   joinedAt: string;
   updatedAt: string;
+}
+
+export interface SessionSosAlert {
+  playerId: string;
+  lat: number;
+  lng: number;
+  ts: string;
 }
 
 export interface GameSession {
@@ -269,6 +292,7 @@ export interface GameSession {
   questTitle: string;
   hostId: string;             // Firebase auth uid of the host
   players: SessionPlayer[];
+  sosAlerts: SessionSosAlert[];
   status: SessionStatus;
   mode: SessionMode;          // 'free' = self-paced, 'broadcast' = host-paced
   currentStageIndex: number;  // broadcast pointer
@@ -287,6 +311,11 @@ export interface LeaderboardEntry extends SessionPlayer {
 export interface UserSettings {
   theme: 'dark' | 'light';
   updatedAt: string;
+  notificationsEnabled?: boolean;
+  notificationPermissionStatus?: 'granted' | 'denied' | 'undetermined' | 'unsupported' | 'simulator';
+  expoPushToken?: string | null;
+  notificationPlatform?: 'android' | 'ios' | 'web';
+  notificationError?: string | null;
 }
 
 // ─── SAAS: USER PROFILE & PLANS ───────────────────────────────────────────────

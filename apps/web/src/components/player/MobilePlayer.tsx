@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Quest, Stage, Coordinates, QrTaskStage } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff } from 'lucide-react';
+import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award } from 'lucide-react';
 import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
 import {
   cacheQuestLocally,
@@ -90,6 +90,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Feedback — must be at top, never after early returns
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  // Certificate generation
+  const [generatingCert, setGeneratingCert] = useState(false);
 
   // Timer — must be at top, BEFORE any useEffect to keep hook order stable
   const [timeLeft, setTimeLeft]     = useState<number | null>(null);
@@ -651,6 +654,26 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setFeedbackSubmitted(true);
   };
 
+  const handleDownloadCertificate = async () => {
+    if (generatingCert) return;
+    setGeneratingCert(true);
+    try {
+      const maxScore = stages.reduce((sum, s) => sum + (s.points || 0), 0);
+      const { downloadCertificate } = await import('../../utils/certificate');
+      await downloadCertificate({
+        playerName: playerName || 'Играч',
+        questTitle: quest?.title || 'Авантура',
+        score: points,
+        maxScore,
+        date: new Date(),
+      });
+    } catch (e) {
+      console.error('Certificate generation failed', e);
+    } finally {
+      setGeneratingCert(false);
+    }
+  };
+
   if (isFinished) {
     return (
       <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-800'} font-sans shadow-2xl transition-colors overflow-y-auto`}>
@@ -686,6 +709,15 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               Хвала за повратната информација!
             </div>
           )}
+
+          <button
+            onClick={handleDownloadCertificate}
+            disabled={generatingCert}
+            className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-[#e66c4f] hover:bg-[#d65b3f] disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Award className="w-5 h-5" />
+            {generatingCert ? 'Се генерира…' : 'Преземи сертификат'}
+          </button>
 
           <button onClick={() => navigate('/')} className={`px-6 py-3 font-bold rounded-xl transition-colors ${isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
             Врати се назад

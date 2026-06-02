@@ -20,6 +20,7 @@
 | Phase 5A | Real-time Collaboration (game_sessions + onSnapshot) | ✅ Завршена |
 | Phase 5B | Native App (Expo) + White-label + AI + CSV | 🔜 Следна |
 | Phase 5C–5E | White-label + AI Quest Generator + CSV/XLSX | 📅 Планирана |
+| Phase 6 | Engagement & Field Tools (Сертификати, Жива мапа, SOS, Инвентар, PWA икони, Analytics) | 🚧 Во тек |
 
 ---
 
@@ -528,6 +529,128 @@ if ('serviceWorker' in navigator) {
 - Per-player stage breakdown
 - Excel-compatible `.xlsx` наместо CSV (SheetJS)
 - Scheduled export (email report weekly)
+
+---
+
+## 🚧 Phase 6 — Engagement & Field Tools
+
+> **Целта:** Да се претвори авантурата од „веб-страна со мапа" во моќна EdTech платформа со награди, безбедност на терен и алатки за надзор во живо. Извор: експертска анализа (UI/UX + EdTech) спротиставена со постоечкиот код.
+
+### Преглед на приоритети
+
+| Под-фаза | Функција | Тип | Вредност | Труд | Приоритет |
+|----------|----------|-----|----------|------|-----------|
+| 6A | PDF Сертификати/беџови | 🆕 Ново | Висока | Низок | 🔴 1 |
+| 6B | PWA икони (192/512 PNG) + Add-to-Home промпт | 🟡 Подобри | Висока (Play Store) | Низок | 🔴 2 |
+| 6C | Жива мапа со позиции на тимови (Live Monitor) | 🟡/🆕 | Висока | Среден | 🟡 3 |
+| 6D | SOS / Панично копче | 🆕 Ново | Висока (безбедност) | Низок | 🟡 4 |
+| 6E | Инвентар (виртуелни предмети) | 🆕 Ново | Средна | Среден | 🟢 5 |
+| 6F | Drag-and-Drop на точки директно на мапа (Creator) | 🟡 Подобри | Средна | Среден | 🟢 6 |
+| 6G | Продукт аналитика (PostHog/GA drop-off funnel) | 🆕 Ново | Средна | Низок | 🟢 7 |
+
+> Веќе постои (не се повторува): per-stage funnel analytics (`ResultsDashboard`), offline mode, аудио водич (`audioUrl`), фото-доказ (`answerType: 'photo'`), QR/SCAN, SWITCH branching, leaderboard, real-time session.
+
+---
+
+### 6A — PDF Сертификати/беџови 🔴
+
+**Цел:** По завршување на авантура, играчот добива персонализиран PDF сертификат (име, наслов на авантура, поени, датум).
+
+- Библиотека: `jspdf` (lightweight, без backend; lazy-loaded chunk)
+- `src/utils/certificate.ts` — `generateCertificate({ playerName, questTitle, score, maxScore, date })` → PDF blob/download
+- Брендиран дизајн: корал/кафена палета, лого, рамка, „Авантура" cursive наслов
+- Интеграција во **финиш екранот** на `MobilePlayer.tsx` — копче „📜 Преземи сертификат"
+- Опционално: toggle во `QuestSettingsPanel` „Овозможи сертификат" + custom потпис/организација
+- Достапност по план: Free = со watermark; Starter+ = чист брендиран
+
+**Фајлови:** `src/utils/certificate.ts` (нов), `MobilePlayer.tsx`, (опц.) `QuestSettingsPanel.tsx`, `types.ts` (`certificateEnabled?: boolean`)
+
+---
+
+### 6B — PWA икони + Add-to-Home 🔴
+
+**Цел:** Вистинско „апликациско" чувство на мобилен + предуслов за Play Store / TWA.
+
+- Генерирај `icon-192.png`, `icon-512.png`, `icon-512-maskable.png`, `apple-touch-icon.png` (од брендот, преку `sharp` скрипта)
+- Ажурирај `public/manifest.json` — повеќе `icons` со `purpose: any maskable`
+- `<link rel="apple-touch-icon">` во `index.html`
+- `InstallPrompt` компонента — фати `beforeinstallprompt`, прикажи дискретен banner „Додај на почетен екран"
+- Поправи `maximum-scale=1.0,user-scalable=no` (a11y) → дозволи zoom
+
+**Фајлови:** `public/icon-*.png` (нови), `public/manifest.json`, `index.html`, `src/components/InstallPrompt.tsx` (нов), `App.tsx`
+
+---
+
+### 6C — Жива мапа во Live Monitor 🟡
+
+**Цел:** Наставникот на излет со 30 деца да гледа каде е секој тим во реално време.
+
+- Прошири `SessionPlayer` со `lastLat`, `lastLng`, `lastSeenAt`
+- Играч (`MobilePlayer` во session mode) праќа GPS позиција (throttle ~10s) во `game_sessions/{code}.players`
+- `LiveSessionHost.tsx` — додади Leaflet мапа со маркери по тим (боја/иницијал) покрај постоечкиот leaderboard
+- Privacy: позиции само додека сесијата е активна; се чистат на finish
+
+**Фајлови:** `types.ts`, `lib/session.ts` (`applyLocation`), `sessionStorage.ts`, `MobilePlayer.tsx`, `LiveSessionHost.tsx`
+
+---
+
+### 6D — SOS / Панично копче 🟡
+
+**Цел:** Тим што се изгубил/има проблем со еден клик ја испраќа точната локација на наставникот.
+
+- Копче „🆘 SOS" во `MobilePlayer` (видливо само во session mode)
+- Запишува `sosAlerts[]` во `game_sessions/{code}` со `{ playerId, lat, lng, ts }`
+- `LiveSessionHost` — црвен alert banner + zoom на мапата кон тимот (зависи од 6C)
+
+**Фајлови:** `types.ts`, `lib/session.ts` (`raiseSos`/`clearSos`), `sessionStorage.ts`, `MobilePlayer.tsx`, `LiveSessionHost.tsx`
+
+---
+
+### 6E — Инвентар (виртуелни предмети) 🟢
+
+**Цел:** Играчите „собираат" предмети на локации кои подоцна се потребни за финална загатка (gamification 2.0).
+
+- `types.ts` — `InventoryItem` (`id`, `name`, `icon`, `mediaUrl`); stage може да `grantsItemId`; `SWITCH`/задача може да `requiresItemId`
+- Creator UI — додавање предмети во `QuestSettingsPanel` + избор „доделува/бара предмет" во stage editors
+- `MobilePlayer` — инвентар лента/торба; gating на задачи кои бараат предмет
+- Состојба во resume (AsyncStorage/localStorage)
+
+**Фајлови:** `types.ts`, `QuestSettingsPanel.tsx`, stage editors, `MobilePlayer.tsx`
+
+---
+
+### 6F — Drag-and-Drop точки на мапа (Creator) 🟢
+
+**Цел:** Наставникот да поставува/реди GPS точки визуелно на мапа, не само листа.
+
+- Прошири `MapSelector` со повеќе маркери (drag за позиција) + клик-за-додавање
+- Синхронизација со `FIND_SPOT` stages (lat/lng) и редослед
+- Опционално: цртање рута (polyline) меѓу точки
+
+**Фајлови:** `MapSelector.tsx`, `BoundCreator.tsx`, `FindSpotEditor.tsx`
+
+---
+
+### 6G — Продукт аналитика 🟢
+
+**Цел:** Каде корисниците се откажуваат (product-level, не само per-quest).
+
+- PostHog (self-host friendly) или GA4
+- Event tracking: `quest_start`, `stage_complete`, `quest_finish`, `signup`, `upgrade_click`
+- Env-gated (`VITE_POSTHOG_KEY`), без PII, со consent
+- Dashboard funnel во PostHog
+
+**Фајлови:** `src/utils/analytics.ts` (нов), `main.tsx`, клучни точки во `MobilePlayer`/`PricingPage`
+
+---
+
+### Редослед на имплементација (Phase 6)
+1. **6A** PDF Сертификати ← *започнато*
+2. **6B** PWA икони + Add-to-Home
+3. **6C** Жива мапа + **6D** SOS (заедно — делат session GPS)
+4. **6E** Инвентар
+5. **6F** Map DnD
+6. **6G** Analytics
 
 ---
 

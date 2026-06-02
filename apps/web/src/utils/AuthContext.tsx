@@ -8,6 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth, provider } from './firebase';
 import { upsertUserProfile, getUserProfile } from './storage';
+import { identifyAnalyticsUser, trackEvent } from './analytics';
 import type { UserProfile } from 'shared';
 
 interface AuthContextType {
@@ -51,9 +52,10 @@ function describeAuthError(code?: string): string {
   }
 }
 
-async function ensureProfile(firebaseUser: User): Promise<UserProfile | null> {
+async function ensureProfile(firebaseUser: User): Promise<{ profile: UserProfile | null; isNew: boolean }> {
   try {
     let p = await getUserProfile(firebaseUser.uid);
+    let isNew = false;
     if (!p) {
       p = {
         uid: firebaseUser.uid,
@@ -65,10 +67,11 @@ async function ensureProfile(firebaseUser: User): Promise<UserProfile | null> {
         updatedAt: new Date().toISOString(),
       };
       await upsertUserProfile(p);
+      isNew = true;
     }
-    return p;
+    return { profile: p, isNew };
   } catch {
-    return null;
+    return { profile: null, isNew: false };
   }
 }
 
@@ -89,7 +92,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        setProfile(await ensureProfile(firebaseUser));
+        const { profile: nextProfile, isNew } = await ensureProfile(firebaseUser);
+        setProfile(nextProfile);
+        if (nextProfile) {
+          identifyAnalyticsUser(firebaseUser.uid, {
+            plan: nextProfile.plan,
+            has_photo: Boolean(nextProfile.photoURL),
+          });
+        }
+        if (isNew) {
+          trackEvent('signup', {
+            method: 'google',
+            plan: nextProfile?.plan ?? 'free',
+          });
+        }
       } else {
         setProfile(null);
       }

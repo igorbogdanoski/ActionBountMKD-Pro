@@ -5,7 +5,10 @@ import App from './App.tsx';
 import './index.css';
 import { AuthProvider } from './utils/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { initAnalytics } from './utils/analytics';
 import './i18n'; // initialise i18next before render
+
+initAnalytics().catch(() => {});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

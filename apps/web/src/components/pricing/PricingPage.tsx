@@ -3,6 +3,7 @@ import { Check, Zap, Building2, Users, Star, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
+import { trackEvent } from '../../utils/analytics';
 import { SEO } from '../SEO';
 import { PaymentModal } from './PaymentModal';
 import type { PlanId } from 'shared';
@@ -111,6 +112,12 @@ export function PricingPage() {
   const [modal, setModal] = useState<{ planId: 'starter' | 'pro'; planName: string } | null>(null);
 
   const handleCta = async (plan: Plan) => {
+    trackEvent('upgrade_click', {
+      plan_id: plan.id,
+      current_plan: currentPlan,
+      authenticated: Boolean(user),
+    });
+
     if (plan.id === 'enterprise') {
       window.location.href = 'mailto:igor.bogdanoski@mismath.net?subject=Enterprise план';
       return;

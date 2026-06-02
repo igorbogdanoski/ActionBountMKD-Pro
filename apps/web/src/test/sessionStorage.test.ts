@@ -73,6 +73,9 @@ import {
   joinSession,
   leaveSession,
   updateProgress,
+  updatePlayerLocation,
+  raiseSosAlert,
+  clearSosAlert,
   setSessionStatus,
   setBroadcastStage,
   subscribeSession,
@@ -162,6 +165,70 @@ describe('progress & leaderboard', () => {
     expect(fetched?.players).toHaveLength(1);
     expect(fetched?.players[0].points).toBe(0);
   });
+
+  it('stores player location only while the session is active', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+
+    await updatePlayerLocation(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+    expect((await getSession(s.id))?.players[0].lastLat).toBeUndefined();
+
+    await setSessionStatus(s.id, 'active');
+    await updatePlayerLocation(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+
+    const fetched = await getSession(s.id);
+    expect(fetched?.players[0]).toMatchObject({ lastLat: 41.9981, lastLng: 21.4254 });
+    expect(fetched?.players[0].lastSeenAt).toMatch(/2026|20/);
+  });
+
+  it('location update for an unknown player is a no-op', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+    await setSessionStatus(s.id, 'active');
+    await updatePlayerLocation(s.id, 'ghost', { latitude: 41.9, longitude: 21.4 });
+
+    const fetched = await getSession(s.id);
+    expect(fetched?.players[0].lastLat).toBeUndefined();
+    expect(fetched?.players[0].lastLng).toBeUndefined();
+  });
+
+  it('raises a SOS alert only while the session is active', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+
+    await raiseSosAlert(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+    expect((await getSession(s.id))?.sosAlerts).toEqual([]);
+
+    await setSessionStatus(s.id, 'active');
+    await raiseSosAlert(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+    const fetched = await getSession(s.id);
+    expect(fetched?.sosAlerts).toHaveLength(1);
+    expect(fetched?.sosAlerts[0]).toMatchObject({ playerId: 'p1', lat: 41.9981, lng: 21.4254 });
+    expect(fetched?.players[0]).toMatchObject({ lastLat: 41.9981, lastLng: 21.4254 });
+  });
+
+  it('replaces an older SOS alert from the same player', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+    await setSessionStatus(s.id, 'active');
+
+    await raiseSosAlert(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+    await raiseSosAlert(s.id, 'p1', { latitude: 42.0, longitude: 21.5 });
+
+    const fetched = await getSession(s.id);
+    expect(fetched?.sosAlerts).toHaveLength(1);
+    expect(fetched?.sosAlerts[0]).toMatchObject({ playerId: 'p1', lat: 42.0, lng: 21.5 });
+  });
+
+  it('clears a SOS alert by player id', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+    await setSessionStatus(s.id, 'active');
+    await raiseSosAlert(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+
+    await clearSosAlert(s.id, 'p1');
+    expect((await getSession(s.id))?.sosAlerts).toEqual([]);
+  });
 });
 
 describe('broadcast & lifecycle', () => {
@@ -182,6 +249,31 @@ describe('broadcast & lifecycle', () => {
     expect((await getSession(s.id))?.players).toHaveLength(0);
     await deleteSession(s.id);
     expect(await getSession(s.id)).toBeNull();
+  });
+
+  it('clears player locations when the session is finished', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+    await setSessionStatus(s.id, 'active');
+    await updatePlayerLocation(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+
+    await setSessionStatus(s.id, 'finished');
+    const fetched = await getSession(s.id);
+
+    expect(fetched?.status).toBe('finished');
+    expect(fetched?.players[0].lastLat).toBeUndefined();
+    expect(fetched?.players[0].lastLng).toBeUndefined();
+    expect(fetched?.players[0].lastSeenAt).toBeUndefined();
+  });
+
+  it('clears SOS alerts when the session is finished', async () => {
+    const s = await createSession(baseInput);
+    await joinSession(s.id, 'p1', 'Ана');
+    await setSessionStatus(s.id, 'active');
+    await raiseSosAlert(s.id, 'p1', { latitude: 41.9981, longitude: 21.4254 });
+
+    await setSessionStatus(s.id, 'finished');
+    expect((await getSession(s.id))?.sosAlerts).toEqual([]);
   });
 });
 

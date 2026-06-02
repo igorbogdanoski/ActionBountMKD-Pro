@@ -8,6 +8,10 @@ import {
   upsertPlayer,
   removePlayer,
   applyProgress,
+  applyLocation,
+  clearLocations,
+  raiseSos,
+  clearSos,
   computeLeaderboard,
   isSessionJoinable,
   canStartSession,
@@ -94,6 +98,72 @@ describe('roster mutations are immutable', () => {
     const a = [player({ uid: 'a' })];
     expect(applyProgress(a, 'ghost', { points: 1 }, 'now')).toBe(a);
   });
+
+  it('applies a location patch only to the matching player', () => {
+    const a = [player({ uid: 'a' }), player({ uid: 'b' })];
+    const b = applyLocation(a, 'b', {
+      lastLat: 41.9981,
+      lastLng: 21.4254,
+      lastSeenAt: '2026-06-01T12:00:00.000Z',
+    });
+    expect(b[1]).toMatchObject({
+      lastLat: 41.9981,
+      lastLng: 21.4254,
+      lastSeenAt: '2026-06-01T12:00:00.000Z',
+      updatedAt: '2026-06-01T12:00:00.000Z',
+    });
+    expect(b[0].lastLat).toBeUndefined();
+  });
+
+  it('clears all stored player locations immutably', () => {
+    const a = [
+      player({ uid: 'a', lastLat: 41.99, lastLng: 21.43, lastSeenAt: '2026-06-01T12:00:00.000Z' }),
+      player({ uid: 'b', lastLat: 42.0, lastLng: 21.5, lastSeenAt: '2026-06-01T12:00:01.000Z' }),
+    ];
+    const b = clearLocations(a);
+    expect(b).not.toBe(a);
+    expect(b.every(p => p.lastLat === undefined && p.lastLng === undefined && p.lastSeenAt === undefined)).toBe(true);
+    expect(a[0].lastLat).toBe(41.99);
+  });
+
+  it('raises a new SOS alert and sorts latest first', () => {
+    const alerts = raiseSos([], {
+      playerId: 'a',
+      lat: 41.99,
+      lng: 21.43,
+      ts: '2026-06-01T12:00:00.000Z',
+    });
+    const next = raiseSos(alerts, {
+      playerId: 'b',
+      lat: 42,
+      lng: 21.5,
+      ts: '2026-06-01T12:01:00.000Z',
+    });
+    expect(next.map(alert => alert.playerId)).toEqual(['b', 'a']);
+  });
+
+  it('replaces an existing SOS alert from the same player', () => {
+    const alerts = raiseSos([
+      { playerId: 'a', lat: 41.99, lng: 21.43, ts: '2026-06-01T12:00:00.000Z' },
+    ], {
+      playerId: 'a',
+      lat: 42,
+      lng: 21.5,
+      ts: '2026-06-01T12:01:00.000Z',
+    });
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0]).toMatchObject({ playerId: 'a', lat: 42, lng: 21.5 });
+  });
+
+  it('clears SOS alerts by player id', () => {
+    const alerts = clearSos([
+      { playerId: 'a', lat: 41.99, lng: 21.43, ts: '2026-06-01T12:00:00.000Z' },
+      { playerId: 'b', lat: 42, lng: 21.5, ts: '2026-06-01T12:01:00.000Z' },
+    ], 'a');
+    expect(alerts).toEqual([
+      { playerId: 'b', lat: 42, lng: 21.5, ts: '2026-06-01T12:01:00.000Z' },
+    ]);
+  });
 });
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
@@ -158,4 +228,114 @@ describe('session predicates', () => {
     expect(makeSessionPlayer('x', '   ', 'now').name).toBe('Играч');
   });
 });
+
+// ─── Edge cases: makeSessionPlayer ──────────────────────────────────────────
+
+describe('makeSessionPlayer edge cases', () => {
+  it('truncates name at 40 characters', () => {
+    const long = 'А'.repeat(60);
+    const p = makeSessionPlayer('x', long, 'now');
+    expect(p.name.length).toBeLessThanOrEqual(40);
+  });
+
+  it('preserves joinedAt and updatedAt from the now arg', () => {
+    const ts = '2026-06-01T10:00:00.000Z';
+    const p = makeSessionPlayer('uid1', 'Тест', ts);
+    expect(p.joinedAt).toBe(ts);
+    expect(p.updatedAt).toBe(ts);
+  });
+
+  it('sets finished: false and stageIndex: 0 always', () => {
+    const p = makeSessionPlayer('uid2', 'Тест', '2026-01-01T00:00:00.000Z');
+    expect(p.finished).toBe(false);
+    expect(p.stageIndex).toBe(0);
+    expect(p.points).toBe(0);
+  });
+});
+
+// ─── Edge cases: sessionStats ────────────────────────────────────────────────
+
+describe('sessionStats edge cases', () => {
+  it('returns zeroes for empty player list', () => {
+    const stats = sessionStats({ players: [] });
+    expect(stats).toEqual({ total: 0, finished: 0, active: 0, topPoints: 0 });
+  });
+
+  it('all finished', () => {
+    const stats = sessionStats({
+      players: [player({ finished: true, points: 10 }), player({ finished: true, points: 20 })],
+    });
+    expect(stats.finished).toBe(2);
+    expect(stats.active).toBe(0);
+    expect(stats.topPoints).toBe(20);
+  });
+
+  it('topPoints when all have 0 points', () => {
+    const stats = sessionStats({ players: [player(), player()] });
+    expect(stats.topPoints).toBe(0);
+  });
+});
+
+// ─── Edge cases: isSessionJoinable ──────────────────────────────────────────
+
+describe('isSessionJoinable edge cases', () => {
+  it('finished session is never joinable regardless of capacity', () => {
+    expect(isSessionJoinable({ status: 'finished', players: [], maxPlayers: 0 })).toBe(false);
+    expect(isSessionJoinable({ status: 'finished', players: [], maxPlayers: 1000 })).toBe(false);
+  });
+
+  it('exactly at capacity (maxPlayers = players.length) is not joinable', () => {
+    const players = [player({ uid: 'a' }), player({ uid: 'b' })];
+    expect(isSessionJoinable({ status: 'active', players, maxPlayers: 2 })).toBe(false);
+  });
+
+  it('one slot remaining is still joinable', () => {
+    const players = [player({ uid: 'a' })];
+    expect(isSessionJoinable({ status: 'active', players, maxPlayers: 2 })).toBe(true);
+  });
+});
+
+// ─── Edge cases: computeLeaderboard ─────────────────────────────────────────
+
+describe('computeLeaderboard edge cases', () => {
+  it('returns empty array for no players', () => {
+    expect(computeLeaderboard([])).toEqual([]);
+  });
+
+  it('single player gets rank 1', () => {
+    const board = computeLeaderboard([player({ uid: 'solo', points: 99 })]);
+    expect(board[0].rank).toBe(1);
+    expect(board[0].uid).toBe('solo');
+  });
+
+  it('all players with equal points and stageIndex sorted by joinedAt asc', () => {
+    const players = [
+      player({ uid: 'c', points: 50, stageIndex: 2, joinedAt: '2026-01-01T00:00:03.000Z' }),
+      player({ uid: 'a', points: 50, stageIndex: 2, joinedAt: '2026-01-01T00:00:01.000Z' }),
+      player({ uid: 'b', points: 50, stageIndex: 2, joinedAt: '2026-01-01T00:00:02.000Z' }),
+    ];
+    const board = computeLeaderboard(players);
+    expect(board.map(p => p.uid)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+// ─── Edge cases: clampBroadcastIndex ────────────────────────────────────────
+
+describe('clampBroadcastIndex edge cases', () => {
+  it('returns 0 when stageCount is 0', () => {
+    expect(clampBroadcastIndex(5, 0)).toBe(0);
+    expect(clampBroadcastIndex(-1, 0)).toBe(0);
+  });
+
+  it('clamps to last stage index (stageCount - 1)', () => {
+    expect(clampBroadcastIndex(100, 5)).toBe(4);
+  });
+
+  it('valid in-range index passes through unchanged', () => {
+    expect(clampBroadcastIndex(3, 10)).toBe(3);
+    expect(clampBroadcastIndex(0, 10)).toBe(0);
+    expect(clampBroadcastIndex(9, 10)).toBe(9);
+  });
+});
+
 

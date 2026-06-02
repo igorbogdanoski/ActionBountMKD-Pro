@@ -3,12 +3,15 @@ import {
   View, Text, StyleSheet, FlatList,
   TouchableOpacity, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../utils/AuthContext';
 import { db } from '../../utils/firebase';
+import { getAdventureProgressStatus, readProgressIds } from '../../utils/adventureProgress';
+import { cacheAdventureList, getCachedAdventureList, type AdventureCacheItem } from '../../utils/questCache';
 
 interface Adventure {
   id: string;
@@ -26,6 +29,7 @@ export default function DashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [inProgress, setInProgress] = useState<Set<string>>(new Set());
   const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [showingCachedData, setShowingCachedData] = useState(false);
   const router = useRouter();
 
   const fetchAdventures = async () => {
@@ -45,8 +49,16 @@ export default function DashboardScreen() {
       });
       data.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setAdventures(data);
+      setShowingCachedData(false);
+      await cacheAdventureList(data as AdventureCacheItem[]);
     } catch (err) {
-      console.error('Fetch adventures error:', err);
+      const cached = await getCachedAdventureList();
+      if (cached.length > 0) {
+        setAdventures(cached as Adventure[]);
+        setShowingCachedData(true);
+      } else {
+        console.error('Fetch adventures error:', err);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -55,10 +67,9 @@ export default function DashboardScreen() {
 
   const loadProgress = async () => {
     const keys = await AsyncStorage.getAllKeys();
-    const progressKeys = keys.filter(k => k.startsWith('quest_progress_'));
-    const resultKeys = keys.filter(k => k.startsWith('quest_completed_'));
-    setInProgress(new Set(progressKeys.map(k => k.replace('quest_progress_', ''))));
-    setCompleted(new Set(resultKeys.map(k => k.replace('quest_completed_', ''))));
+    const progress = readProgressIds(keys);
+    setInProgress(progress.inProgress);
+    setCompleted(progress.completed);
   };
 
   useEffect(() => { fetchAdventures(); }, [user]);
@@ -78,8 +89,9 @@ export default function DashboardScreen() {
 
   const renderAdventure = ({ item }: { item: Adventure }) => {
     const stageCount = item.stages?.length ?? 0;
-    const isCompleted = completed.has(item.id);
-    const hasProgress = inProgress.has(item.id) && !isCompleted;
+    const status = getAdventureProgressStatus(item.id, inProgress, completed);
+    const isCompleted = status === 'completed';
+    const hasProgress = status === 'in-progress';
 
     return (
       <TouchableOpacity
@@ -115,7 +127,7 @@ export default function DashboardScreen() {
             isCompleted && styles.actionBtnCompleted,
           ]}>
             <Text style={styles.actionBtnText}>
-              {isCompleted ? 'Играј повторно' : hasProgress ? '▶ Продолжи' : 'Играј →'}
+              {isCompleted ? 'Отвори повторно' : hasProgress ? '▶ Продолжи' : 'Играј →'}
             </Text>
           </View>
         </View>
@@ -130,8 +142,18 @@ export default function DashboardScreen() {
           <Text style={styles.greeting}>Добредојдовте 👋</Text>
           <Text style={styles.name} numberOfLines={1}>{user?.displayName || user?.email}</Text>
         </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            accessibilityRole="button"
+            accessibilityLabel="Отвори поставки"
+            onPress={() => router.push('/settings')}
+          >
+            <MaterialIcons name="settings" size={20} color="#374151" />
+          </TouchableOpacity>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
         </View>
       </View>
 
@@ -150,7 +172,14 @@ export default function DashboardScreen() {
           }
           ListHeaderComponent={
             adventures.length > 0 ? (
-              <Text style={styles.sectionLabel}>МОИ АВАНТУРИ ({adventures.length})</Text>
+              <View style={styles.listHeader}>
+                <Text style={styles.sectionLabel}>МОИ АВАНТУРИ ({adventures.length})</Text>
+                {showingCachedData && (
+                  <View style={styles.cachedBadge}>
+                    <Text style={styles.cachedBadgeText}>Офлајн приказ</Text>
+                  </View>
+                )}
+              </View>
             ) : null
           }
           ListEmptyComponent={
@@ -184,8 +213,23 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   headerLeft: { flex: 1, marginRight: 12 },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   greeting: { fontSize: 12, color: '#9ca3af', marginBottom: 2 },
   name: { fontSize: 17, fontWeight: '700', color: '#111827' },
+  settingsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#4f46e5',
@@ -194,9 +238,28 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16, paddingBottom: 40 },
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: '#9ca3af',
-    letterSpacing: 1, marginBottom: 12,
+    letterSpacing: 1,
+  },
+  cachedBadge: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#fdba74',
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  cachedBadgeText: {
+    color: '#c2410c',
+    fontSize: 11,
+    fontWeight: '700',
   },
   card: {
     backgroundColor: '#fff', borderRadius: 16,

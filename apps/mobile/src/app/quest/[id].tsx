@@ -2,17 +2,19 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, Image, Dimensions,
-  KeyboardAvoidingView, Platform, SafeAreaView,
+  KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import type { Quest } from 'shared';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../utils/AuthContext';
-
-const progressKey = (questId: string) => `quest_progress_${questId}`;
+import { completedKey, progressKey } from '../../utils/adventureProgress';
+import { cacheQuestLocally, getCachedQuest } from '../../utils/questCache';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -36,7 +38,7 @@ export default function QuestPlayerScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [quest, setQuest] = useState<any>(null);
+  const [quest, setQuest] = useState<Quest | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [playerName, setPlayerName] = useState(user?.displayName || user?.email?.split('@')[0] || '');
@@ -80,28 +82,54 @@ export default function QuestPlayerScreen() {
   // ─── Load quest + resume progress ────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
-    getDoc(doc(db, 'quests', id as string))
-      .then(async snap => {
+    let cancelled = false;
+
+    const loadQuest = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'quests', id as string));
         if (snap.exists()) {
-          setQuest({ id: snap.id, ...snap.data() });
-          // Resume saved progress
-          const saved = await AsyncStorage.getItem(progressKey(id as string));
-          if (saved) {
-            const p = JSON.parse(saved);
-            setCurrentIdx(p.currentIdx || 0);
-            setPoints(p.points || 0);
-            setCompletedIds(p.completedIds || []);
-            setHasStarted(true);
-            setPlayerName(p.playerName || '');
+          const liveQuest = { id: snap.id, ...snap.data() } as Quest;
+          if (!cancelled) setQuest(liveQuest);
+          await cacheQuestLocally(liveQuest);
+        } else {
+          const cachedQuest = await getCachedQuest(id as string);
+          if (!cancelled && cachedQuest) {
+            setQuest(cachedQuest);
+            showToast('📵 Авантурата е вчитана од локален кеш.');
           }
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+        const saved = await AsyncStorage.getItem(progressKey(id as string));
+        if (!cancelled && saved) {
+          const p = JSON.parse(saved);
+          setCurrentIdx(p.currentIdx || 0);
+          setPoints(p.points || 0);
+          setCompletedIds(p.completedIds || []);
+          setHasStarted(true);
+          setPlayerName(p.playerName || '');
+        }
+      } catch (error) {
+        const cachedQuest = await getCachedQuest(id as string);
+        if (!cancelled && cachedQuest) {
+          setQuest(cachedQuest);
+          showToast('📵 Нема интернет. Се користи локално зачуваната авантура.');
+        } else {
+          console.error('Load quest error:', error);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadQuest();
+
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  const stages: any[] = quest?.stages || [];
-  const stage = stages[currentIdx];
+  const stages: any[] = (quest?.stages as any[]) || [];
+  const stage: any = stages[currentIdx];
 
   // ─── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -187,7 +215,7 @@ export default function QuestPlayerScreen() {
   const finish = async (finalPoints: number, finalCompleted: string[]) => {
     setIsFinished(true);
     await AsyncStorage.removeItem(progressKey(id as string));
-    await AsyncStorage.setItem(`quest_completed_${id}`, new Date().toISOString());
+    await AsyncStorage.setItem(completedKey(id as string), new Date().toISOString());
     try {
       await addDoc(collection(db, 'quest_results'), {
         questId: id,

@@ -46,6 +46,14 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "color": "#4f46e5",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-splash-screen",
         {

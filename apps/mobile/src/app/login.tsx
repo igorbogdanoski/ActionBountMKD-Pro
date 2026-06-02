@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, KeyboardAvoidingView,
-  Platform, Image, ScrollView,
+  Platform, ScrollView,
 } from 'react-native';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../utils/firebase';
 import { useAuth } from '../utils/AuthContext';
 
+type LoadingMethod = 'email' | 'google' | null;
+
 export default function LoginScreen() {
+  const { signInWithGoogle, authError, clearAuthError } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loadingMethod, setLoadingMethod] = useState<LoadingMethod>(null);
   const [error, setError] = useState('');
 
 
@@ -25,8 +28,9 @@ export default function LoginScreen() {
       setError('Лозинката мора да има најмалку 6 знаци.');
       return;
     }
-    setLoading(true);
+    setLoadingMethod('email');
     setError('');
+    clearAuthError();
     try {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
@@ -43,7 +47,18 @@ export default function LoginScreen() {
       };
       setError(msg[err.code] || err.message || 'Настана грешка.');
     } finally {
-      setLoading(false);
+      setLoadingMethod(null);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setError('');
+    clearAuthError();
+    setLoadingMethod('google');
+    try {
+      await signInWithGoogle();
+    } finally {
+      setLoadingMethod(null);
     }
   };
 
@@ -58,7 +73,7 @@ export default function LoginScreen() {
           <View style={styles.logoCircle}>
             <Text style={styles.logoText}>AB</Text>
           </View>
-          <Text style={styles.title}>ActionBound MKD Pro</Text>
+          <Text style={styles.title}>АВАНТУРА</Text>
           <Text style={styles.tagline}>Авантури без граници</Text>
         </View>
 
@@ -66,6 +81,7 @@ export default function LoginScreen() {
           <Text style={styles.subtitle}>{isLogin ? 'Најава' : 'Регистрација'}</Text>
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
+          {!error && authError ? <Text style={styles.error}>{authError}</Text> : null}
 
           <TextInput
             style={styles.input}
@@ -87,18 +103,39 @@ export default function LoginScreen() {
           />
 
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+            style={[styles.button, loadingMethod !== null && styles.buttonDisabled]}
             onPress={handleAuth}
-            disabled={loading}
+            disabled={loadingMethod !== null}
           >
-            {loading
+            {loadingMethod === 'email'
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.buttonText}>{isLogin ? 'Најави се' : 'Регистрирај се'}</Text>
             }
           </TouchableOpacity>
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>или</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
           <TouchableOpacity
-            onPress={() => { setIsLogin(!isLogin); setError(''); }}
+            style={[styles.googleButton, loadingMethod !== null && styles.buttonDisabled]}
+            onPress={handleGoogleAuth}
+            disabled={loadingMethod !== null}
+          >
+            {loadingMethod === 'google' ? (
+              <ActivityIndicator color="#374151" />
+            ) : (
+              <>
+                <Text style={styles.googleIcon}>G</Text>
+                <Text style={styles.googleText}>Продолжи со Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => { setIsLogin(!isLogin); setError(''); clearAuthError(); }}
             style={styles.switchButton}
           >
             <Text style={styles.switchText}>

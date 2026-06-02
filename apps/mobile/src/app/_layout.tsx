@@ -3,6 +3,12 @@ import { useColorScheme, ActivityIndicator, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../utils/AuthContext';
+import {
+  addNotificationResponseListener,
+  addPushTokenSyncListener,
+  handleInitialNotificationAsync,
+  syncNotificationRegistrationAsync,
+} from '../utils/notifications';
 // import { AnimatedSplashOverlay } from '@/components/animated-icon'; // Disable for now to test simple auth
 
 function RootLayoutNav() {
@@ -23,6 +29,28 @@ function RootLayoutNav() {
         setTimeout(() => router.replace('/'), 0);
     }
   }, [user, loading, segments]);
+
+  useEffect(() => {
+    void handleInitialNotificationAsync((url) => router.push(url as never));
+    const responseSubscription = addNotificationResponseListener((url) => {
+      router.push(url as never);
+    });
+
+    return () => {
+      responseSubscription.remove();
+    };
+  }, [router]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    void syncNotificationRegistrationAsync(user.uid);
+    const pushTokenSubscription = addPushTokenSyncListener(user.uid);
+
+    return () => {
+      pushTokenSubscription.remove();
+    };
+  }, [user]);
 
   if (loading) {
     return (

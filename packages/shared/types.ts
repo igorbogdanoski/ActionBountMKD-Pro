@@ -141,6 +141,43 @@ export function rubricMaxPoints(rubric?: Rubric | null): number {
   }, 0);
 }
 
+// ─── CLASS GROUPS (Phase 7D-3) ────────────────────────────────────────────────
+
+/** A single student inside a teacher's class group. */
+export interface GroupStudent {
+  id: string;
+  name: string;
+  note?: string;   // опц. белешка (напр. „треба поддршка")
+}
+
+/** A named class / group of students a teacher can assign adventures to. */
+export interface ClassGroup {
+  id: string;
+  ownerId: string;            // наставник (creator) — сопственик
+  name: string;               // напр. „6-в одделение"
+  description?: string;
+  students: GroupStudent[];
+  assignedQuestIds?: string[]; // авантури доделени на оваа група
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const MAX_GROUP_STUDENTS = 60;
+export const MAX_GROUP_NAME_LENGTH = 80;
+export const MAX_STUDENT_NAME_LENGTH = 80;
+
+/** Number of adventures assigned to a group. */
+export function groupAssignedCount(group?: ClassGroup | null): number {
+  return group?.assignedQuestIds?.length ?? 0;
+}
+
+/** Case-insensitive, whitespace-tolerant check whether a student name already exists. */
+export function isStudentNameTaken(group: Pick<ClassGroup, 'students'> | null | undefined, name: string): boolean {
+  const norm = name.trim().toLowerCase();
+  if (!norm) return false;
+  return (group?.students ?? []).some(s => s.name.trim().toLowerCase() === norm);
+}
+
 export interface Coordinates {
   latitude: number;
   longitude: number;

@@ -1,4 +1,4 @@
-import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield } from 'lucide-react';
+import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield, GraduationCap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
@@ -6,7 +6,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import { PAYMENT_CONFIG } from '../../config/payment';
 
-export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 'settings';
+export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 'groups' | 'settings';
 
 interface SidebarProps {
   currentView: CurrentView;
@@ -15,9 +15,9 @@ interface SidebarProps {
   onToggleTheme?: () => void;
 }
 
-const NAV_ITEM_IDS = ['dashboard', 'creator', 'templates', 'results', 'settings'] as const;
+const NAV_ITEM_IDS = ['dashboard', 'creator', 'templates', 'groups', 'results', 'settings'] as const;
 const NAV_ICONS: Record<string, React.ElementType> = {
-  dashboard: Map, creator: PlusCircle, templates: BookOpen, results: BarChart3, settings: Settings,
+  dashboard: Map, creator: PlusCircle, templates: BookOpen, groups: GraduationCap, results: BarChart3, settings: Settings,
 };
 
 export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleTheme }: SidebarProps) {

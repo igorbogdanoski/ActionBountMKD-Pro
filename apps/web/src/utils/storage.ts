@@ -15,7 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { cacheQuestLocally } from './offlineQueue';
-import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template } from 'shared';
+import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template, ClassGroup } from 'shared';
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +25,7 @@ const FEEDBACK = 'quest_feedback';
 const USER_SETTINGS = 'user_settings';
 const USER_PROFILES = 'user_profiles';
 const TEMPLATES = 'templates';
+const CLASS_GROUPS = 'class_groups';
 
 export async function getQuests(creatorId: string): Promise<Quest[]> {
   const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId));
@@ -189,6 +190,28 @@ export async function upsertUserProfile(profile: UserProfile): Promise<void> {
     ...profile,
     updatedAt: new Date().toISOString(),
   }, { merge: true });
+}
+
+// ─── CLASS GROUPS (Phase 7D-3) ────────────────────────────────────────────────
+
+export async function getGroups(ownerId: string): Promise<ClassGroup[]> {
+  const q = query(collection(db, CLASS_GROUPS), where('ownerId', '==', ownerId));
+  const snap = await getDocs(q);
+  const groups = snap.docs.map(d => d.data() as ClassGroup);
+  groups.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+  return groups;
+}
+
+export async function saveGroup(group: ClassGroup): Promise<void> {
+  await setDoc(doc(db, CLASS_GROUPS, group.id), {
+    ...group,
+    updatedAt: new Date().toISOString(),
+    createdAt: group.createdAt ?? new Date().toISOString(),
+  }, { merge: true });
+}
+
+export async function deleteGroup(id: string): Promise<void> {
+  await deleteDoc(doc(db, CLASS_GROUPS, id));
 }
 
 // ─── OFFLINE: re-export localStorage helpers from offlineQueue ───────────────

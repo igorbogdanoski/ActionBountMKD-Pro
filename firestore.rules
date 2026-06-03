@@ -136,6 +136,33 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ─── CLASS GROUPS (Phase 7D-3) ─────────────────────────────────────────────
+    function isValidGroup(data) {
+      return data.keys().hasAll(['id', 'ownerId', 'name', 'students', 'createdAt', 'updatedAt'])
+        && data.ownerId is string
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 80
+        && data.students is list
+        && data.students.size() <= 60;
+    }
+
+    match /class_groups/{groupId} {
+      // Only the owning teacher can read their groups (contains student names)
+      allow read: if isAuth() && resource.data.ownerId == request.auth.uid;
+
+      allow create: if isAuth()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && isValidGroup(request.resource.data);
+
+      allow update: if isAuth()
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && isValidGroup(request.resource.data);
+
+      allow delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
+
     // ─── GAME SESSIONS (Real-time collaboration, Phase 5A) ─────────────────────
     function isSessionHost(resource) {
       return isAuth() && resource.data.hostId == request.auth.uid;

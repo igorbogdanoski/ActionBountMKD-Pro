@@ -12,6 +12,7 @@ const BoundCreator     = lazy(() => import('./components/creator/BoundCreator').
 const MobilePlayer     = lazy(() => import('./components/player/MobilePlayer').then(m => ({ default: m.MobilePlayer })));
 const ResultsDashboard = lazy(() => import('./components/dashboard/ResultsDashboard').then(m => ({ default: m.ResultsDashboard })));
 const TemplatesLibrary = lazy(() => import('./components/dashboard/TemplatesLibrary').then(m => ({ default: m.TemplatesLibrary })));
+const ClassGroups      = lazy(() => import('./components/dashboard/ClassGroups').then(m => ({ default: m.ClassGroups })));
 const SettingsPage     = lazy(() => import('./components/settings/SettingsPage').then(m => ({ default: m.SettingsPage })));
 const PricingPage         = lazy(() => import('./components/pricing/PricingPage').then(m => ({ default: m.PricingPage })));
 const AdminPanel          = lazy(() => import('./components/admin/AdminPanel').then(m => ({ default: m.AdminPanel })));
@@ -57,8 +58,8 @@ function PlayerRoute() {
 
 // ─── Dashboard shell ───────────────────────────────────────────────────────────
 
-type DashboardView = 'dashboard' | 'creator' | 'templates' | 'results' | 'settings';
-const DASHBOARD_VIEWS: DashboardView[] = ['dashboard', 'creator', 'templates', 'results', 'settings'];
+type DashboardView = 'dashboard' | 'creator' | 'templates' | 'groups' | 'results' | 'settings';
+const DASHBOARD_VIEWS: DashboardView[] = ['dashboard', 'creator', 'templates', 'groups', 'results', 'settings'];
 
 function DashboardShell() {
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ function DashboardShell() {
         <Route path="creator"         element={<BoundCreator />} />
         <Route path="creator/:questId" element={<BoundCreator />} />
         <Route path="templates"       element={<TemplatesLibrary onUseTemplate={(tpl) => navigate('/creator', { state: { templateData: tpl } })} />} />
+        <Route path="groups"          element={<ClassGroups />} />
         <Route path="results"         element={<ResultsDashboard />} />
         <Route path="settings"        element={<SettingsPage />} />
         <Route index                  element={<Navigate to="dashboard" replace />} />

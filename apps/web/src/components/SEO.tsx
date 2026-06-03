@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 
-const APP_NAME = 'АвантураКреатор';
+const APP_NAME = 'Авантура';
 const APP_URL = import.meta.env.VITE_APP_URL || 'https://avantura.mismath.net';
 const DEFAULT_IMAGE = `${APP_URL}/og-image.png`;
 
@@ -69,9 +69,37 @@ export function SoftwareAppSchema() {
     inLanguage: ['mk', 'en'],
     author: {
       '@type': 'Organization',
-      name: 'АвантураКреатор',
+      name: APP_NAME,
       url: APP_URL,
     },
+  };
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+}
+
+interface FaqSchemaItem {
+  q: string;
+  a: string;
+}
+
+export function FaqSchema({ items }: { items: FaqSchemaItem[] }) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
   };
 
   return (

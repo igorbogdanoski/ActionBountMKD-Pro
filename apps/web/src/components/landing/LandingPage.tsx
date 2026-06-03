@@ -2,37 +2,76 @@ import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, Wif
 import { useAuth } from '../../utils/AuthContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import { SEO, SoftwareAppSchema } from '../SEO';
+import { SEO, SoftwareAppSchema, FaqSchema } from '../SEO';
 import { Footer } from '../layout/Footer';
+import { LANGUAGES, type SupportedLang } from '../../i18n';
+import { DEMO_QUEST_ID } from '../../data/demoQuest';
 
-const ROTATING_TEXTS = [
-  "Креативна едукативна апликација",
-  "Интерактивен мобилен водич",
-  "Дигитален лов на богатство",
-  "Развивање математичко моделирање",
-  "Теренска настава на ново ниво"
-];
+// Simple placeholder icons to match the design
+const StarIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
+const BarChartIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M18 20V10M12 20V4M6 20v-6"/></svg>;
+const CompassIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
+const CheckCircleIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+const ShareIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>;
+const BuildingIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M4 22h16M4 22V2h16v20M8 6h8M8 10h8M8 14h8M8 18h8"/></svg>;
+const HomeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+const UserIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+const TreeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 22V15M10 15h4M12 2L8 8h3l-2 4h6l-2-4h3z"/></svg>;
+const WalkIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M13 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M10.5 18 l-1 5 M13 14 l2 9 M13 14 v-5 1.5 -2.5 M9 8.5 l1.5 2.5 2 -1.5 M16 9.5 l-2 1"/></svg>;
+const GlobeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;
+
+const STEP_NUMBERS = ['01', '02', '03'] as const;
+const STEP_ICONS = [MapPin, Puzzle, Share2] as const;
+const AUDIENCE_ICONS = [GraduationCap, Heart, Landmark] as const;
+
+const FEATURE_ICONS = [
+  Target, MapPin, Trophy, MessageSquare,
+  Map, Navigation, StarIcon, BarChartIcon,
+  Users, Map, Clock, MessageSquare,
+  QrCode, CompassIcon, CheckCircleIcon, ShareIcon,
+] as const;
+
+const FLEX_ICONS = [
+  BuildingIcon, HomeIcon, UserIcon, WifiOff,
+  TreeIcon, WalkIcon, Users, GlobeIcon,
+] as const;
+
+interface TestimonialItem { quote: string; name: string; role: string; initial: string; }
+interface TitleText { title: string; text: string; }
+interface FaqEntry { q: string; a: string; }
 
 export function LandingPage() {
   const { user, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const onNavigateToCreator = () => navigate('/creator');
-  const onNavigateToPlayerDemo = () => navigate('/play/demo-quest-123');
+  const onNavigateToPlayerDemo = () => navigate(`/play/${DEMO_QUEST_ID}`);
   const scrollToHowItWorks = () => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+  const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
   const [textIndex, setTextIndex] = useState(0);
+
+  const rotating = t('landing.hero.rotating', { returnObjects: true }) as string[];
+  const steps = t('landing.how.steps', { returnObjects: true }) as TitleText[];
+  const audiences = t('landing.audience.items', { returnObjects: true }) as TitleText[];
+  const testimonials = t('landing.testimonials.items', { returnObjects: true }) as TestimonialItem[];
+  const featureLabels = t('landing.features.labels', { returnObjects: true }) as string[];
+  const flexLabels = t('landing.features.flexLabels', { returnObjects: true }) as string[];
+  const faqItems = t('landing.faq.items', { returnObjects: true }) as FaqEntry[];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTextIndex((prev) => (prev + 1) % ROTATING_TEXTS.length);
+      setTextIndex((prev) => (prev + 1) % rotating.length);
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [rotating.length]);
 
   return (
     <>
       <SEO url="/" />
       <SoftwareAppSchema />
+      <FaqSchema items={faqItems} />
       <div className="min-h-screen bg-[#e8eedd] font-sans text-slate-800 flex flex-col overflow-y-auto">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
@@ -46,20 +85,38 @@ export function LandingPage() {
             <span className="text-3xl text-[#e66c4f] font-cursive pt-1">Авантура</span>
           </div>
           <nav className="hidden md:flex gap-6 text-sm font-medium">
-            <button onClick={onNavigateToPlayerDemo} className="hover:text-[#e66c4f] transition-colors">Играј Авантура</button>
-            <button onClick={onNavigateToCreator} className="hover:text-[#e66c4f] transition-colors">Креирај Авантура</button>
+            <button onClick={onNavigateToPlayerDemo} className="hover:text-[#e66c4f] transition-colors">{t('landing.nav.play')}</button>
+            <button onClick={onNavigateToCreator} className="hover:text-[#e66c4f] transition-colors">{t('landing.nav.create')}</button>
           </nav>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1" role="group" aria-label="Language">
+            {LANGUAGES.map(lang => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => switchLang(lang.code)}
+                aria-pressed={i18n.language === lang.code}
+                title={lang.label}
+                className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
+                  i18n.language === lang.code
+                    ? 'bg-[#e66c4f] text-white'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                {lang.code.toUpperCase()}
+              </button>
+            ))}
+          </div>
           {user ? (
              <button onClick={onNavigateToCreator} className="border border-[#e66c4f] text-[#e66c4f] hover:bg-[#e66c4f] hover:text-white px-4 py-1.5 rounded-full text-sm font-bold transition-colors">
-               Контролна Табла
+               {t('landing.nav.dashboard')}
              </button>
           ) : (
              <>
-               <button onClick={signInWithGoogle} className="hidden md:block text-sm font-medium hover:text-[#e66c4f] transition-colors">Најава</button>
+               <button onClick={signInWithGoogle} className="hidden md:block text-sm font-medium hover:text-[#e66c4f] transition-colors">{t('landing.nav.login')}</button>
                <button onClick={onNavigateToCreator} className="border border-[#e66c4f] text-[#e66c4f] hover:bg-[#e66c4f] hover:text-white px-4 py-1.5 rounded-full text-sm font-bold transition-colors">
-                 Бесплатен тест
+                 {t('landing.nav.freeTest')}
                </button>
              </>
           )}
@@ -84,12 +141,12 @@ export function LandingPage() {
             className="lg:col-span-7 text-center lg:text-left space-y-6"
           >
             <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-[#e66c4f]/15 text-[#e66c4f] tracking-wide uppercase border border-[#e66c4f]/30">
-              <Sparkles className="w-3.5 h-3.5" /> Нова димензија на учење
+              <Sparkles className="w-3.5 h-3.5" /> {t('landing.hero.badge')}
             </span>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1]">
-              Претворете го светот во{' '}
-              <span className="font-cursive text-[#e66c4f] font-normal pr-1">училница во живо</span>
+              {t('landing.hero.titlePre')}{' '}
+              <span className="font-cursive text-[#e66c4f] font-normal pr-1">{t('landing.hero.titleHighlight')}</span>
             </h1>
 
             <div className="h-9 relative">
@@ -102,13 +159,13 @@ export function LandingPage() {
                   transition={{ duration: 0.5, ease: 'easeInOut' }}
                   className="absolute w-full text-base md:text-lg font-semibold text-amber-300/90 text-center lg:text-left"
                 >
-                  {ROTATING_TEXTS[textIndex]}
+                  {rotating[textIndex]}
                 </motion.p>
               </AnimatePresence>
             </div>
 
             <p className="text-base md:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-              Креирајте интерактивни GPS авантури, квизови на отворено и потраги по богатство за само неколку минути. Подигнете го ангажманот на учениците преку гемификација и теренска настава.
+              {t('landing.hero.lead')}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
@@ -116,14 +173,14 @@ export function LandingPage() {
                 onClick={user ? onNavigateToCreator : signInWithGoogle}
                 className="w-full sm:w-auto px-8 py-4 text-white bg-[#e66c4f] hover:bg-[#d65b3f] font-bold rounded-xl shadow-lg hover:shadow-[#e66c4f]/30 transform hover:-translate-y-0.5 transition-all duration-200"
               >
-                Започни бесплатно
+                {t('landing.hero.ctaPrimary')}
               </button>
               <button
                 onClick={scrollToHowItWorks}
                 className="w-full sm:w-auto px-8 py-4 text-white bg-white/5 hover:bg-white/10 font-semibold rounded-xl border border-white/15 transition-all duration-200 flex items-center justify-center gap-2"
               >
                 <Play className="w-5 h-5 text-[#e66c4f]" />
-                Погледни како работи
+                {t('landing.hero.ctaSecondary')}
               </button>
             </div>
 
@@ -134,7 +191,7 @@ export function LandingPage() {
                 <span className="w-6 h-6 rounded-full bg-amber-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Е</span>
                 <span className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Т</span>
               </div>
-              <span>Креирано од македонски едукатори за теренска настава</span>
+              <span>{t('landing.hero.socialProof')}</span>
             </div>
           </motion.div>
 
@@ -150,8 +207,8 @@ export function LandingPage() {
 
               <div className="relative w-full h-full bg-white rounded-[32px] overflow-hidden flex flex-col justify-between p-4 select-none">
                 <div className="flex justify-between items-center pt-2">
-                  <span className="text-xs font-bold text-slate-400">Патека: „Стар Прилеп“</span>
-                  <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">3 / 5 Точки</span>
+                  <span className="text-xs font-bold text-slate-400">{t('landing.hero.phone.route')}</span>
+                  <span className="text-xs font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">{t('landing.hero.phone.points')}</span>
                 </div>
 
                 {/* Simulated map */}
@@ -164,18 +221,18 @@ export function LandingPage() {
                     </div>
                   </div>
                   <div className="absolute bottom-3 left-3 right-3 bg-white/90 backdrop-blur-sm p-2 rounded-xl border border-slate-200/60 z-20">
-                    <p className="text-[11px] font-bold text-slate-800">Следна станица: Саат Кула</p>
-                    <p className="text-[9px] text-slate-500">Потребна е точност од 15 метри.</p>
+                    <p className="text-[11px] font-bold text-slate-800">{t('landing.hero.phone.nextStation')}</p>
+                    <p className="text-[9px] text-slate-500">{t('landing.hero.phone.accuracy')}</p>
                   </div>
                 </div>
 
                 {/* Current task */}
                 <div className="space-y-2 bg-amber-50 p-3 rounded-xl border border-amber-100">
-                  <h4 className="text-xs font-bold text-[#2a2522]">Загатка бр. 3:</h4>
+                  <h4 className="text-xs font-bold text-[#2a2522]">{t('landing.hero.phone.riddleTitle')}</h4>
                   <p className="text-[11px] text-slate-700 leading-normal">
-                    Која година е изградена Саат кулата во Прилеп? Внеси го точниот одговор за да го отклучиш следниот клуч.
+                    {t('landing.hero.phone.riddleText')}
                   </p>
-                  <input type="text" placeholder="Внеси година..." disabled className="w-full text-[10px] p-2 rounded-md border border-slate-200 bg-white" />
+                  <input type="text" placeholder={t('landing.hero.phone.inputPlaceholder')} disabled className="w-full text-[10px] p-2 rounded-md border border-slate-200 bg-white" />
                 </div>
               </div>
             </div>
@@ -186,21 +243,21 @@ export function LandingPage() {
       {/* How it works — Три чекори */}
       <section id="how-it-works" className="py-20 px-6 scroll-mt-20">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">Три чекори до авантура</h2>
-          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">Без комплициран софтвер — од идеја до игра на терен за неколку минути.</p>
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">{t('landing.how.title')}</h2>
+          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">{t('landing.how.subtitle')}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Step number="01" icon={MapPin} title="Мапирај" text="Постави точки на GPS мапата низ градот или училишниот двор." />
-            <Step number="02" icon={Puzzle} title="Предизвикај" text="Додај загатки, прашања или задачи кои треба да се решат на локацијата." />
-            <Step number="03" icon={Share2} title="Активирај" text="Сподели код или QR со учениците и гледај како истражуваат во реално време." />
+            {steps.map((step, i) => (
+              <Step key={i} number={STEP_NUMBERS[i]} icon={STEP_ICONS[i]} title={step.title} text={step.text} />
+            ))}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14">
             <button onClick={onNavigateToCreator} className="px-7 py-3.5 bg-[#2a2522] text-white font-bold rounded-xl hover:bg-[#3d322c] transition-colors flex items-center gap-2">
-              <PenTool className="w-5 h-5 text-[#e66c4f]" /> Креирај Авантура
+              <PenTool className="w-5 h-5 text-[#e66c4f]" /> {t('landing.how.ctaCreate')}
             </button>
             <button onClick={onNavigateToPlayerDemo} className="px-7 py-3.5 bg-white text-slate-700 font-semibold rounded-xl border border-slate-300 hover:bg-slate-50 transition-colors flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-emerald-600" /> Пробај демо игра
+              <Smartphone className="w-5 h-5 text-emerald-600" /> {t('landing.how.ctaDemo')}
             </button>
           </div>
         </div>
@@ -209,24 +266,12 @@ export function LandingPage() {
       {/* За кого е ова */}
       <section className="py-20 px-6 bg-[#dbe3cc]">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-14">За кого е ова?</h2>
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-14">{t('landing.audience.title')}</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Audience
-              icon={GraduationCap}
-              title="За наставници"
-              text="Зголемете го ангажманот на часот по историја, биологија или географија преку теренска настава и гемификација."
-            />
-            <Audience
-              icon={Heart}
-              title="За родители"
-              text="Организирајте уникатни родендени и семејни прошетки кои ги одвојуваат децата од екраните и ги носат надвор."
-            />
-            <Audience
-              icon={Landmark}
-              title="За општини и музеи"
-              text="Дигитализирајте ги туристичките тури и направете ги локалните знаменитости интерактивни и незаборавни."
-            />
+            {audiences.map((item, i) => (
+              <Audience key={i} icon={AUDIENCE_ICONS[i]} title={item.title} text={item.text} />
+            ))}
           </div>
         </div>
       </section>
@@ -234,28 +279,13 @@ export function LandingPage() {
       {/* Social proof — изјави */}
       <section className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">Што велат едукаторите</h2>
-          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">Искуства од наставници и водичи кои веќе ја пробаа Авантура на терен.</p>
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-4">{t('landing.testimonials.title')}</h2>
+          <p className="text-center text-slate-500 mb-14 max-w-2xl mx-auto">{t('landing.testimonials.subtitle')}</p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Testimonial
-              quote="Моите ученици за прв пат беа навистина возбудени за час по историја. Трчаа од точка до точка за да ја решат следната загатка!"
-              name="Марија С."
-              role="Наставник по историја"
-              initial="М"
-            />
-            <Testimonial
-              quote="За половина час направив математички лов низ училишниот двор. Децата воопшто не сфатија дека всушност решаваат задачи."
-              name="Елена П."
-              role="Наставник по математика"
-              initial="Е"
-            />
-            <Testimonial
-              quote="Ја искористивме за туристичка тура низ стариот дел на градот. QR кодовите на знаменитостите оставија одличен впечаток кај посетителите."
-              name="Тони К."
-              role="Туристички водич"
-              initial="Т"
-            />
+            {testimonials.map((item, i) => (
+              <Testimonial key={i} quote={item.quote} name={item.name} role={item.role} initial={item.initial} />
+            ))}
           </div>
         </div>
       </section>
@@ -263,28 +293,12 @@ export function LandingPage() {
       {/* Features Section */}
       <section className="py-20 bg-[#dbe3cc] px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-light text-center text-slate-700 mb-16">Преполно со функционалности</h2>
+          <h2 className="text-4xl font-light text-center text-slate-700 mb-16">{t('landing.features.title')}</h2>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 md:gap-y-12 gap-x-4 md:gap-x-8">
-            <Feature icon={Target} label="Квиз" />
-            <Feature icon={MapPin} label="GPS Локации" />
-            <Feature icon={Trophy} label="Награди" />
-            <Feature icon={MessageSquare} label="Анкети" />
-            
-            <Feature icon={Map} label="Мисии" />
-            <Feature icon={Navigation} label="Водич" />
-            <Feature icon={StarIcon} label="Поени" />
-            <Feature icon={BarChartIcon} label="Евалуација" />
-            
-            <Feature icon={Users} label="Турнири" />
-            <Feature icon={Map} label="Мапи" />
-            <Feature icon={Clock} label="Тајмер" />
-            <Feature icon={MessageSquare} label="Повратни Информации" />
-            
-            <Feature icon={QrCode} label="QR Кодови" />
-            <Feature icon={CompassIcon} label="Компас" />
-            <Feature icon={CheckCircleIcon} label="Напредок" />
-            <Feature icon={ShareIcon} label="Споделување" />
+            {featureLabels.map((label, i) => (
+              <Feature key={i} icon={FEATURE_ICONS[i]} label={label} />
+            ))}
           </div>
         </div>
       </section>
@@ -292,17 +306,12 @@ export function LandingPage() {
       {/* Flexible Section */}
       <section className="py-20 bg-[#d1dac0] px-6">
         <div className="max-w-6xl mx-auto">
-          <h2 className="text-4xl font-light text-center text-slate-700 mb-16">Флексибилно</h2>
+          <h2 className="text-4xl font-light text-center text-slate-700 mb-16">{t('landing.features.flexTitle')}</h2>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-6 md:gap-y-10 gap-x-4 md:gap-x-8">
-            <Feature icon={BuildingIcon} label="Урбани средини" />
-            <Feature icon={HomeIcon} label="Внатре (Indoors)" />
-            <Feature icon={UserIcon} label="Еден играч" />
-            <Feature icon={WifiOff} label="Офлајн режим" />
-            <Feature icon={TreeIcon} label="Рурални средини" />
-            <Feature icon={WalkIcon} label="На отворено" />
-            <Feature icon={Users} label="Групи и тимови" />
-            <Feature icon={GlobeIcon} label="Повеќе јазици" />
+            {flexLabels.map((label, i) => (
+              <Feature key={i} icon={FLEX_ICONS[i]} label={label} />
+            ))}
           </div>
         </div>
       </section>
@@ -310,28 +319,11 @@ export function LandingPage() {
       {/* FAQ Section */}
       <section className="py-20 px-6">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-12">Често поставувани прашања</h2>
+          <h2 className="text-3xl md:text-4xl font-light text-center text-slate-700 mb-12">{t('landing.faq.title')}</h2>
           <div className="space-y-3">
-            <FaqItem
-              q="Дали е потребен постојан интернет?"
-              a="Не. Авантура има офлајн режим — играчот може да ја преземе авантурата додека има Wi-Fi, а потоа GPS-от и загатките работат и без интернет. Одговорите се синхронизираат автоматски штом ќе се врати конекцијата."
-            />
-            <FaqItem
-              q="Дали работи на iPhone и Android?"
-              a="Да. Авантура работи во прелистувач на секој модерен телефон (iPhone и Android), а достапна е и како инсталирана апликација за Android."
-            />
-            <FaqItem
-              q="Дали е бесплатно?"
-              a="Да, можете да започнете бесплатно и да креирате авантура без плаќање. За поголеми групи и напредни функции имаме платени планови."
-            />
-            <FaqItem
-              q="Дали ученикот мора да инсталира апликација?"
-              a="Не мора. Доволно е да го отвори линкот или да скенира QR код за да започне со играње директно во прелистувач."
-            />
-            <FaqItem
-              q="Дали можам да користам QR кодови наместо GPS?"
-              a="Да. За внатрешни простори како музеи и училишта, точките може да се отклучуваат со скенирање на QR код наместо со GPS локација."
-            />
+            {faqItems.map((item, i) => (
+              <FaqItem key={i} q={item.q} a={item.a} />
+            ))}
           </div>
         </div>
       </section>
@@ -339,13 +331,13 @@ export function LandingPage() {
       {/* Final CTA */}
       <section className="py-20 px-6 bg-[#2a2522] text-white text-center">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h2 className="text-3xl md:text-4xl font-extrabold">Подготвени за прва авантура?</h2>
-          <p className="text-slate-300">Креирајте ја вашата прва GPS авантура за неколку минути — бесплатно.</p>
+          <h2 className="text-3xl md:text-4xl font-extrabold">{t('landing.finalCta.title')}</h2>
+          <p className="text-slate-300">{t('landing.finalCta.subtitle')}</p>
           <button
             onClick={user ? onNavigateToCreator : signInWithGoogle}
             className="px-8 py-4 bg-[#e66c4f] hover:bg-[#d65b3f] text-white font-bold rounded-xl shadow-lg transition-colors"
           >
-            Започни бесплатно
+            {t('landing.finalCta.button')}
           </button>
         </div>
       </section>
@@ -425,15 +417,3 @@ function Audience({ icon: Icon, title, text }: { icon: any, title: string, text:
   );
 }
 
-// Simple placeholder icons to match the design
-const StarIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
-const BarChartIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M18 20V10M12 20V4M6 20v-6"/></svg>;
-const CompassIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>;
-const CheckCircleIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
-const ShareIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>;
-const BuildingIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M4 22h16M4 22V2h16v20M8 6h8M8 10h8M8 14h8M8 18h8"/></svg>;
-const HomeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
-const UserIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-const TreeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 22V15M10 15h4M12 2L8 8h3l-2 4h6l-2-4h3z"/></svg>;
-const WalkIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M13 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z M10.5 18 l-1 5 M13 14 l2 9 M13 14 v-5 1.5 -2.5 M9 8.5 l1.5 2.5 2 -1.5 M16 9.5 l-2 1"/></svg>;
-const GlobeIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>;

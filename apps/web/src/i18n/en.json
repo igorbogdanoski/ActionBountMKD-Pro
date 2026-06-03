@@ -170,20 +170,94 @@
     "teamTask": "Task for teams:"
   },
   "landing": {
-    "tagline": "Innovative multimedia quest",
-    "subtitle": "Create mobile adventures and interactive guides for smartphones and tablets",
-    "playBound": "Play Adventure",
-    "createBound": "Create Adventure",
-    "loginButton": "Sign in",
-    "loggedInButton": "My Adventures →",
-    "demoButton": "Try Demo",
+    "nav": {
+      "play": "Play Adventure",
+      "create": "Create Adventure",
+      "login": "Sign in",
+      "freeTest": "Free trial",
+      "dashboard": "Dashboard"
+    },
+    "hero": {
+      "badge": "A new dimension of learning",
+      "titlePre": "Turn the world into a",
+      "titleHighlight": "living classroom",
+      "lead": "Create interactive GPS adventures, outdoor quizzes and treasure hunts in just a few minutes. Boost student engagement through gamification and field-based learning.",
+      "rotating": [
+        "Creative educational app",
+        "Interactive mobile guide",
+        "Digital treasure hunt",
+        "Building mathematical modeling",
+        "Field learning on a new level"
+      ],
+      "ctaPrimary": "Start for free",
+      "ctaSecondary": "See how it works",
+      "socialProof": "Built by Macedonian educators for field-based teaching",
+      "phone": {
+        "route": "Route: “Old Prilep”",
+        "points": "3 / 5 Points",
+        "nextStation": "Next stop: Clock Tower",
+        "accuracy": "Accuracy of 15 meters required.",
+        "riddleTitle": "Riddle no. 3:",
+        "riddleText": "In which year was the Clock Tower in Prilep built? Enter the correct answer to unlock the next clue.",
+        "inputPlaceholder": "Enter the year..."
+      }
+    },
+    "how": {
+      "title": "Three steps to an adventure",
+      "subtitle": "No complicated software — from idea to a field game in minutes.",
+      "steps": [
+        { "title": "Map", "text": "Place points on the GPS map across the city or the school yard." },
+        { "title": "Challenge", "text": "Add riddles, questions or tasks to be solved on location." },
+        { "title": "Activate", "text": "Share a code or QR with students and watch them explore in real time." }
+      ],
+      "ctaCreate": "Create Adventure",
+      "ctaDemo": "Try a demo game"
+    },
+    "audience": {
+      "title": "Who is this for?",
+      "items": [
+        { "title": "For teachers", "text": "Increase engagement in history, biology or geography classes through field learning and gamification." },
+        { "title": "For parents", "text": "Organize unique birthdays and family walks that take kids away from screens and out into the world." },
+        { "title": "For municipalities & museums", "text": "Digitize tourist tours and make local landmarks interactive and unforgettable." }
+      ]
+    },
+    "testimonials": {
+      "title": "What educators say",
+      "subtitle": "Experiences from teachers and guides who have already tried Авантура in the field.",
+      "items": [
+        { "quote": "For the first time my students were truly excited about a history class. They ran from point to point to solve the next riddle!", "name": "Marija S.", "role": "History teacher", "initial": "M" },
+        { "quote": "In half an hour I made a math hunt across the school yard. The kids didn't even realize they were actually solving problems.", "name": "Elena P.", "role": "Math teacher", "initial": "E" },
+        { "quote": "We used it for a tour through the old part of town. The QR codes on the landmarks left a great impression on visitors.", "name": "Toni K.", "role": "Tour guide", "initial": "T" }
+      ]
+    },
     "features": {
-      "gps": "GPS navigation",
-      "qr": "QR scanning",
-      "quiz": "Quizzes",
-      "mission": "Missions",
-      "offline": "Offline mode",
-      "ai": "AI generation"
+      "title": "Packed with features",
+      "labels": [
+        "Quiz", "GPS Locations", "Rewards", "Surveys",
+        "Missions", "Guide", "Points", "Evaluation",
+        "Tournaments", "Maps", "Timer", "Feedback",
+        "QR Codes", "Compass", "Progress", "Sharing"
+      ],
+      "flexTitle": "Flexible",
+      "flexLabels": [
+        "Urban areas", "Indoors", "Single player", "Offline mode",
+        "Rural areas", "Outdoors", "Groups and teams", "Multiple languages"
+      ]
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "items": [
+        { "q": "Is a constant internet connection required?", "a": "No. Авантура has an offline mode — the player can download the adventure while on Wi-Fi, and then the GPS and riddles work without internet. Answers sync automatically once the connection returns." },
+        { "q": "Does it work on iPhone and Android?", "a": "Yes. Авантура runs in the browser on any modern phone (iPhone and Android), and is also available as an installable Android app." },
+        { "q": "Is it free?", "a": "Yes, you can start for free and create an adventure without paying. For larger groups and advanced features we have paid plans." },
+        { "q": "Does the student have to install an app?", "a": "No. It's enough to open the link or scan a QR code to start playing directly in the browser." },
+        { "q": "Can I use QR codes instead of GPS?", "a": "Yes. For indoor spaces such as museums and schools, points can be unlocked by scanning a QR code instead of by GPS location." }
+      ]
+    },
+    "finalCta": {
+      "title": "Ready for your first adventure?",
+      "subtitle": "Create your first GPS adventure in minutes — for free.",
+      "button": "Start for free"
     }
   },
   "pricing": {

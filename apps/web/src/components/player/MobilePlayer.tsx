@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet
 import L from 'leaflet';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award } from 'lucide-react';
 import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
+import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
   cacheQuestLocally,
   getCachedQuest,
@@ -238,6 +239,10 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   useEffect(() => {
     if (isPreview && questProp) {
       setQuest(questProp);
+      return;
+    }
+    if (questId === DEMO_QUEST_ID) {
+      setQuest(DEMO_QUEST);
       return;
     }
     async function load() {
@@ -549,6 +554,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       duration_sec: finalDurations.reduce((sum, item) => sum + item.durationSec, 0),
       session_mode: Boolean(sessionCode),
     });
+
+    if (isPreview || questId === DEMO_QUEST_ID) return;
 
     const result = {
       questId,

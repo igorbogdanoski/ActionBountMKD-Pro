@@ -1,5 +1,5 @@
 {
-  "name": "АвантураКреатор",
+  "name": "Авантура — Интерактивни GPS Авантури",
   "short_name": "Авантура",
   "start_url": "/",
   "display": "standalone",
@@ -33,6 +33,21 @@
       "purpose": "any"
     }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "768x1376",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Играње авантура на телефон — GPS мапа и загатки"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1376x768",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Креатор на авантури — етапи, мапа и резултати"
+    }
+  ],
   "description": "Создавај и играј интерактивни GPS авантури и едукативни квестови. Македонска SaaS платформа."
 }

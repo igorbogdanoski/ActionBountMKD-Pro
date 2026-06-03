@@ -105,6 +105,42 @@ export interface QuestPedagogy {
 export const MAX_LEARNING_GOALS = 12;
 export const MAX_LEARNING_GOAL_LENGTH = 200;
 
+// ─── RUBRICS (Phase 7D-2) ─────────────────────────────────────────────────────
+
+/** A single achievement level within a rubric criterion (e.g. „Одлично" = 4 поени). */
+export interface RubricLevel {
+  id: string;
+  label: string;       // напр. „Одлично", „Делумно", „Недоволно"
+  points: number;      // поени доделени за ова ниво
+  descriptor?: string; // што се бара за ова ниво
+}
+
+/** A scoring dimension teachers grade a manual submission against. */
+export interface RubricCriterion {
+  id: string;
+  title: string;       // напр. „Точност", „Креативност"
+  levels: RubricLevel[];
+}
+
+/** Rubric attached to manually-graded stages (MISSION/SURVEY). */
+export interface Rubric {
+  criteria: RubricCriterion[];
+  feedbackPresets?: string[]; // брзи фрази за насочена повратна информација
+}
+
+export const MAX_RUBRIC_CRITERIA = 8;
+export const MAX_RUBRIC_LEVELS = 5;
+export const MAX_FEEDBACK_PRESETS = 12;
+
+/** Sum of the highest level points across all criteria — the rubric's max score. */
+export function rubricMaxPoints(rubric?: Rubric | null): number {
+  if (!rubric?.criteria?.length) return 0;
+  return rubric.criteria.reduce((sum, c) => {
+    const best = (c.levels ?? []).reduce((m, l) => Math.max(m, l.points || 0), 0);
+    return sum + best;
+  }, 0);
+}
+
 export interface Coordinates {
   latitude: number;
   longitude: number;
@@ -209,6 +245,7 @@ export interface QuizStage extends BaseStage {
 export interface MissionStage extends BaseStage {
   type: 'MISSION';
   submissionType: 'photo' | 'video' | 'audio';
+  rubric?: Rubric;   // scoring rubric + directed feedback (Phase 7D-2)
 }
 
 export type FindSpotShowMode = 'map' | 'arrow' | 'none';
@@ -244,6 +281,7 @@ export interface QrTaskStage extends BaseStage {
 export interface SurveyStage extends BaseStage {
   type: 'SURVEY';
   surveyQuestions: string[];
+  rubric?: Rubric;   // scoring rubric + directed feedback (Phase 7D-2)
 }
 
 export interface TournamentStage extends BaseStage {

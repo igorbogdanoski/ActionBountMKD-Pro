@@ -1,6 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react';
 import type { SurveyStage } from 'shared';
 import { Field, inputCls, textareaCls } from './shared';
+import { RubricEditor } from './RubricEditor';
 
 interface Props { stage: SurveyStage; onChange: (u: Partial<SurveyStage>) => void; }
 
@@ -47,6 +48,7 @@ export function SurveyEditor({ stage, onChange }: Props) {
           )}
         </div>
       </Field>
+      <RubricEditor rubric={stage.rubric} onChange={r => onChange({ rubric: r })} />
     </div>
   );
 }

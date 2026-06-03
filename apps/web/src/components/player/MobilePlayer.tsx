@@ -889,6 +889,30 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     );
   }
 
+  const renderRubric = () => {
+    const rubric = (stage as any).rubric as import('shared').Rubric | undefined;
+    if (!rubric?.criteria?.length) return null;
+    return (
+      <div className={`w-full max-w-sm mx-auto mb-6 rounded-2xl border p-4 text-left ${isNightMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+        <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>📋 Како се оценува</p>
+        <div className="space-y-3">
+          {rubric.criteria.map(c => (
+            <div key={c.id}>
+              <p className={`text-sm font-semibold ${isNightMode ? 'text-slate-200' : 'text-slate-700'}`}>{c.title || 'Критериум'}</p>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {c.levels.map(l => (
+                  <span key={l.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200 text-slate-600'}`}>
+                    {l.label || 'Ниво'} <span className="font-bold text-indigo-400">{l.points}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderStageContent = () => {
     switch (stage.type) {
       case 'INFO':
@@ -1260,6 +1284,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
             <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
 
+            {renderRubric()}
+
             <div className={`w-full max-w-sm rounded-3xl border-2 border-dashed ${isNightMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-300 bg-slate-50'} flex flex-col items-center justify-center p-8 mb-6`}>
               {isAudio ? (
                  <>
@@ -1341,7 +1367,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           <div className="flex-1 overflow-y-auto p-6 flex flex-col">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2 text-center`}>{stage.title}</h2>
             <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8 text-center`} />
-            
+
+            {renderRubric()}
+
             <div className="mb-8">
               <label className={`block text-lg font-bold mb-4 text-center ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>Внесете го вашиот одговор:</label>
               <textarea 

@@ -1,5 +1,6 @@
 import type { MissionStage } from 'shared';
 import { Field, inputCls, textareaCls } from './shared';
+import { RubricEditor } from './RubricEditor';
 
 interface Props { stage: MissionStage; onChange: (u: Partial<MissionStage>) => void; }
 
@@ -26,6 +27,7 @@ export function MissionStageEditor({ stage, onChange }: Props) {
         <input type="number" className={inputCls} min={0} max={10000}
           value={stage.points ?? 75} onChange={e => onChange({ points: Number(e.target.value) })} />
       </Field>
+      <RubricEditor rubric={stage.rubric} onChange={r => onChange({ rubric: r })} />
     </div>
   );
 }

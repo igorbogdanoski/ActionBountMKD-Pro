@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Quest, QuestCategory } from 'shared';
-import { QUEST_CATEGORY_LABELS } from 'shared';
+import type { Quest, QuestCategory, QuestPedagogy, EducationSubject, EducationGrade } from 'shared';
+import { QUEST_CATEGORY_LABELS, EDUCATION_SUBJECTS, EDUCATION_GRADES, MAX_LEARNING_GOALS, MAX_LEARNING_GOAL_LENGTH } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
 import { TrackUploader } from '../upload/TrackUploader';
@@ -12,11 +12,12 @@ interface Props {
   onChange: <K extends keyof Quest>(key: K, value: Quest[K]) => void;
 }
 
-const TABS = ['Профил', 'Карактеристики', 'Мапи', 'Опасна зона'];
+const TABS = ['Профил', 'Педагогија', 'Карактеристики', 'Мапи', 'Опасна зона'];
 
 export function QuestSettingsPanel({ quest, onChange }: Props) {
   const [tab, setTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
+  const [goalInput, setGoalInput] = useState('');
   const [inventoryName, setInventoryName] = useState('');
   const [inventoryIcon, setInventoryIcon] = useState('');
   const [inventoryMediaUrl, setInventoryMediaUrl] = useState('');
@@ -34,6 +35,26 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
   };
 
   const removeTag = (t: string) => onChange('tags', (quest.tags ?? []).filter(x => x !== t));
+
+  const pedagogy = quest.pedagogy ?? {};
+  const updatePedagogy = (patch: Partial<QuestPedagogy>) => {
+    const next: QuestPedagogy = { ...pedagogy, ...patch };
+    (Object.keys(next) as (keyof QuestPedagogy)[]).forEach(k => {
+      const v = next[k];
+      if (v === undefined || v === '' || (Array.isArray(v) && v.length === 0)) delete next[k];
+    });
+    onChange('pedagogy', Object.keys(next).length ? next : undefined);
+  };
+  const learningGoals = pedagogy.learningGoals ?? [];
+  const addGoal = () => {
+    const g = goalInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
+    if (!g) return;
+    if (learningGoals.length >= MAX_LEARNING_GOALS || learningGoals.includes(g)) { setGoalInput(''); return; }
+    updatePedagogy({ learningGoals: [...learningGoals, g] });
+    setGoalInput('');
+  };
+  const removeGoal = (g: string) => updatePedagogy({ learningGoals: learningGoals.filter(x => x !== g) });
+
   const addInventoryItem = () => {
     const name = inventoryName.trim();
     const icon = inventoryIcon.trim();
@@ -159,8 +180,66 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
             </>
           )}
 
-          {/* Tab 1: Characteristics */}
+          {/* Tab 1: Pedagogy */}
           {tab === 1 && (
+            <>
+              <p className="text-xs text-slate-400 -mb-1">
+                Претворете ја авантурата во вистинска наставна единица — поврзете ја со предмет, одделение и цели на учење.
+              </p>
+              <Field label="Предмет">
+                <select className={inputCls} value={pedagogy.subject ?? ''}
+                  onChange={e => updatePedagogy({ subject: (e.target.value || undefined) as EducationSubject | undefined })}>
+                  <option value="">— Изберете предмет —</option>
+                  {EDUCATION_SUBJECTS.map(s => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Одделение / ниво">
+                <select className={inputCls} value={pedagogy.grade ?? ''}
+                  onChange={e => updatePedagogy({ grade: (e.target.value || undefined) as EducationGrade | undefined })}>
+                  <option value="">— Изберете ниво —</option>
+                  {EDUCATION_GRADES.map(g => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Курикулумска ознака" hint="Тема или стандард од наставната програма, напр. „МАТ-6.3“">
+                <input type="text" className={inputCls} placeholder="напр. МАТ-6.3 — Геометриски тела"
+                  value={pedagogy.curriculumRef ?? ''} maxLength={120}
+                  onChange={e => updatePedagogy({ curriculumRef: e.target.value || undefined })} />
+              </Field>
+              <Field label="Цели на учење" hint={`Што ќе научат учениците. Максимум ${MAX_LEARNING_GOALS}, притисни Enter за додавање`}>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input type="text" className={inputCls} placeholder="напр. Препознава историски обележја во градот..."
+                      value={goalInput} maxLength={MAX_LEARNING_GOAL_LENGTH}
+                      onChange={e => setGoalInput(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addGoal(); } }} />
+                    <button type="button" onClick={addGoal}
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors shrink-0">
+                      +
+                    </button>
+                  </div>
+                  {learningGoals.length > 0 && (
+                    <ol className="space-y-1.5">
+                      {learningGoals.map((g, i) => (
+                        <li key={g} className="flex items-start gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2">
+                          <span className="text-xs font-bold text-indigo-400 mt-0.5 shrink-0">{i + 1}.</span>
+                          <span className="text-sm text-slate-200 flex-1 min-w-0 break-words">{g}</span>
+                          <button type="button" onClick={() => removeGoal(g)}
+                            className="text-slate-500 hover:text-rose-400 leading-none shrink-0">×</button>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </div>
+              </Field>
+            </>
+          )}
+
+          {/* Tab 2: Characteristics */}
+          {tab === 2 && (
             <>
               <Field label="Режим на играње">
                 <select className={inputCls} value={quest.playMode}
@@ -219,8 +298,8 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
             </>
           )}
 
-          {/* Tab 2: Maps */}
-          {tab === 2 && (
+          {/* Tab 3: Maps */}
+          {tab === 3 && (
             <>
               <Field label="Стил на мара">
                 <select className={inputCls} value={quest.mapStyle ?? 'standard'}
@@ -256,8 +335,8 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
             </>
           )}
 
-          {/* Tab 3: Danger zone */}
-          {tab === 3 && (
+          {/* Tab 4: Danger zone */}
+          {tab === 4 && (
             <div className="space-y-3">
               <p className="text-xs text-red-400 font-semibold uppercase tracking-wider">Опасна зона</p>
               <div className="p-4 border border-red-500/20 rounded-xl space-y-3">

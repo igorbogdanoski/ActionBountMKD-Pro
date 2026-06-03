@@ -95,9 +95,19 @@ export function ResultsDashboard() {
 
   const exportCSV = () => {
     if (results.length === 0) return;
-    
+
+    const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+
     // Add BOM for Excel UTF-8 display
     const bom = "\uFEFF";
+    const ped = selectedQuest?.pedagogy;
+    const metaLines: string[] = [];
+    if (selectedQuest?.title) metaLines.push(['Авантура:', csvCell(selectedQuest.title)].join(','));
+    if (ped?.subject) metaLines.push(['Предмет:', csvCell(ped.subject)].join(','));
+    if (ped?.grade) metaLines.push(['Одделение:', csvCell(ped.grade)].join(','));
+    if (ped?.curriculumRef) metaLines.push(['Курикулум:', csvCell(ped.curriculumRef)].join(','));
+    if (ped?.learningGoals?.length) metaLines.push(['Цели на учење:', csvCell(ped.learningGoals.join(' • '))].join(','));
+
     const headers = ['Играч', 'Поени', 'Датум', ...stageStats.map(s => `${s.name} (секунди)`)];
     const rows = sortedResults.map(r => {
       const stageTimes = stageStats.map(stat => {
@@ -111,8 +121,8 @@ export function ResultsDashboard() {
         ...stageTimes
       ].join(',');
     });
-    
-    const csvContent = bom + [headers.join(','), ...rows].join('\n');
+
+    const csvContent = bom + [...(metaLines.length ? [...metaLines, ''] : []), headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -154,6 +164,36 @@ export function ResultsDashboard() {
           </button>
         </div>
       </div>
+
+      {/* Pedagogy summary */}
+      {selectedQuest?.pedagogy && (selectedQuest.pedagogy.subject || selectedQuest.pedagogy.grade || selectedQuest.pedagogy.curriculumRef || (selectedQuest.pedagogy.learningGoals?.length ?? 0) > 0) && (
+        <div className="rounded-xl bg-slate-800/60 border border-slate-700 p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedQuest.pedagogy.subject && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-300 text-xs font-semibold">📚 {selectedQuest.pedagogy.subject}</span>
+            )}
+            {selectedQuest.pedagogy.grade && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 text-xs font-semibold">🎓 {selectedQuest.pedagogy.grade}</span>
+            )}
+            {selectedQuest.pedagogy.curriculumRef && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs font-semibold">🏷 {selectedQuest.pedagogy.curriculumRef}</span>
+            )}
+          </div>
+          {(selectedQuest.pedagogy.learningGoals?.length ?? 0) > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 mb-1.5">Цели на учење</p>
+              <ul className="space-y-1">
+                {selectedQuest.pedagogy.learningGoals!.map((g, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                    <span className="text-indigo-400 mt-0.5">✓</span>
+                    <span className="flex-1 min-w-0 break-words">{g}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-700">

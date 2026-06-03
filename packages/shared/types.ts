@@ -26,6 +26,85 @@ export interface Collaborator {
   role: 'viewer' | 'editor';
 }
 
+// ─── PEDAGOGY (Phase 7D) ──────────────────────────────────────────────────────
+
+export type EducationSubject =
+  | 'Математика'
+  | 'Природни науки'
+  | 'Биологија'
+  | 'Хемија'
+  | 'Физика'
+  | 'Географија'
+  | 'Историја'
+  | 'Мајчин јазик'
+  | 'Странски јазик'
+  | 'Физичко и здравствено'
+  | 'Информатика'
+  | 'Техничко образование'
+  | 'Уметност'
+  | 'Граѓанско образование'
+  | 'Друго';
+
+export const EDUCATION_SUBJECTS: EducationSubject[] = [
+  'Математика',
+  'Природни науки',
+  'Биологија',
+  'Хемија',
+  'Физика',
+  'Географија',
+  'Историја',
+  'Мајчин јазик',
+  'Странски јазик',
+  'Физичко и здравствено',
+  'Информатика',
+  'Техничко образование',
+  'Уметност',
+  'Граѓанско образование',
+  'Друго',
+];
+
+export type EducationGrade =
+  | 'Предучилишно'
+  | '1 одд.'
+  | '2 одд.'
+  | '3 одд.'
+  | '4 одд.'
+  | '5 одд.'
+  | '6 одд.'
+  | '7 одд.'
+  | '8 одд.'
+  | '9 одд.'
+  | 'Средно'
+  | 'Возрасни'
+  | 'Сите';
+
+export const EDUCATION_GRADES: EducationGrade[] = [
+  'Предучилишно',
+  '1 одд.',
+  '2 одд.',
+  '3 одд.',
+  '4 одд.',
+  '5 одд.',
+  '6 одд.',
+  '7 одд.',
+  '8 одд.',
+  '9 одд.',
+  'Средно',
+  'Возрасни',
+  'Сите',
+];
+
+/** Pedagogical metadata that turns a quest into a real teaching unit. */
+export interface QuestPedagogy {
+  subject?: EducationSubject;
+  grade?: EducationGrade;
+  curriculumRef?: string;     // курикулумска тема/стандард, напр. „МАТ-6.3“
+  learningGoals?: string[];   // цели на учење (макс 12, секоја до 200 знаци)
+}
+
+export const MAX_LEARNING_GOALS = 12;
+export const MAX_LEARNING_GOAL_LENGTH = 200;
+
 export interface Coordinates {
   latitude: number;
   longitude: number;
@@ -51,6 +130,7 @@ export interface Quest {
   coverImage?: string;
   category?: QuestCategory;
   tags?: string[];           // max 10, each max 30 chars
+  pedagogy?: QuestPedagogy;  // learning goals, subject, grade, curriculum (Phase 7D)
 
   // Gameplay
   visibility: Visibility;

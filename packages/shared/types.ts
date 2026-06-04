@@ -105,6 +105,25 @@ export interface QuestPedagogy {
 export const MAX_LEARNING_GOALS = 12;
 export const MAX_LEARNING_GOAL_LENGTH = 200;
 
+/** Filter by pedagogical subject / grade. Empty fields mean "no constraint". Pure. */
+export interface PedagogyFilter {
+  subject?: EducationSubject | '';
+  grade?: EducationGrade | '';
+}
+
+/** Whether a quest matches the given subject/grade filter. A quest with grade
+ *  „Сите" matches any grade constraint. Pure & side-effect free. */
+export function questMatchesPedagogy(
+  quest: Pick<Quest, 'pedagogy'> | null | undefined,
+  filter: PedagogyFilter,
+): boolean {
+  const subject = filter.subject?.trim();
+  const grade = filter.grade?.trim();
+  if (subject && quest?.pedagogy?.subject !== subject) return false;
+  if (grade && quest?.pedagogy?.grade !== grade && quest?.pedagogy?.grade !== 'Сите') return false;
+  return true;
+}
+
 // ─── RUBRICS (Phase 7D-2) ─────────────────────────────────────────────────────
 
 /** A single achievement level within a rubric criterion (e.g. „Одлично" = 4 поени). */

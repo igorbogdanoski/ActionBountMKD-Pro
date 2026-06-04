@@ -50,6 +50,8 @@
     "filterAll": "All statuses",
     "filterPublic": "Public",
     "filterPrivate": "Private",
+    "filterSubject": "All subjects",
+    "filterGrade": "All grades",
     "stages": "{{count}} stages",
     "emptyTitle": "No adventures yet",
     "emptyDesc": "Create your first interactive GPS adventure.",

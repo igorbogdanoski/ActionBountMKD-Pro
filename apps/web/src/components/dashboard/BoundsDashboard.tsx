@@ -7,7 +7,8 @@ import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { PlanUsageWidget } from './PlanUsageWidget';
 import { GenerateQuestModal } from '../ai/GenerateQuestModal';
-import type { Quest } from 'shared';
+import { EDUCATION_SUBJECTS, EDUCATION_GRADES, questMatchesPedagogy } from 'shared';
+import type { Quest, EducationSubject, EducationGrade } from 'shared';
 
 interface BoundsDashboardProps {
   onCreateNew: () => void;
@@ -26,6 +27,8 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const [loading, setLoading]             = useState(true);
   const [search, setSearch]               = useState('');
   const [filterStatus, setFilterStatus]   = useState<FilterStatus>('all');
+  const [filterSubject, setFilterSubject] = useState<EducationSubject | ''>('');
+  const [filterGrade, setFilterGrade]     = useState<EducationGrade | ''>('');
   const [favorites, setFavorites]         = useState<Set<string>>(new Set());
   const [downloaded, setDownloaded]       = useState<Set<string>>(new Set());
   const [editModalQuest, setEditModalQuest] = useState<Quest | null>(null);
@@ -62,9 +65,10 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
     return quests.filter(quest => {
       const matchSearch = !q || quest.title.toLowerCase().includes(q) || quest.description.toLowerCase().includes(q);
       const matchStatus = filterStatus === 'all' || quest.visibility === filterStatus;
-      return matchSearch && matchStatus;
+      const matchPedagogy = questMatchesPedagogy(quest, { subject: filterSubject, grade: filterGrade });
+      return matchSearch && matchStatus && matchPedagogy;
     });
-  }, [quests, search, filterStatus]);
+  }, [quests, search, filterStatus, filterSubject, filterGrade]);
 
   const atLimit = limits.maxQuests !== -1 && quests.length >= limits.maxQuests;
 
@@ -183,6 +187,24 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
           <option value="public">{t('dashboard.filterPublic')}</option>
           <option value="secret">{t('dashboard.filterPrivate')}</option>
         </select>
+        <select
+          aria-label={t('dashboard.filterSubject')}
+          value={filterSubject}
+          onChange={e => setFilterSubject(e.target.value as EducationSubject | '')}
+          className="py-2.5 px-4 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">{t('dashboard.filterSubject')}</option>
+          {EDUCATION_SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          aria-label={t('dashboard.filterGrade')}
+          value={filterGrade}
+          onChange={e => setFilterGrade(e.target.value as EducationGrade | '')}
+          className="py-2.5 px-4 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="">{t('dashboard.filterGrade')}</option>
+          {EDUCATION_GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+        </select>
       </div>
 
       {/* Loading */}
@@ -297,6 +319,22 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
                   <p className="text-white/70 text-sm line-clamp-1 mt-0.5">{quest.description}</p>
                 </div>
               </div>
+
+              {/* Pedagogy badges */}
+              {(quest.pedagogy?.subject || quest.pedagogy?.grade) && (
+                <div className="px-4 pt-3 flex flex-wrap gap-1.5">
+                  {quest.pedagogy?.subject && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-700/40">
+                      {quest.pedagogy.subject}
+                    </span>
+                  )}
+                  {quest.pedagogy?.grade && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-700/40">
+                      {quest.pedagogy.grade}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Meta */}
               <div className="px-4 py-3 flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700/50">

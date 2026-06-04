@@ -683,7 +683,7 @@ if ('serviceWorker' in navigator) {
 | 7A | Доверба и усогласеност (Privacy/Terms, Footer, контакт) | Сите | Висока (Play Store + училишта) | 🔴 1 | ✅ |
 | 7B | Полирање на почетна страна + SEO длабочина | Маркетинг/конверзија | Висока | 🔴 2 | ✅ |
 | 7C | Унифициран дизајн систем + брендирање | Дизајн | Висока | 🟡 3 | ⬜ |
-| 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | 🚧 |
+| 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | ✅ |
 | 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ⬜ |
 | 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
 | 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ⬜ |
@@ -733,7 +733,7 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7D — Педагошки слој за наставници 🚧
+### 7D — Педагошки слој за наставници ✅
 
 **Цел:** Од „едитор на игри" во вистинска наставна алатка.
 
@@ -741,11 +741,11 @@ if ('serviceWorker' in navigator) {
 - ✅ **7D-2** Рубрики и насочена повратна информација за рачно оценети задачи (MISSION/SURVEY) — `RubricEditor` (критериуми, нивоа, брзи коментари) во едиторите; read-only „Како се оценува" приказ кај играч; `rubricMaxPoints` + тестови
 - ✅ **7D-3** Класови/групи: именувани групи ученици + доделување авантури — нов таб „Класови" (`ClassGroups`), `class_groups` колекција + owner-scoped Firestore rules, CRUD во `storage.ts`, помошници `groupAssignedCount`/`isStudentNameTaken` + тестови (преглед по ученик чека персистенција на поднесоци)
 - ✅ **7D-4** Извоз на оцени по ученик + сертификати по класа — CSV дневник (поени по ученик×авантура, вкупно/завршени) во „Класови"; multi-page PDF сертификати за класа (`downloadClassCertificates`); чисти помошници `buildClassGradebook`/`bestResultForName`/`questMaxScore`/`normalizePlayerName` + тестови
+- ✅ **7D-5** Филтри по предмет/одделение во dashboard-от (надгради на 7D-1) — чист `questMatchesPedagogy` помошник (третира одделение „Сите" како универзално совпаѓање); два падачки филтри (предмет/одделение) во `BoundsDashboard`; педагошки беџови на картичките; i18n (mk/en) + тестови
 - Опц.: Google Classroom „доделено како задача"
 - Библиотека на педагошки шаблони по предмет (надгради на постоечките seed шаблони)
-- Филтри по предмет/одделение во каталогот и dashboard-от (надгради на 7D-1)
 
-**Фајлови:** `types.ts` (`QuestPedagogy`, `EDUCATION_SUBJECTS`, `EDUCATION_GRADES`) ✅, `QuestSettingsPanel.tsx` ✅, `ResultsDashboard.tsx` ✅, нови `groups`/`assignments` модели + rules (преостанато)
+**Фајлови:** `types.ts` (`QuestPedagogy`, `EDUCATION_SUBJECTS`, `EDUCATION_GRADES`, `questMatchesPedagogy`) ✅, `QuestSettingsPanel.tsx` ✅, `ResultsDashboard.tsx` ✅, `ClassGroups.tsx` ✅, `BoundsDashboard.tsx` ✅, `class_groups` модел + rules ✅
 
 ---
 

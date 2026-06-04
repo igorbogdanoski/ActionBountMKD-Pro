@@ -50,6 +50,8 @@
     "filterAll": "Сите статуси",
     "filterPublic": "Јавни",
     "filterPrivate": "Приватни",
+    "filterSubject": "Сите предмети",
+    "filterGrade": "Сите одделенија",
     "stages": "{{count}} етапи",
     "emptyTitle": "Нема авантури уште",
     "emptyDesc": "Создај ја твојата прва интерактивна GPS авантура.",

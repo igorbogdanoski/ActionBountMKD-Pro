@@ -407,6 +407,65 @@ export interface QuestResult {
   teamCode?: string;
 }
 
+// ─── GRADEBOOK (Phase 7D-4) ───────────────────────────────────────────────────
+
+export interface GradeCell {
+  questId: string;
+  points: number | null;     // null = ученикот сè уште не ја завршил авантурата
+  completedAt: string | null;
+}
+
+export interface GradeRow {
+  studentId: string;
+  studentName: string;
+  cells: GradeCell[];
+  total: number;             // збир од најдобри поени по авантура
+  completedCount: number;
+}
+
+/** Total available points across all stages of a quest. */
+export function questMaxScore(quest: Pick<Quest, 'stages'> | null | undefined): number {
+  return (quest?.stages ?? []).reduce((sum, s) => sum + (s.points || 0), 0);
+}
+
+/** Normalize a player/student name for tolerant matching. */
+export function normalizePlayerName(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+/** The highest-scoring result for a given player name within a result list. */
+export function bestResultForName(results: QuestResult[], name: string): QuestResult | null {
+  const norm = normalizePlayerName(name);
+  if (!norm) return null;
+  let best: QuestResult | null = null;
+  for (const r of results) {
+    if (normalizePlayerName(r.playerName) !== norm) continue;
+    if (!best || r.points > best.points) best = r;
+  }
+  return best;
+}
+
+/** Build a per-student gradebook across a set of adventures. Pure. */
+export function buildClassGradebook(
+  students: Pick<GroupStudent, 'id' | 'name'>[],
+  questIds: string[],
+  resultsByQuest: Record<string, QuestResult[]>,
+): GradeRow[] {
+  return students.map(s => {
+    const cells: GradeCell[] = questIds.map(qid => {
+      const best = bestResultForName(resultsByQuest[qid] ?? [], s.name);
+      return {
+        questId: qid,
+        points: best ? best.points : null,
+        completedAt: best ? best.completedAt : null,
+      };
+    });
+    const total = cells.reduce((sum, c) => sum + (c.points ?? 0), 0);
+    const completedCount = cells.filter(c => c.points !== null).length;
+    return { studentId: s.id, studentName: s.name, cells, total, completedCount };
+  });
+}
+
 // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────────
 
 export interface QuestFeedback {

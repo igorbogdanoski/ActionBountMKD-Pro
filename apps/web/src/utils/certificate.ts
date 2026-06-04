@@ -165,3 +165,29 @@ export async function downloadCertificate(data: CertificateData): Promise<void> 
   const safeName = (data.playerName || 'играч').replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 40);
   pdf.save(`Сертификат_${safeName}.pdf`);
 }
+
+/** Render many certificates into a single multi-page PDF (one per page). */
+export async function downloadClassCertificates(
+  items: CertificateData[],
+  fileName = 'Сертификати_класа',
+): Promise<void> {
+  if (items.length === 0) return;
+
+  const { default: jsPDF } = await import('jspdf');
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+  const pw = pdf.internal.pageSize.getWidth();
+  const ph = pdf.internal.pageSize.getHeight();
+  const ratio = Math.min(pw / W, ph / H);
+  const iw = W * ratio;
+  const ih = H * ratio;
+
+  for (let i = 0; i < items.length; i++) {
+    if (i > 0) pdf.addPage();
+    const canvas = await renderCanvas(items[i]);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    pdf.addImage(imgData, 'JPEG', (pw - iw) / 2, (ph - ih) / 2, iw, ih);
+  }
+
+  const safe = (fileName || 'Сертификати_класа').replace(/[^\p{L}\p{N}_-]+/gu, '_').slice(0, 60);
+  pdf.save(`${safe}.pdf`);
+}

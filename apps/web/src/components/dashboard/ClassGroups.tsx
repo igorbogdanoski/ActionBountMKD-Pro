@@ -1,15 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getGroups, saveGroup, deleteGroup, getQuests } from '../../utils/storage';
+import { getGroups, saveGroup, deleteGroup, getQuests, getQuestResults } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
+import { usePlan } from '../../hooks/usePlan';
 import {
   MAX_GROUP_STUDENTS,
   MAX_GROUP_NAME_LENGTH,
   MAX_STUDENT_NAME_LENGTH,
   isStudentNameTaken,
   groupAssignedCount,
+  buildClassGradebook,
+  questMaxScore,
+  bestResultForName,
 } from 'shared';
-import type { ClassGroup, GroupStudent, Quest } from 'shared';
-import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap } from 'lucide-react';
+import type { ClassGroup, GroupStudent, Quest, QuestResult } from 'shared';
+import { downloadClassCertificates, type CertificateData } from '../../utils/certificate';
+import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap, Download, Award } from 'lucide-react';
 
 const uid = () =>
   (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
@@ -20,12 +25,16 @@ const nowIso = () => new Date().toISOString();
 
 export function ClassGroups() {
   const { user } = useAuth();
+  const { planId } = usePlan();
+  const watermark = planId === 'free';
   const [groups, setGroups] = useState<ClassGroup[]>([]);
   const [quests, setQuests] = useState<Quest[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [newGroupName, setNewGroupName] = useState('');
   const [studentInput, setStudentInput] = useState('');
+  const [certQuestId, setCertQuestId] = useState<string>('');
+  const [busy, setBusy] = useState<'' | 'csv' | 'cert'>('');
 
   useEffect(() => {
     if (!user) return;
@@ -112,6 +121,79 @@ export function ClassGroups() {
       ? assigned.filter(id => id !== questId)
       : [...assigned, questId];
     persist({ ...selected, assignedQuestIds: next });
+  };
+
+  const loadResultsByQuest = async (questIds: string[]): Promise<Record<string, QuestResult[]>> => {
+    const entries = await Promise.all(
+      questIds.map(async id => [id, await getQuestResults(id)] as const),
+    );
+    return Object.fromEntries(entries);
+  };
+
+  const exportGrades = async () => {
+    if (!selected) return;
+    const questIds = selected.assignedQuestIds ?? [];
+    if (questIds.length === 0 || selected.students.length === 0) return;
+    setBusy('csv');
+    try {
+      const resultsByQuest = await loadResultsByQuest(questIds);
+      const rows = buildClassGradebook(selected.students, questIds, resultsByQuest);
+      const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      const titles = questIds.map(id => questTitle(id));
+      const header = ['Ученик', ...titles, 'Вкупно', 'Завршени'].map(csvCell).join(',');
+      const body = rows.map(r =>
+        [
+          csvCell(r.studentName),
+          ...r.cells.map(c => (c.points === null ? '' : String(c.points))),
+          String(r.total),
+          `${r.completedCount}/${questIds.length}`,
+        ].join(','),
+      );
+      const meta = [['Класа:', csvCell(selected.name)].join(',')];
+      const content = '\uFEFF' + [...meta, '', header, ...body].join('\n');
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `oceni_${selected.name.replace(/\s+/g, '_')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const generateCertificates = async () => {
+    if (!selected || !certQuestId) return;
+    const quest = quests.find(q => q.id === certQuestId);
+    if (!quest) return;
+    setBusy('cert');
+    try {
+      const results = await getQuestResults(certQuestId);
+      const maxScore = questMaxScore(quest);
+      const items: CertificateData[] = [];
+      for (const s of selected.students) {
+        const best = bestResultForName(results, s.name);
+        if (!best) continue; // само ученици што ја завршиле
+        items.push({
+          playerName: s.name,
+          questTitle: quest.title,
+          score: best.points,
+          maxScore: maxScore > 0 ? maxScore : undefined,
+          date: new Date(best.completedAt),
+          watermark,
+        });
+      }
+      if (items.length === 0) {
+        window.alert('Ниту еден ученик од оваа група сè уште не ја завршил избраната авантура.');
+        return;
+      }
+      await downloadClassCertificates(items, `Сертификати_${selected.name}_${quest.title}`);
+    } finally {
+      setBusy('');
+    }
   };
 
   if (loading) {
@@ -301,6 +383,52 @@ export function ClassGroups() {
                   ))}
                 </ul>
               )}
+            </div>
+
+            {/* Grades & certificates */}
+            <div className="rounded-xl bg-slate-800/60 border border-slate-700 p-4 space-y-4">
+              <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                <Award className="w-4 h-4 text-emerald-400" /> Оцени и сертификати
+              </h3>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <button
+                  type="button"
+                  onClick={exportGrades}
+                  disabled={busy !== '' || groupAssignedCount(selected) === 0 || selected.students.length === 0}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded-lg font-semibold transition-colors"
+                >
+                  <Download className="w-4 h-4" /> {busy === 'csv' ? 'Извезувам…' : 'Извези оцени (CSV)'}
+                </button>
+                <span className="text-xs text-slate-500">
+                  Поени по ученик за сите доделени авантури (совпаѓање по име).
+                </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">
+                <select
+                  title="Избери авантура за сертификати"
+                  value={certQuestId}
+                  onChange={e => setCertQuestId(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 sm:max-w-xs w-full"
+                >
+                  <option value="">Избери авантура…</option>
+                  {(selected.assignedQuestIds ?? []).map(id => (
+                    <option key={id} value={id}>{questTitle(id)}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={generateCertificates}
+                  disabled={busy !== '' || !certQuestId}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm rounded-lg font-semibold transition-colors shrink-0"
+                >
+                  <Award className="w-4 h-4" /> {busy === 'cert' ? 'Генерирам…' : 'Сертификати за класа'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Се генерира PDF со по една страница за секој ученик што ја завршил избраната авантура.
+              </p>
             </div>
           </div>
         ) : (

@@ -725,7 +725,7 @@ if ('serviceWorker' in navigator) {
 **Цел:** Конзистентен, заоблен, пријателски, но професионален изглед („Playful Professional").
 
 - ✅ **7C-1** Типографија + дизајн токени — Quicksand (UI) + Pacifico (бренд) глобално вчитани во `index.html`; `@theme` токени во `index.css` (брend-палета `brand-50..950`, `--font-sans`/`--font-brand`, радиуси, меки сенки); отстранети дупли inline `@import` на Pacifico низ компонентите
-- **7C-2** Заедничка UI библиотека (Button, Card, Toggle, Badge, Modal) — реупотреба во creator + player + landing
+- ✅ **7C-2** Заедничка UI библиотека (`src/components/ui/`): `Button` (5 варијанти, 3 големини, loading/иконки), `Card`, `Badge` (6 бои), `Toggle` (a11y switch), `Modal` (Escape/backdrop затворање, focus-ring) + barrel `index.ts` + render тестови
 - **7C-3** Refactor на екраните да користат токени/UI (замена на хардкодираниот `#e66c4f` со `brand-*`)
 - Векторски илустрации/иконографија конзистентни
 

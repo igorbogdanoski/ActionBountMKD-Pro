@@ -20,6 +20,7 @@ import { MathRenderer } from '../editor/MathRenderer';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
+import { milestoneEncouragement, progressPercent } from '../../utils/encouragement';
 
 interface MobilePlayerProps {
   questId: string;
@@ -92,6 +93,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [teamCode, setTeamCode] = useState('');
   const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
   const prevPointsRef = useRef(0);
+  const prevCompletedRef = useRef(0);
   const lastSessionLocationSentAtRef = useRef(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -211,6 +213,21 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     }
     prevPointsRef.current = points;
   }, [points]);
+
+  // Encouraging milestone microcopy as the player crosses 25 / 50 / 75 / 100%
+  const totalStageCount = quest?.stages?.length ?? 0;
+  useEffect(() => {
+    const completed = completedStageIds.length;
+    if (completed > prevCompletedRef.current && totalStageCount > 0) {
+      const msg = milestoneEncouragement(completed, totalStageCount);
+      if (msg) {
+        const id = Math.random().toString();
+        setToasts(prev => [...prev, { id, text: msg }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+      }
+    }
+    prevCompletedRef.current = completed;
+  }, [completedStageIds.length, totalStageCount]);
 
   useEffect(() => {
     if (quest && 'caches' in window) {
@@ -1568,7 +1585,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           </button>
         </div>
         {/* Progress Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-950/50">
+        <div
+          className="absolute bottom-0 left-0 right-0 h-1 bg-indigo-950/50"
+          role="progressbar"
+          aria-label="Напредок низ авантурата"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={progressPercent(completedStageIds.length, stages.length)}
+        >
           <motion.div 
             className="h-full bg-emerald-400"
             initial={{ width: 0 }}

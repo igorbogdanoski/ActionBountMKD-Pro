@@ -68,7 +68,7 @@ export function InstallPrompt() {
                  rounded-2xl shadow-xl px-4 py-3 flex items-center gap-3 animate-slide-up"
     >
       {/* Icon */}
-      <div className="shrink-0 w-11 h-11 rounded-xl bg-[#e66c4f] flex items-center justify-center">
+      <div className="shrink-0 w-11 h-11 rounded-xl bg-brand-500 flex items-center justify-center">
         <img src="/icon-192.png" alt="" className="w-8 h-8 rounded-lg" />
       </div>
 
@@ -87,8 +87,8 @@ export function InstallPrompt() {
         <button
           onClick={handleInstall}
           disabled={installing}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#e66c4f] text-white
-                     hover:bg-[#d45c3f] disabled:opacity-60 transition-colors"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-500 text-white
+                     hover:bg-brand-600 disabled:opacity-60 transition-colors"
         >
           {installing ? '…' : 'Инсталирај'}
         </button>

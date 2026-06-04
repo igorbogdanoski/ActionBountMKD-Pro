@@ -682,7 +682,7 @@ if ('serviceWorker' in navigator) {
 |----------|------|-------|----------|-----------|--------|
 | 7A | Доверба и усогласеност (Privacy/Terms, Footer, контакт) | Сите | Висока (Play Store + училишта) | 🔴 1 | ✅ |
 | 7B | Полирање на почетна страна + SEO длабочина | Маркетинг/конверзија | Висока | 🔴 2 | ✅ |
-| 7C | Унифициран дизајн систем + брендирање | Дизајн | Висока | 🟡 3 | 🚧 |
+| 7C | Унифициран дизајн систем + брендирање | Дизајн | Висока | 🟡 3 | ✅ |
 | 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | ✅ |
 | 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ⬜ |
 | 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
@@ -720,16 +720,16 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7C — Дизајн систем + брендирање 🚧
+### 7C — Дизајн систем + брендирање ✅
 
 **Цел:** Конзистентен, заоблен, пријателски, но професионален изглед („Playful Professional").
 
 - ✅ **7C-1** Типографија + дизајн токени — Quicksand (UI) + Pacifico (бренд) глобално вчитани во `index.html`; `@theme` токени во `index.css` (брend-палета `brand-50..950`, `--font-sans`/`--font-brand`, радиуси, меки сенки); отстранети дупли inline `@import` на Pacifico низ компонентите
 - ✅ **7C-2** Заедничка UI библиотека (`src/components/ui/`): `Button` (5 варијанти, 3 големини, loading/иконки), `Card`, `Badge` (6 бои), `Toggle` (a11y switch), `Modal` (Escape/backdrop затворање, focus-ring) + barrel `index.ts` + render тестови
-- **7C-3** Refactor на екраните да користат токени/UI (замена на хардкодираниот `#e66c4f` со `brand-*`)
-- Векторски илустрации/иконографија конзистентни
+- ✅ **7C-3** Refactor на екраните на брend токени — целиот хардкодиран `#e66c4f`/`#d65b3f`/`#d45c3f` заменет со `brand-500`/`brand-600` низ `LandingPage`, `Footer`, `LegalLayout`, `MobilePlayer`, `InstallPrompt` (canvas `CORAL` во `certificate.ts` останува хекс); tsc + build + 257 тестови зелени
+- Опц.: Векторски илустрации/иконографија конзистентни
 
-**Фајлови:** `index.html` ✅, `src/index.css` ✅, `src/components/ui/*` (нов), refactor низ постоечките екрани
+**Фајлови:** `index.html` ✅, `src/index.css` ✅, `src/components/ui/*` ✅, `LandingPage.tsx`/`Footer.tsx`/`LegalLayout.tsx`/`MobilePlayer.tsx`/`InstallPrompt.tsx` ✅
 
 ---
 

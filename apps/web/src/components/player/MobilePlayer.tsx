@@ -874,7 +874,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             <button
               onClick={handleDownloadCertificate}
               disabled={generatingCert}
-              className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-[#e66c4f] hover:bg-[#d65b3f] disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
+              className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
             >
               <Award className="w-5 h-5" />
               {generatingCert ? 'Се генерира…' : 'Преземи сертификат'}

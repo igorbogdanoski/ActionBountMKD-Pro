@@ -1,6 +1,0 @@
-7E-1 Student encouragement microcopy + progress a11y  
-  
-- encouragement.ts: pure progressPercent + milestoneEncouragement  
-- MobilePlayer: milestone toast on crossing 25/50/75/100 percent  
-- progress bar role=progressbar + aria-valuenow/min/max  
-- encouragement.test.ts 11 tests; suite 268 green 

@@ -15,7 +15,6 @@ export function LegalLayout({ title, url, updated, children }: Props) {
     <>
       <SEO title={title} url={url} />
       <div className="min-h-screen bg-[#e8eedd] text-slate-800 flex flex-col">
-        <style>{`@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap'); .font-cursive{font-family:'Pacifico',cursive;}`}</style>
 
         <header className="bg-[#2a2522] text-white px-6 py-4 flex items-center justify-between sticky top-0 z-50">
           <Link to="/" className="text-2xl text-[#e66c4f] font-cursive">Авантура</Link>

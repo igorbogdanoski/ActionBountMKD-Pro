@@ -6,7 +6,6 @@ const YEAR = new Date().getFullYear();
 export function Footer() {
   return (
     <footer className="bg-[#2a2522] text-slate-300 border-t border-white/10">
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap'); .font-cursive{font-family:'Pacifico',cursive;}`}</style>
 
       <div className="max-w-6xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* Brand */}

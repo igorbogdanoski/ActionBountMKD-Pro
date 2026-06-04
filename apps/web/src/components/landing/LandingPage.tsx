@@ -73,11 +73,7 @@ export function LandingPage() {
       <SoftwareAppSchema />
       <FaqSchema items={faqItems} />
       <div className="min-h-screen bg-[#e8eedd] font-sans text-slate-800 flex flex-col overflow-y-auto">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
-        .font-cursive { font-family: 'Pacifico', cursive; }
-      `}</style>
-      
+
       {/* Header */}
       <header className="bg-[#2a2522] text-white px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-8">

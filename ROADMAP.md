@@ -686,7 +686,7 @@ if ('serviceWorker' in navigator) {
 | 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | ✅ |
 | 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ✅ |
 | 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
-| 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ⬜ |
+| 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ◐ |
 | 7H | Квалитет и набљудување (e2e, Sentry, dynamic sitemap) | Инженеринг | Средна | 🟢 8 | ✅ |
 
 ---
@@ -778,14 +778,16 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7G — SaaS зрелост ⬜
+### 7G — SaaS зрелост ◐ (делумно)
 
-- Автоматски billing (Stripe за EU) + lifecycle (обнова/истек) наспроти тековното рачно `payment_requests`
-- Транзакциски е-маил (потврда, фактура, потсетници)
-- White-label (5C): per-tenant брендирање/домен за општини/училишта/агенции
-- XLSX извоз + completion rate по етапа + scheduled weekly report (5E)
+- ✅ **7G-1** XLSX извоз + completion rate по етапа (5E) — чист `completion.ts` (`computeStageCompletion`: стигнале/завршеност%/пад по етапа vs вкупно играчи) + чист `excelExport.ts` (`buildSpreadsheetXml` SpreadsheetML 2003, без зависности — Excel/LibreOffice/Sheets го отвораат нативно, типизирани ќелии, повеќе листови); копче „Excel" во „Резултати и Аналитика" што извезува два листа („Резултати" + „Завршеност по етапа") + тестови
+- ⏳ **Бара надворешно поставување (не може во овој env):**
+  - Автоматски billing (Stripe за EU) + lifecycle (обнова/истек) наспроти тековното рачно `payment_requests` — бара Stripe клучеви + Cloud Functions/webhooks
+  - Транзакциски е-маил (потврда, фактура, потсетници) — бара е-маил провајдер (SMTP/SendGrid) + Cloud Functions
+  - White-label (5C): per-tenant брендирање/домен за општини/училишта/агенции — бара DNS/домен инфраструктура
+  - Scheduled weekly report (5E) — бара Cloud Scheduler + е-маил backend
 
-**Фајлови:** Cloud Functions, `aiService`/email util, `white_label_configs`, export utils
+**Фајлови:** `apps/web/src/utils/completion.ts` ✅, `apps/web/src/utils/excelExport.ts` ✅, `ResultsDashboard.tsx` ✅; (преостанато) Cloud Functions, email util, `white_label_configs`
 
 ---
 

@@ -3,7 +3,9 @@ import { getQuests, getQuestResults } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { Quest } from 'shared';
-import { Trophy, Clock, User, Download, Filter, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
+import { computeStageCompletion } from '../../utils/completion';
+import { downloadWorkbook, type SheetData } from '../../utils/excelExport';
+import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
@@ -79,6 +81,11 @@ export function ResultsDashboard() {
     });
   }, [stageStats]);
 
+  const stageCompletion = useMemo(
+    () => computeStageCompletion(selectedQuest?.stages ?? [], results),
+    [selectedQuest, results],
+  );
+
   const sortedResults = useMemo(() => {
     const data = [...results];
     if (sortByStageId) {
@@ -133,6 +140,52 @@ export function ResultsDashboard() {
     document.body.removeChild(link);
   };
 
+  const exportExcel = () => {
+    if (results.length === 0) return;
+
+    const ped = selectedQuest?.pedagogy;
+    const metaRows: (string | number)[][] = [];
+    if (selectedQuest?.title) metaRows.push(['Авантура', selectedQuest.title]);
+    if (ped?.subject) metaRows.push(['Предмет', ped.subject]);
+    if (ped?.grade) metaRows.push(['Одделение', ped.grade]);
+    if (ped?.curriculumRef) metaRows.push(['Курикулум', ped.curriculumRef]);
+    if (ped?.learningGoals?.length) metaRows.push(['Цели на учење', ped.learningGoals.join(' • ')]);
+
+    const resultsSheet: SheetData = {
+      name: 'Резултати',
+      rows: [
+        ...(metaRows.length ? [...metaRows, []] : []),
+        ['Играч', 'Поени', 'Датум', ...stageStats.map(s => `${s.name} (секунди)`)],
+        ...sortedResults.map(r => [
+          r.playerName || 'Анонимен',
+          r.points ?? 0,
+          new Date(r.completedAt).toLocaleDateString(),
+          ...stageStats.map(stat => {
+            const stageDur = r.stageDurations?.find((sd: any) => sd.stageId === stat.id);
+            return stageDur ? stageDur.durationSec : 0;
+          }),
+        ]),
+      ],
+    };
+
+    const completionSheet: SheetData = {
+      name: 'Завршеност по етапа',
+      rows: [
+        ['Етапа', 'Наслов', 'Стигнале', 'Вкупно играчи', 'Завршеност (%)', 'Пад од претходна (п.п.)'],
+        ...stageCompletion.map(s => [
+          s.label,
+          s.title,
+          s.reached,
+          s.totalPlayers,
+          s.completionRate,
+          s.dropOff,
+        ]),
+      ],
+    };
+
+    downloadWorkbook([resultsSheet, completionSheet], `rezultati_${selectedQuestId}`);
+  };
+
   return (
     <div className="space-y-6 mx-auto max-w-6xl w-full p-4 md:p-8">
       {/* Header */}
@@ -161,6 +214,14 @@ export function ResultsDashboard() {
             className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition-colors shadow-sm"
           >
             <Download className="w-5 h-5" />
+          </button>
+          <button
+            type="button"
+            onClick={exportExcel}
+            title="Извоз во Excel (со завршеност по етапа)"
+            className="p-2.5 bg-teal-700 hover:bg-teal-600 text-white rounded-md transition-colors shadow-sm"
+          >
+            <FileSpreadsheet className="w-5 h-5" />
           </button>
         </div>
       </div>

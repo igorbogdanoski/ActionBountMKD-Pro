@@ -685,7 +685,7 @@ if ('serviceWorker' in navigator) {
 | 7C | Унифициран дизајн систем + брендирање | Дизајн | Висока | 🟡 3 | ✅ |
 | 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | ✅ |
 | 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ✅ |
-| 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
+| 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ◐ |
 | 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ◐ |
 | 7H | Квалитет и набљудување (e2e, Sentry, dynamic sitemap) | Инженеринг | Средна | 🟢 8 | ✅ |
 
@@ -764,17 +764,20 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7F — Мобилна → Google Play ⬜
+### 7F — Мобилна → Google Play ◐ (делумно)
 
 **Цел:** Објавена, стабилна Android апликација.
 
-- Реален идентитет: `app.json` `name`/`slug` → „Авантура" (моментално „mobile")
-- `google-services.json` како EAS file-secret (моментално ГО НЕМА на диск)
-- `production` profile → AAB; `eas submit`; верификација M1 (Google login) + M9 (push) на реален уред
-- Store листинг: feature graphic, screenshots, опис, Privacy URL (од 7A), Data Safety форма
-- Алтернатива: TWA обвивка околу PWA како побрз пат
+- ✅ **7F-1** Реален идентитет: `app.json` `name` → „Авантура", `slug` → „avantura" (претходно „mobile")
+- ✅ **7F-2** `production` build профил со експлицитен AAB (`android.buildType: "app-bundle"`) + `submit.production.android` (`track: "internal"`, `releaseStatus: "draft"`) во `eas.json`
+- ⏳ **Бара надворешно поставување (не може во овој env):**
+  - `google-services.json` како EAS file-secret (моментално ГО НЕМА на диск)
+  - Google Play service-account клуч за `eas submit`
+  - Верификација M1 (Google login) + M9 (push) на реален уред
+  - Store листинг: feature graphic, screenshots, опис, Privacy URL (од 7A), Data Safety форма
+  - Алтернатива: TWA обвивка околу PWA како побрз пат
 
-**Фајлови:** `apps/mobile/app.json`, `eas.json`, EAS secrets, store assets
+**Фајлови:** `apps/mobile/app.json` ✅, `apps/mobile/eas.json` ✅; (преостанато) EAS secrets, store assets
 
 ---
 

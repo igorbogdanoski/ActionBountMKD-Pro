@@ -6,10 +6,12 @@ import './index.css';
 import { AuthProvider } from './utils/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initAnalytics } from './utils/analytics';
+import { initErrorReporting } from './utils/errorReporting';
 import { readOutdoorPref, OUTDOOR_CLASS } from './utils/displayPrefs';
 import './i18n'; // initialise i18next before render
 
 initAnalytics().catch(() => {});
+initErrorReporting().catch(() => {});
 
 // Apply the per-device outdoor (high-contrast) preference before first paint.
 if (readOutdoorPref(window.localStorage)) {

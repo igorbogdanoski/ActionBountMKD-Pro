@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { captureError } from '../utils/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -19,6 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('[ErrorBoundary]', error, info.componentStack);
+    captureError(error, { componentStack: info.componentStack });
   }
 
   private reset = () => this.setState({ error: null });

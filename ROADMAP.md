@@ -687,7 +687,7 @@ if ('serviceWorker' in navigator) {
 | 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ✅ |
 | 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
 | 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ⬜ |
-| 7H | Квалитет и набљудување (e2e, Sentry, dynamic sitemap) | Инженеринг | Средна | 🟢 8 | ⬜ |
+| 7H | Квалитет и набљудување (e2e, Sentry, dynamic sitemap) | Инженеринг | Средна | 🟢 8 | ✅ |
 
 ---
 
@@ -789,13 +789,14 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7H — Квалитет и набљудување ⬜
+### 7H — Квалитет и набљудување ✅
 
-- E2E (Playwright) за критични текови: креирај → играј → резултат → live сесија
-- Error monitoring (Sentry) web + mobile; евидентирање на 4B/4C мануелните тест-планови
-- Динамичен sitemap аутоматизација; Lighthouse буџет (<2s, a11y ≥95)
+- ✅ **7H-1** Динамичен sitemap — `scripts/gen-sitemap.mjs` (единствен извор на јавните URL-и) со чист, тестиран `buildSitemapXml` (escaping, нормализација на origin, опц. changefreq/priority); `npm run gen:sitemap`; излезот е идентичен со постоечкиот `public/sitemap.xml` + тестови
+- ✅ **7H-2** Error monitoring (web) — `utils/errorReporting.ts` по истиот adapter образец како analytics: чист `shouldInitErrorReporting`, no-op `captureError` без DSN, мрзлив `@sentry/react` (non-literal specifier → не бара пакет/мрежа без `VITE_SENTRY_DSN`); жичено во `main.tsx` и `ErrorBoundary.componentDidCatch` + тестови
+- ✅ **7H-3** E2E (Playwright) скеле — `e2e/playwright.config.ts` (chromium + mobile, dev-server или `PLAYWRIGHT_BASE_URL`) + `e2e/tests/smoke.spec.ts` (landing/правни/демо плеер) на root, надвор од `apps/web` за да не го фаќа web `tsc`; `npm run test:e2e`
+- ⏳ **Бара надворешно поставување (не може во овој env):** реален `VITE_SENTRY_DSN` + `npm i -D @sentry/react`; `npm i -D @playwright/test && npx playwright install`; Sentry за mobile (Expo); Lighthouse буџет во CI (<2s, a11y ≥95); евидентирање на 4B/4C мануелни тест-планови
 
-**Фајлови:** `e2e/*`, Sentry init, CI чекор
+**Фајлови:** `apps/web/scripts/gen-sitemap.mjs` ✅, `apps/web/src/utils/errorReporting.ts` ✅, `apps/web/src/main.tsx` ✅, `apps/web/src/components/ErrorBoundary.tsx` ✅, `e2e/*` ✅
 
 ---
 

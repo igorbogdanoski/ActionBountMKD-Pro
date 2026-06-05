@@ -21,3 +21,8 @@ fix-theme.js
 assets/.aistudio/
 интерактивни-авантури.zip
 metadata.json
+
+# Playwright E2E artifacts
+test-results/
+playwright-report/
+e2e/.cache/

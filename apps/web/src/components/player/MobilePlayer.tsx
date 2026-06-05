@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, questMaxScore } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
@@ -23,6 +23,7 @@ import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } fro
 import { milestoneEncouragement, progressPercent } from '../../utils/encouragement';
 import { shouldRevealHint } from '../../utils/hints';
 import { shouldShowOnboarding, PLAYER_ONBOARDING_TIPS, ONBOARDING_STORAGE_KEY } from '../../utils/onboarding';
+import { computeAchievements } from '../../utils/achievements';
 
 interface MobilePlayerProps {
   questId: string;
@@ -892,6 +893,34 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             <p className={`text-sm uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-1`}>Освоени поени</p>
             <p className="text-4xl font-black text-indigo-500">{points}</p>
           </div>
+
+          {(() => {
+            const achievements = computeAchievements({
+              points,
+              maxPoints: questMaxScore(quest),
+              completedStages: completedStageIds.length,
+              totalStages: stages.length,
+              collectedItems: collectedItemIds.length,
+              totalItems: inventoryItems.length,
+            });
+            if (achievements.length === 0) return null;
+            return (
+              <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>
+                <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-3`}>Постигнувања</p>
+                <div className="space-y-2.5">
+                  {achievements.map(a => (
+                    <div key={a.id} className="flex items-center gap-3">
+                      <span className="text-2xl shrink-0" aria-hidden="true">{a.icon}</span>
+                      <div>
+                        <p className={`text-sm font-bold ${isNightMode ? 'text-slate-100' : 'text-slate-800'}`}>{a.title}</p>
+                        <p className={`text-xs ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>{a.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           {inventoryItems.length > 0 && collectedItemIds.length > 0 && (
             <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>

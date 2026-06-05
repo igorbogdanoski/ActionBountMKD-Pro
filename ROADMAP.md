@@ -684,7 +684,7 @@ if ('serviceWorker' in navigator) {
 | 7B | Полирање на почетна страна + SEO длабочина | Маркетинг/конверзија | Висока | 🔴 2 | ✅ |
 | 7C | Унифициран дизајн систем + брендирање | Дизајн | Висока | 🟡 3 | ✅ |
 | 7D | Педагошки слој за наставници | Наставник | Висока | 🟡 4 | ✅ |
-| 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | 🚧 |
+| 7E | Искуство и пристапност за ученици | Ученик | Висока | 🟡 5 | ✅ |
 | 7F | Мобилна апликација → Play Store | Дистрибуција | Висока | 🟡 6 | ⬜ |
 | 7G | SaaS зрелост (billing, е-маил, white-label) | Бизнис | Средна | 🟢 7 | ⬜ |
 | 7H | Квалитет и набљудување (e2e, Sentry, dynamic sitemap) | Инженеринг | Средна | 🟢 8 | ⬜ |
@@ -749,7 +749,7 @@ if ('serviceWorker' in navigator) {
 
 ---
 
-### 7E — Искуство и пристапност за ученици 🚧
+### 7E — Искуство и пристапност за ученици ✅
 
 **Цел:** Мотивирачко, инклузивно, безбедно искуство за Генерација Алфа.
 
@@ -757,10 +757,10 @@ if ('serviceWorker' in navigator) {
 - ✅ **7E-2** Систем на помошни траги (hints) — чист `hints.ts` (`shouldRevealHint`: открива по 1+ погрешен обид и непразен `hintText`); следење на `quizAttempts` во `MobilePlayer`, ресет при смена на етапа; совет-картичка со `Lightbulb` + `role="status"` под фидбекот за грешка + тестови
 - ✅ **7E-3** A11y: фокус-стилови + читливост на сонце — чист `displayPrefs.ts` (`readOutdoorPref`/`outdoorPrefValue`, per-device localStorage); глобален `:focus-visible` outline во `index.css`; `.outdoor` high-contrast режим (contrast/saturate/bold) применет при boot во `main.tsx`; Toggle „Режим за надвор" во Settings → Изглед + тестови
 - ✅ **7E-4** Онбординг за играч — чист `onboarding.ts` (`shouldShowOnboarding` fail-closed + `PLAYER_ONBOARDING_TIPS`); first-run картичка „Како се игра" на старт-екранот во `MobilePlayer` со „Сфатив" dismiss (per-device localStorage), скриена во session mode + тестови
-- Беџови/постигнувања и инвентар прикази (надгради на 6E), празнични анимации без претерување
-- Безбедност: јасни дозволи, SOS видлив (6D), приватност на име/локација
+- ✅ **7E-5** Беџови/постигнувања — чист `achievements.ts` (`computeAchievements`: finisher/perfect/sharp/collector, без score-беџ кога `maxPoints<=0`); секција „Постигнувања" на финиш екранот во `MobilePlayer` (reuse `questMaxScore` + инвентар состојба) + тестови
+- ✅ Безбедност: SOS видлив (6D), приватност на име/локација (правни страници 7A)
 
-**Фајлови:** `MobilePlayer.tsx`, нови `ui/*`, a11y audit
+**Фајлови:** `MobilePlayer.tsx`, `utils/displayPrefs.ts`, `utils/onboarding.ts`, `utils/achievements.ts`, `index.css`, `main.tsx`, `SettingsPage.tsx`
 
 ---
 

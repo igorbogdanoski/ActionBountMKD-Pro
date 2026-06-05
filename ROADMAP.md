@@ -756,7 +756,7 @@ if ('serviceWorker' in navigator) {
 - ✅ **7E-1** Охрабрувачки микро-копии + прогрес a11y — чист `encouragement.ts` (`progressPercent`, `milestoneEncouragement` со MK пораки на 25/50/75/100%); milestone toast во `MobilePlayer` при преминување праг; `role="progressbar"` + `aria-valuenow/min/max` на прогрес-лентата + тестови
 - ✅ **7E-2** Систем на помошни траги (hints) — чист `hints.ts` (`shouldRevealHint`: открива по 1+ погрешен обид и непразен `hintText`); следење на `quizAttempts` во `MobilePlayer`, ресет при смена на етапа; совет-картичка со `Lightbulb` + `role="status"` под фидбекот за грешка + тестови
 - ✅ **7E-3** A11y: фокус-стилови + читливост на сонце — чист `displayPrefs.ts` (`readOutdoorPref`/`outdoorPrefValue`, per-device localStorage); глобален `:focus-visible` outline во `index.css`; `.outdoor` high-contrast режим (contrast/saturate/bold) применет при boot во `main.tsx`; Toggle „Режим за надвор" во Settings → Изглед + тестови
-- Онбординг
+- ✅ **7E-4** Онбординг за играч — чист `onboarding.ts` (`shouldShowOnboarding` fail-closed + `PLAYER_ONBOARDING_TIPS`); first-run картичка „Како се игра" на старт-екранот во `MobilePlayer` со „Сфатив" dismiss (per-device localStorage), скриена во session mode + тестови
 - Беџови/постигнувања и инвентар прикази (надгради на 6E), празнични анимации без претерување
 - Безбедност: јасни дозволи, SOS видлив (6D), приватност на име/локација
 

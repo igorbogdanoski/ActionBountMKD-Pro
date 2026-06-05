@@ -22,6 +22,7 @@ import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
 import { milestoneEncouragement, progressPercent } from '../../utils/encouragement';
 import { shouldRevealHint } from '../../utils/hints';
+import { shouldShowOnboarding, PLAYER_ONBOARDING_TIPS, ONBOARDING_STORAGE_KEY } from '../../utils/onboarding';
 
 interface MobilePlayerProps {
   questId: string;
@@ -52,6 +53,7 @@ function getDistance(coord1: Coordinates, coord2: Coordinates): number {
 export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
   const [quest, setQuest] = useState<Quest | null>(questProp || null);
   const [hasStarted, setHasStarted] = useState(!!sessionCode);
+  const [showOnboarding, setShowOnboarding] = useState(() => !sessionCode && shouldShowOnboarding(typeof window !== 'undefined' ? window.localStorage : null));
   const [playerName, setPlayerName] = useState(sessionPlayerName ?? '');
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [points, setPoints] = useState(0);
@@ -739,8 +741,43 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             <MapPin className="w-12 h-12" />
           </div>
           <h1 className={`text-3xl font-bold tracking-tight ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{quest.title}</h1>
-          <p className={`text-sm ${isNightMode ? 'text-slate-400' : 'text-slate-500'} mb-10`}>{quest.description}</p>
-          
+          <p className={`text-sm ${isNightMode ? 'text-slate-400' : 'text-slate-500'} ${showOnboarding ? 'mb-6' : 'mb-10'}`}>{quest.description}</p>
+
+          {showOnboarding && (
+            <div
+              role="region"
+              aria-label="Совети за играње"
+              className={`w-full text-left rounded-2xl border mb-6 p-4 ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200 shadow-sm'}`}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className={`flex items-center gap-2 text-sm font-bold ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                  <Lightbulb className="w-4 h-4" /> Како се игра
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try { window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1'); } catch { /* ignore */ }
+                    setShowOnboarding(false);
+                  }}
+                  className={`text-xs font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'} transition-colors`}
+                >
+                  Сфатив
+                </button>
+              </div>
+              <ul className="space-y-2.5">
+                {PLAYER_ONBOARDING_TIPS.map((tip) => (
+                  <li key={tip.title} className="flex gap-2.5">
+                    <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    <div>
+                      <p className={`text-sm font-semibold ${isNightMode ? 'text-slate-200' : 'text-slate-800'}`}>{tip.title}</p>
+                      <p className={`text-xs ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>{tip.text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <input 
             type="text" 
             placeholder="Внесете го вашето име..." 

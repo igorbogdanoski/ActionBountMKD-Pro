@@ -33,6 +33,25 @@
 /* Brand wordmark helper (replaces per-component @import of Pacifico) */
 .font-cursive { font-family: var(--font-brand); }
 
+/* ─── Accessibility: visible keyboard focus (Phase 7E-3) ───────────────────── */
+:where(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+/* ─── Outdoor high-contrast mode (Phase 7E-3) ──────────────────────────────── */
+/* Boosts contrast & weight so the screen stays legible in direct sunlight. */
+.outdoor {
+  filter: contrast(1.18) saturate(1.08) brightness(1.02);
+}
+.outdoor body {
+  font-weight: 600;
+}
+.outdoor :where(a, button, [role="button"]):focus-visible {
+  outline-width: 4px;
+}
+
 /* PWA Install Prompt animation */
 @keyframes slide-up {
   from { transform: translateX(-50%) translateY(120%); opacity: 0; }

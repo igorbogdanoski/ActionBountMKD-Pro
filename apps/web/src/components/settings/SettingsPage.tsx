@@ -7,6 +7,8 @@ import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { upsertUserProfile, getUserTheme, getUserSettings, saveUserTheme } from '../../utils/storage';
 import { sendTestPushNotification } from '../../utils/pushNotifications';
+import { readOutdoorPref, outdoorPrefValue, OUTDOOR_STORAGE_KEY, OUTDOOR_CLASS } from '../../utils/displayPrefs';
+import { Toggle } from '../ui';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import type { PlanId } from 'shared';
@@ -60,6 +62,7 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [isDark, setIsDark] = useState(true);
+  const [outdoor, setOutdoor] = useState(() => readOutdoorPref(typeof window !== 'undefined' ? window.localStorage : null));
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPermission, setPushPermission] = useState<string>('undetermined');
@@ -106,6 +109,12 @@ export function SettingsPage() {
   };
 
   const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
+
+  const toggleOutdoor = (next: boolean) => {
+    setOutdoor(next);
+    try { window.localStorage.setItem(OUTDOOR_STORAGE_KEY, outdoorPrefValue(next)); } catch { /* ignore */ }
+    document.documentElement.classList.toggle(OUTDOOR_CLASS, next);
+  };
 
   const sendPushTest = async () => {
     if (!pushToken) return;
@@ -245,6 +254,9 @@ export function SettingsPage() {
                 {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {isDark ? 'Темна' : 'Светла'}
               </button>
+            </Row>
+            <Row label="Режим за надвор" hint="Висок контраст за читливост на сонце">
+              <Toggle checked={outdoor} onChange={toggleOutdoor} label="Режим за надвор" />
             </Row>
             <Row label="Јазик" hint="Јазик на интерфејсот">
               <div className="flex flex-wrap gap-1.5">

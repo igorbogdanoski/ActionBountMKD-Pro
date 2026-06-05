@@ -6,9 +6,15 @@ import './index.css';
 import { AuthProvider } from './utils/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { initAnalytics } from './utils/analytics';
+import { readOutdoorPref, OUTDOOR_CLASS } from './utils/displayPrefs';
 import './i18n'; // initialise i18next before render
 
 initAnalytics().catch(() => {});
+
+// Apply the per-device outdoor (high-contrast) preference before first paint.
+if (readOutdoorPref(window.localStorage)) {
+  document.documentElement.classList.add(OUTDOOR_CLASS);
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Quest, Stage, Coordinates, QrTaskStage } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award } from 'lucide-react';
+import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
 import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
@@ -21,6 +21,7 @@ import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeColl
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
 import { milestoneEncouragement, progressPercent } from '../../utils/encouragement';
+import { shouldRevealHint } from '../../utils/hints';
 
 interface MobilePlayerProps {
   questId: string;
@@ -60,6 +61,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Specific stage states
   const [quizAnswer, setQuizAnswer] = useState<string>('');
   const [quizFeedback, setQuizFeedback] = useState<'success' | 'error' | null>(null);
+  const [quizAttempts, setQuizAttempts] = useState(0);
   
   const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -326,6 +328,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     }
     // Reset feedback on stage change
     setQuizFeedback(null);
+    setQuizAttempts(0);
   }, [stage]);
 
   useEffect(() => {
@@ -615,6 +618,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
     setQuizAnswer('');
     setQuizFeedback(null);
+    setQuizAttempts(0);
     setDistanceToTarget(null);
     setScanError(null);
     setQrTaskScanned(false);
@@ -664,6 +668,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       setTimeout(() => handleNextStage(), 1500);
     } else {
       setQuizFeedback('error');
+      setQuizAttempts(prev => prev + 1);
     }
   };
 
@@ -1004,6 +1009,13 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm font-semibold">{timeLeft === 0 ? 'Времето истече!' : 'Погрешен одговор, обиди се повторно!'}</span>
+              </div>
+            )}
+
+            {shouldRevealHint(quizAttempts, (stage as any).hintText) && (
+              <div className="p-4 bg-amber-50 text-amber-800 rounded-xl flex items-start gap-2 mb-4 border border-amber-200" role="status">
+                <Lightbulb className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-500" />
+                <span className="text-sm font-semibold">Совет: {(stage as any).hintText}</span>
               </div>
             )}
             

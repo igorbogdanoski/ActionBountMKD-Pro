@@ -282,7 +282,32 @@
     "noInternet": "No internet connection. Check your network and try again.",
     "signInFailed": "Sign in failed. Please try again.",
     "signOutFailed": "Sign out failed.",
-    "allowPopups": "Allow popups for this site or try again."
+    "allowPopups": "Allow popups for this site or try again.",
+    "modal": {
+      "title": "Sign in to Авантура МКД",
+      "tabGoogle": "Google",
+      "tabEmail": "Email",
+      "orDivider": "or",
+      "loginTitle": "Sign in",
+      "registerTitle": "Create account",
+      "labelName": "Full name",
+      "namePlaceholder": "Your name",
+      "labelEmail": "Email",
+      "emailPlaceholder": "your@email.com",
+      "labelPassword": "Password",
+      "passwordPlaceholder": "At least 6 characters",
+      "btnLogin": "Sign in",
+      "btnRegister": "Create account",
+      "btnLoading": "Please wait...",
+      "switchToRegister": "No account? Register",
+      "switchToLogin": "Already have an account? Sign in",
+      "forgotPassword": "Forgot password?",
+      "resetTitle": "Reset password",
+      "resetHint": "Enter your email and we'll send a reset link.",
+      "btnSendReset": "Send link",
+      "resetSent": "Email sent! Check your inbox.",
+      "backToLogin": "← Back to sign in"
+    }
   },
   "errors": {
     "questNotFound": "Adventure not found.",

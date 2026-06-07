@@ -1,6 +1,7 @@
 import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, Play, PenTool, Sparkles, GraduationCap, Landmark, Share2, Heart, Puzzle, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { useState, useEffect } from 'react';
+import { LoginModal } from '../auth/LoginModal';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,7 +44,7 @@ interface TitleText { title: string; text: string; }
 interface FaqEntry { q: string; a: string; }
 
 export function LandingPage() {
-  const { user, signInWithGoogle } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const onNavigateToCreator = () => navigate('/creator');
@@ -51,6 +52,8 @@ export function LandingPage() {
   const scrollToHowItWorks = () => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
   const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
   const [textIndex, setTextIndex] = useState(0);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const openLogin = () => setLoginOpen(true);
 
   const rotating = t('landing.hero.rotating', { returnObjects: true }) as string[];
   const steps = t('landing.how.steps', { returnObjects: true }) as TitleText[];
@@ -110,7 +113,7 @@ export function LandingPage() {
              </button>
           ) : (
              <>
-               <button onClick={signInWithGoogle} className="hidden md:block text-sm font-medium hover:text-brand-500 transition-colors">{t('landing.nav.login')}</button>
+               <button onClick={openLogin} className="hidden md:block text-sm font-medium hover:text-brand-500 transition-colors">{t('landing.nav.login')}</button>
                <button onClick={onNavigateToCreator} className="border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white px-4 py-1.5 rounded-full text-sm font-bold transition-colors">
                  {t('landing.nav.freeTest')}
                </button>
@@ -166,7 +169,7 @@ export function LandingPage() {
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <button
-                onClick={user ? onNavigateToCreator : signInWithGoogle}
+                onClick={user ? onNavigateToCreator : openLogin}
                 className="w-full sm:w-auto px-8 py-4 text-white bg-brand-500 hover:bg-brand-600 font-bold rounded-xl shadow-lg hover:shadow-brand-500/30 transform hover:-translate-y-0.5 transition-all duration-200"
               >
                 {t('landing.hero.ctaPrimary')}
@@ -330,7 +333,7 @@ export function LandingPage() {
           <h2 className="text-3xl md:text-4xl font-extrabold">{t('landing.finalCta.title')}</h2>
           <p className="text-slate-300">{t('landing.finalCta.subtitle')}</p>
           <button
-            onClick={user ? onNavigateToCreator : signInWithGoogle}
+            onClick={user ? onNavigateToCreator : openLogin}
             className="px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg transition-colors"
           >
             {t('landing.finalCta.button')}
@@ -340,6 +343,8 @@ export function LandingPage() {
 
       <Footer />
     </div>
+
+    <LoginModal isOpen={loginOpen} onClose={() => setLoginOpen(false)} />
     </>
   );
 }

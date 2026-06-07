@@ -5,6 +5,10 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
 } from 'firebase/auth';
 import { auth, provider } from './firebase';
 import { upsertUserProfile, getUserProfile } from './storage';
@@ -18,6 +22,9 @@ interface AuthContextType {
   authError: string | null;
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -28,6 +35,9 @@ const AuthContext = createContext<AuthContextType>({
   authError: null,
   clearAuthError: () => {},
   signInWithGoogle: async () => {},
+  signInWithEmail: async () => {},
+  signUpWithEmail: async () => {},
+  resetPassword: async () => {},
   logout: async () => {},
 });
 
@@ -47,6 +57,19 @@ function describeAuthError(code?: string): string {
       return 'Нема интернет конекција. Провери ја мрежата и обиди се повторно.';
     case 'auth/account-exists-with-different-credential':
       return 'Веќе постои сметка со овој е-маил, но со друг начин на најава.';
+    case 'auth/email-already-in-use':
+      return 'Овој е-маил е веќе регистриран. Обиди се да се најавиш.';
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Погрешен е-маил или лозинка. Обиди се повторно.';
+    case 'auth/user-not-found':
+      return 'Не постои сметка со овој е-маил.';
+    case 'auth/weak-password':
+      return 'Лозинката е прекратка. Внеси барем 6 знаци.';
+    case 'auth/invalid-email':
+      return 'Невалидна е-маил адреса.';
+    case 'auth/too-many-requests':
+      return 'Премногу обиди. Почекај малку и обиди се повторно.';
     default:
       return 'Најавата не успеа. Обиди се повторно.';
   }
@@ -153,6 +176,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    setAuthError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      setAuthError(describeAuthError(code));
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    setAuthError(null);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      if (displayName.trim()) {
+        await updateProfile(cred.user, { displayName: displayName.trim() });
+      }
+      trackEvent('signup', { method: 'email', plan: 'free' });
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      setAuthError(describeAuthError(code));
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    setAuthError(null);
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      setAuthError(describeAuthError(code));
+      throw err;
+    }
+  };
+
   const logout = async () => {
     setAuthError(null);
     try {
@@ -167,7 +225,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       user, profile, loading, authError,
       clearAuthError: () => setAuthError(null),
-      signInWithGoogle, logout,
+      signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, logout,
     }}>
       {children}
     </AuthContext.Provider>

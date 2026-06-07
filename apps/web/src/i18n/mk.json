@@ -282,7 +282,32 @@
     "noInternet": "Нема интернет конекција. Провери ја мрежата и обиди се повторно.",
     "signInFailed": "Најавата не успеа. Обиди се повторно.",
     "signOutFailed": "Одјавата не успеа.",
-    "allowPopups": "Дозволи попапи за овој сајт или обиди се повторно."
+    "allowPopups": "Дозволи попапи за овој сајт или обиди се повторно.",
+    "modal": {
+      "title": "Влез во Авантура МКД",
+      "tabGoogle": "Google",
+      "tabEmail": "Е-маил",
+      "orDivider": "или",
+      "loginTitle": "Најавување",
+      "registerTitle": "Регистрација",
+      "labelName": "Ime i prezime",
+      "namePlaceholder": "Вашето име",
+      "labelEmail": "Е-маил",
+      "emailPlaceholder": "vase@email.com",
+      "labelPassword": "Лозинка",
+      "passwordPlaceholder": "Барем 6 знаци",
+      "btnLogin": "Најави се",
+      "btnRegister": "Регистрирај се",
+      "btnLoading": "Ве молам почекајте...",
+      "switchToRegister": "Немаш сметка? Регистрирај се",
+      "switchToLogin": "Веќе имаш сметка? Најави се",
+      "forgotPassword": "Заборавена лозинка?",
+      "resetTitle": "Ресетирај лозинка",
+      "resetHint": "Внеси го твојот е-маил и ќе добиеш линк за ресетирање.",
+      "btnSendReset": "Испрати линк",
+      "resetSent": "Е-маилот е испратен! Провери ја поштата.",
+      "backToLogin": "← Назад кон најавување"
+    }
   },
   "errors": {
     "questNotFound": "Авантурата не е пронајдена.",

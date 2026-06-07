@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { trackEvent } from '../../utils/analytics';
-import { SEO } from '../SEO';
+import { SEO, PricingSchema, BreadcrumbSchema } from '../SEO';
 import { PaymentModal } from './PaymentModal';
 import type { PlanId } from 'shared';
 
@@ -140,6 +140,11 @@ export function PricingPage() {
         description="Избери план за АвантураКреатор. Бесплатен план достапен. Starter од 590 MKD/мес, Pro од 1.490 MKD/мес."
         url="/pricing"
       />
+      <PricingSchema />
+      <BreadcrumbSchema items={[
+        { name: 'Авантура МКД', url: '/' },
+        { name: 'Цени', url: '/pricing' },
+      ]} />
 
       {modal && (
         <PaymentModal

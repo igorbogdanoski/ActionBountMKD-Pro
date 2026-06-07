@@ -31,7 +31,8 @@
     "settings": "Settings",
     "help": "Help",
     "logout": "Sign out",
-    "pricing": "Pricing"
+    "pricing": "Pricing",
+    "explore": "Explore"
   },
   "plan": {
     "free": "Free",

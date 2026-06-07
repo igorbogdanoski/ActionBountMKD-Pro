@@ -81,6 +81,76 @@ export function SoftwareAppSchema() {
   );
 }
 
+export function PricingSchema() {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Авантура МКД',
+    url: APP_URL,
+    applicationCategory: 'EducationalApplication',
+    offers: [
+      {
+        '@type': 'Offer',
+        name: 'Free',
+        price: '0',
+        priceCurrency: 'MKD',
+        description: 'До 3 авантури, до 30 играчи',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Starter',
+        price: '590',
+        priceCurrency: 'MKD',
+        description: 'До 20 авантури, до 100 играчи, AI генератор',
+        billingIncrement: 'P1M',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Pro',
+        price: '1490',
+        priceCurrency: 'MKD',
+        description: 'Неограничени авантури, до 500 играчи, live сесии',
+        billingIncrement: 'P1M',
+      },
+      {
+        '@type': 'Offer',
+        name: 'Enterprise',
+        description: 'Поединечна цена за општини, општини и МОН',
+      },
+    ],
+  };
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+}
+
+interface BreadcrumbItem {
+  name: string;
+  url?: string;
+}
+
+export function BreadcrumbSchema({ items }: { items: BreadcrumbItem[] }) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      ...(item.url ? { item: `${APP_URL}${item.url}` } : {}),
+    })),
+  };
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+}
+
 interface FaqSchemaItem {
   q: string;
   a: string;

@@ -21,6 +21,7 @@ const LiveSessionHost     = lazy(() => import('./components/session/LiveSessionH
 const JoinSession         = lazy(() => import('./components/session/JoinSession').then(m => ({ default: m.JoinSession })));
 const PrivacyPolicy       = lazy(() => import('./components/legal/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService      = lazy(() => import('./components/legal/TermsOfService').then(m => ({ default: m.TermsOfService })));
+const ExplorePage         = lazy(() => import('./components/explore/ExplorePage').then(m => ({ default: m.ExplorePage })));
 
 // ─── Loader ───────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,7 @@ function AppRoutes() {
         {/* Public pages */}
         <Route path="/" element={<PublicOnlyRoute><LandingPage /></PublicOnlyRoute>} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/explore" element={<ExplorePage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />

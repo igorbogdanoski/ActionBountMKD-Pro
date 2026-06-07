@@ -86,6 +86,7 @@ export function LandingPage() {
           <nav className="hidden md:flex gap-6 text-sm font-medium">
             <button onClick={onNavigateToPlayerDemo} className="hover:text-brand-500 transition-colors">{t('landing.nav.play')}</button>
             <button onClick={onNavigateToCreator} className="hover:text-brand-500 transition-colors">{t('landing.nav.create')}</button>
+            <button onClick={() => navigate('/explore')} className="hover:text-brand-500 transition-colors">{t('landing.nav.explore')}</button>
           </nav>
         </div>
         <div className="flex items-center gap-3">

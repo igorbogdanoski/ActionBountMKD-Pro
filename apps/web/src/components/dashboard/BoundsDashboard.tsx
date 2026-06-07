@@ -6,6 +6,7 @@ import { getQuests, deleteQuest, cacheQuestResources } from '../../utils/storage
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { PlanUsageWidget } from './PlanUsageWidget';
+import { OnboardingBanner } from './OnboardingBanner';
 import { GenerateQuestModal } from '../ai/GenerateQuestModal';
 import { EDUCATION_SUBJECTS, EDUCATION_GRADES, questMatchesPedagogy } from 'shared';
 import type { Quest, EducationSubject, EducationGrade } from 'shared';
@@ -104,6 +105,11 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
 
       {/* Plan usage */}
       <PlanUsageWidget questCount={quests.length} />
+
+      {/* Onboarding — only for new users with no quests */}
+      {!loading && quests.length === 0 && (
+        <OnboardingBanner onCreateAdventure={onCreateNew} />
+      )}
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

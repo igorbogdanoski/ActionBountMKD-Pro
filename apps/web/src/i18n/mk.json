@@ -31,7 +31,8 @@
     "settings": "Поставки",
     "help": "Помош",
     "logout": "Одјави се",
-    "pricing": "Цени"
+    "pricing": "Цени",
+    "explore": "Истражи"
   },
   "plan": {
     "free": "Бесплатен",

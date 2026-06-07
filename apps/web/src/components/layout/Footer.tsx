@@ -21,8 +21,8 @@ export function Footer() {
         <nav className="space-y-3" aria-label="Платформа">
           <h3 className="text-sm font-bold text-white uppercase tracking-wide">Платформа</h3>
           <ul className="space-y-2 text-sm">
+            <li><Link to="/explore" className="hover:text-brand-500 transition-colors">Истражи авантури</Link></li>
             <li><Link to="/creator" className="hover:text-brand-500 transition-colors">Креирај авантура</Link></li>
-            <li><Link to="/play/demo-quest-123" className="hover:text-brand-500 transition-colors">Демо игра</Link></li>
             <li><Link to="/pricing" className="hover:text-brand-500 transition-colors">Цени и планови</Link></li>
             <li><Link to="/join" className="hover:text-brand-500 transition-colors">Приклучи се на сесија</Link></li>
           </ul>

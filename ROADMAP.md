@@ -808,10 +808,36 @@ if ('serviceWorker' in navigator) {
 ### Редослед на реализација (Phase 7)
 1. **7A** Доверба/усогласеност (Footer + Privacy + Terms) — ✅ завршено
 2. **7B** Почетна + SEO длабочина — ✅ завршено
-3. **7C** Дизајн систем
-4. **7D** Педагошки слој (наставник) + **7E** Ученичко искуство (паралелно)
-5. **7F** Play Store
-6. **7G** SaaS зрелост + **7H** Квалитет
+3. **7C** Дизајн систем — ✅ завршено
+4. **7D** Педагошки слој (наставник) + **7E** Ученичко искуство — ✅ завршено
+5. **7F** Play Store — ◐ (чека $25 Google Play + EAS secrets)
+6. **7G** SaaS зрелост + **7H** Квалитет — ◐ / ✅
+
+---
+
+## ✅ Phase 7.1 — Bugfix Sprint + Auth + Discovery + SEO
+
+**Commits:** `3b00ce5` → `c4dced5` + тековна сесија
+
+### Промени во Phase 7.1
+
+| # | Промена | Статус |
+| --- | ------- | ------ |
+| W1 | Dead Quick-Edit modal отстранет — Edit копчето веќе навигира до `/creator/:id` | ✅ |
+| W3 | `FindSpotEditor` веќе имаше „Земи моја локација" GPS копче (нема промена) | ✅ |
+| W4 | `saveQuest` ги пишува и `isPublic` и `visibility` — мобилните Firestore queries работат | ✅ |
+| W5 | Терминот „квест" → „авантура" во MK/EN i18n клучеви | ✅ |
+| W2 | Email/лозинка автентикација: `signInWithEmail`, `signUpWithEmail`, `resetPassword` во `AuthContext` | ✅ |
+| W2 | `LoginModal` — 2 таба (Google / Email), toggle Најавување/Регистрација/Заборавена лозинка | ✅ |
+| — | `OnboardingBanner` — 4-чекорна welcome лента за нови корисници (0 авантури) | ✅ |
+| — | `/explore` галерија — јавна листа на сите јавни авантури со филтри предмет/одделение/пребарување | ✅ |
+| — | `PricingSchema` + `BreadcrumbSchema` — Google Rich Results за SaaS pricing | ✅ |
+| — | `sitemap.xml` — `/explore` со `daily` changefreq | ✅ |
+| — | Landing page „Примери авантури" секција — 3 featured cards, SEO social proof | ✅ |
+| — | Footer + Sidebar — `/explore` линкови | ✅ |
+| — | 15 педагошки seed шаблони (Математика, Историја, Природни науки, Јазици, Уметност, Физичко, Останато) | ✅ |
+
+**Фајлови:** `AuthContext.tsx`, `LoginModal.tsx`, `OnboardingBanner.tsx`, `ExplorePage.tsx`, `SEO.tsx`, `LandingPage.tsx`, `Footer.tsx`, `Sidebar.tsx`, `App.tsx`, `sitemap.xml`, `mk.json`, `en.json`, `seedTemplates.ts`
 
 ---
 

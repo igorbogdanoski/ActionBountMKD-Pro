@@ -1,4 +1,4 @@
-import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield, GraduationCap } from 'lucide-react';
+import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield, GraduationCap, Compass } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
@@ -152,6 +152,14 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
 
         {/* Help & Logout */}
         <div className="space-y-1">
+          <button
+            type="button"
+            onClick={() => navigate('/explore')}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"
+          >
+            <Compass className="h-4 w-4 shrink-0" />
+            {t('nav.explore')}
+          </button>
           <button
             type="button"
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"

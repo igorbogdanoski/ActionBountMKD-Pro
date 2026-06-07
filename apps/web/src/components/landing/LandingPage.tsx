@@ -328,6 +328,48 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* Featured Adventures */}
+      <section className="py-16 px-6 bg-white border-y border-slate-200">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex items-center justify-between mb-8 gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Примери авантури</h2>
+              <p className="text-slate-500 text-sm mt-1">Создадени од македонски наставници — готови за употреба</p>
+            </div>
+            <button
+              onClick={() => navigate('/explore')}
+              type="button"
+              className="flex-shrink-0 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
+            >
+              Сите авантури →
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { emoji: '📐', title: 'Синтетичка геометрија', subject: 'Математика', grade: '8 одд.', desc: 'Учениците конструираат симетрали и мерат агли со GPS во реалниот свет.', time: 45 },
+              { emoji: '🏛️', title: 'Скопје низ вековите', subject: 'Историја', grade: 'Сите', desc: 'Водена прошетка до Камен Мост, Чаршијата и Кале со QR станици.', time: 75 },
+              { emoji: '🌿', title: 'Лов на екосистеми', subject: 'Природни науки', grade: '6 одд.', desc: 'Теренска настава — фотографирање растенија и мерење на услови на средина.', time: 60 },
+            ].map((a, i) => (
+              <button
+                key={i}
+                onClick={() => navigate('/explore')}
+                type="button"
+                className="text-left bg-[#f4f6ee] hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-2xl p-5 transition-all group"
+              >
+                <div className="text-3xl mb-3">{a.emoji}</div>
+                <h3 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-brand-600 transition-colors">{a.title}</h3>
+                <p className="text-xs text-slate-500 mb-3 line-clamp-2">{a.desc}</p>
+                <div className="flex flex-wrap gap-1">
+                  <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">{a.subject}</span>
+                  <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{a.grade}</span>
+                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">~{a.time} мин</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Final CTA */}
       <section className="py-20 px-6 bg-[#2a2522] text-white text-center">
         <div className="max-w-3xl mx-auto space-y-6">

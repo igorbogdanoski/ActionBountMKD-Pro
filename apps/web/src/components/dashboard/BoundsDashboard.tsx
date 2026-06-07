@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, X, Check, MapPin, Loader2, Radio, Sparkles } from 'lucide-react';
+import { Plus, Search, Play, Edit2, Trash2, Heart, Cloud, CloudOff, MapPin, Loader2, Radio, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getQuests, deleteQuest, saveQuest, cacheQuestResources } from '../../utils/storage';
+import { getQuests, deleteQuest, cacheQuestResources } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { PlanUsageWidget } from './PlanUsageWidget';
@@ -31,10 +31,6 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const [filterGrade, setFilterGrade]     = useState<EducationGrade | ''>('');
   const [favorites, setFavorites]         = useState<Set<string>>(new Set());
   const [downloaded, setDownloaded]       = useState<Set<string>>(new Set());
-  const [editModalQuest, setEditModalQuest] = useState<Quest | null>(null);
-  const [editTitle, setEditTitle]         = useState('');
-  const [editDesc, setEditDesc]           = useState('');
-  const [saving, setSaving]               = useState(false);
 
   // Load persisted favourites/downloads from localStorage
   useEffect(() => {
@@ -101,28 +97,6 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
     if (!confirm(t('dashboard.deleteConfirm'))) return;
     await deleteQuest(id);
     setQuests(prev => prev.filter(q => q.id !== id));
-  };
-
-  const handleEditSave = async () => {
-    if (!editModalQuest) return;
-    const title = editTitle.trim();
-    const description = editDesc.trim();
-    if (!title) return;
-    setSaving(true);
-    try {
-      const updated: Quest = { ...editModalQuest, title, description, updatedAt: new Date().toISOString() };
-      await saveQuest(updated);
-      setQuests(prev => prev.map(q => q.id === updated.id ? updated : q));
-      setEditModalQuest(null);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const openEdit = (quest: Quest) => {
-    setEditModalQuest(quest);
-    setEditTitle(quest.title);
-    setEditDesc(quest.description);
   };
 
   return (
@@ -383,77 +357,6 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
         </div>
       )}
 
-      {/* Quick Edit Modal */}
-      {editModalQuest && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        >
-          <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-200 dark:border-slate-700 flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-slate-100 dark:border-slate-800">
-              <h2 id="edit-modal-title" className="text-lg font-bold text-slate-900 dark:text-white">{t('dashboard.editModal.title')}</h2>
-              <button
-                type="button"
-                aria-label={t('common.close')}
-                onClick={() => setEditModalQuest(null)}
-                className="p-2 rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-5">
-              <div>
-                <label htmlFor="edit-title" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  {t('dashboard.editModal.labelTitle')}
-                </label>
-                <input
-                  id="edit-title"
-                  type="text"
-                  value={editTitle}
-                  onChange={e => setEditTitle(e.target.value)}
-                  maxLength={200}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-                />
-              </div>
-              <div>
-                <label htmlFor="edit-desc" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                  {t('dashboard.editModal.labelDesc')}
-                </label>
-                <textarea
-                  id="edit-desc"
-                  value={editDesc}
-                  onChange={e => setEditDesc(e.target.value)}
-                  maxLength={1000}
-                  rows={4}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-100 dark:border-slate-800 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setEditModalQuest(null)}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleEditSave}
-                disabled={saving || !editTitle.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                {t('common.save')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

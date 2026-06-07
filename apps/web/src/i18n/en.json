@@ -74,7 +74,7 @@
     "saving": "Saving...",
     "savedAt": "✓ {{time}}",
     "unsaved": "● Unsaved",
-    "questSettings": "Quest Settings",
+    "questSettings": "Adventure Settings",
     "stageCount": "Stages ({{count}})",
     "noStages": "No stages yet",
     "selectStage": "Select an existing stage or add a new one to start editing.",
@@ -129,7 +129,7 @@
     },
     "dangerZone": {
       "label": "Danger Zone",
-      "deleteQuest": "🗑 Delete quest"
+      "deleteQuest": "🗑 Delete adventure"
     }
   },
   "categories": {

@@ -54,6 +54,7 @@ export async function getQuestById(id: string): Promise<Quest | null> {
 export async function saveQuest(quest: Quest): Promise<void> {
   await setDoc(doc(db, QUESTS, quest.id), {
     ...quest,
+    isPublic: quest.visibility === 'public',
     updatedAt: new Date().toISOString(),
     createdAt: quest.createdAt ?? new Date().toISOString(),
   }, { merge: true });

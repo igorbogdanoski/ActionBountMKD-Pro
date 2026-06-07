@@ -74,7 +74,7 @@
     "saving": "Зачувување...",
     "savedAt": "✓ {{time}}",
     "unsaved": "● Незачувано",
-    "questSettings": "Поставки на Квестот",
+    "questSettings": "Поставки на Авантурата",
     "stageCount": "Етапи ({{count}})",
     "noStages": "Нема етапи уште",
     "selectStage": "Избери постоечка етапа или додај нова за да почнеш да уредуваш.",
@@ -129,7 +129,7 @@
     },
     "dangerZone": {
       "label": "Опасна зона",
-      "deleteQuest": "🗑 Избриши квест"
+      "deleteQuest": "🗑 Избриши авантура"
     }
   },
   "categories": {

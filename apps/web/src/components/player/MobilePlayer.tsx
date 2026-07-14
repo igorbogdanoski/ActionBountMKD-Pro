@@ -19,6 +19,7 @@ import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
 import { SEO, LearningResourceSchema } from '../SEO';
+import { TournamentStagePlayer } from './stages/TournamentStagePlayer';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
@@ -1661,33 +1662,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
       case 'TOURNAMENT':
         return (
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center text-center">
-            <div className="w-20 h-20 rounded-2xl bg-orange-500/20 flex items-center justify-center mb-6">
-              <Trophy className={`w-10 h-10 ${isNightMode ? 'text-orange-400' : 'text-orange-500'}`} />
-            </div>
-            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
-            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
-            {(stage as any).taskDescription && (
-              <div className={`w-full p-4 rounded-2xl border mb-6 text-left ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-orange-50 border-orange-200'}`}>
-                <p className="text-sm font-semibold text-orange-500 mb-1">Задача за тимовите:</p>
-                <MathRenderer text={(stage as any).taskDescription} className={`text-sm ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`} />
-              </div>
-            )}
-            {(stage as any).teamCount > 0 && (
-              <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-8`}>
-                {(stage as any).teamCount} тима се натпреваруваат
-              </p>
-            )}
-            <div className="mt-auto w-full">
-              <button
-                type="button"
-                onClick={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }}
-                className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
-              >
-                Турнирот заврши (+{stage.points})
-              </button>
-            </div>
-          </div>
+          <TournamentStagePlayer
+            stage={stage as import('shared').TournamentStage}
+            isNightMode={isNightMode}
+            onFinish={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }}
+          />
         );
 
       case 'SWITCH': {

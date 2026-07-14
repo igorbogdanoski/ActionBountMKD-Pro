@@ -171,8 +171,13 @@ service cloud.firestore {
       allow create: if isAuth()
                     && request.resource.data.userId == request.auth.uid
                     && isValidPaymentRequest(request.resource.data);
-      // Only admin can read and update (approve/reject)
-      allow read, update: if isAdmin();
+      // Admin can read any request (approve/reject queue); a user can read
+      // only their own (so Pricing can show "your upgrade is pending review"
+      // without exposing other teachers' payment data) — the query must
+      // filter on userId == auth.uid for this to satisfy the rule on list.
+      allow read: if isAdmin() || resource.data.userId == request.auth.uid;
+      // Only admin can update (approve/reject)
+      allow update: if isAdmin();
       allow delete: if false;
     }
 

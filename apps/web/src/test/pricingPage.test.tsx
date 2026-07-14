@@ -1,14 +1,22 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, within, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { PLAN_LIMITS } from 'shared';
+import type { PaymentRequest } from '../utils/paymentRequests';
 
-vi.mock('../utils/AuthContext', () => ({ useAuth: () => ({ user: null, signInWithGoogle: vi.fn() }) }));
+const authState = vi.hoisted(() => ({ user: null as { uid: string } | null, signInWithGoogle: vi.fn() }));
+vi.mock('../utils/AuthContext', () => ({ useAuth: () => authState }));
 vi.mock('../hooks/usePlan', () => ({ usePlan: () => ({ planId: 'free' }) }));
 // PaymentModal (statically imported by PricingPage) -> utils/paymentRequests -> utils/firebase,
 // which throws auth/invalid-api-key in the test environment.
 vi.mock('../utils/firebase', () => ({ auth: {}, provider: {}, storage: {}, db: {} }));
+
+const getUserPaymentRequests = vi.hoisted(() => vi.fn());
+vi.mock('../utils/paymentRequests', async () => {
+  const actual = await vi.importActual<typeof import('../utils/paymentRequests')>('../utils/paymentRequests');
+  return { ...actual, getUserPaymentRequests };
+});
 
 import { PricingPage } from '../components/pricing/PricingPage';
 
@@ -21,6 +29,11 @@ function renderPage() {
     </HelmetProvider>
   );
 }
+
+beforeEach(() => {
+  authState.user = null;
+  getUserPaymentRequests.mockReset().mockResolvedValue([]);
+});
 
 describe('PricingPage', () => {
   it('renders all four plans (card + comparison table header, each)', () => {
@@ -48,5 +61,34 @@ describe('PricingPage', () => {
     const wrapper = container.querySelector('.min-h-screen');
     expect(wrapper?.className).toContain('bg-slate-50');
     expect(wrapper?.className).toContain('dark:bg-gray-950');
+  });
+
+  it('shows no pending banner for a logged-out visitor', () => {
+    renderPage();
+    expect(screen.queryByText(/чека одобрување/)).toBeNull();
+    expect(getUserPaymentRequests).not.toHaveBeenCalled();
+  });
+
+  it('shows no pending banner when the user has no pending payment request', async () => {
+    authState.user = { uid: 'u1' };
+    getUserPaymentRequests.mockResolvedValue([]);
+    renderPage();
+    await waitFor(() => expect(getUserPaymentRequests).toHaveBeenCalledWith('u1'));
+    expect(screen.queryByText(/чека одобрување/)).toBeNull();
+  });
+
+  it('shows a pending-review banner naming the plan when the user has a pending request', async () => {
+    authState.user = { uid: 'u1' };
+    const pending: PaymentRequest = {
+      id: 'r1', userId: 'u1', userEmail: 'u1@example.com', displayName: 'Наставник',
+      planId: 'pro', method: 'paypal', amountMkd: 1490, transactionRef: 'TX1',
+      status: 'pending', createdAt: new Date().toISOString(),
+    };
+    getUserPaymentRequests.mockResolvedValue([pending]);
+
+    renderPage();
+
+    expect(await screen.findByText(/чека одобрување/)).toBeTruthy();
+    expect(screen.getByText('Pro', { selector: 'strong' })).toBeTruthy();
   });
 });

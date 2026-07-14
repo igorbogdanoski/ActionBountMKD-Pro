@@ -44,6 +44,17 @@ export async function getPaymentRequests(status?: PaymentStatus): Promise<Paymen
   return results;
 }
 
+/** A user's own payment requests, newest first — powers the "your upgrade is
+ * pending review" banner on Pricing. Firestore rules only allow this query
+ * when filtered to the caller's own userId (see firestore.rules). */
+export async function getUserPaymentRequests(userId: string): Promise<PaymentRequest[]> {
+  const q = query(collection(db, COL), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  const results = snap.docs.map(d => ({ id: d.id, ...d.data() }) as PaymentRequest);
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results;
+}
+
 /**
  * Approve a payment request and upgrade the user's plan atomically — either
  * both writes land or neither does, so a network drop mid-approval can never

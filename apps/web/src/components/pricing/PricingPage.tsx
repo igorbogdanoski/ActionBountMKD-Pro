@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Check, X as XIcon, Zap, Building2, Users, Star, Crown } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Check, X as XIcon, Clock, Zap, Building2, Users, Star, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { trackEvent } from '../../utils/analytics';
+import { getUserPaymentRequests, type PaymentRequest } from '../../utils/paymentRequests';
 import { SEO, PricingSchema, BreadcrumbSchema } from '../SEO';
 import { PaymentModal } from './PaymentModal';
 import { PLAN_LIMITS, type PlanId } from 'shared';
@@ -208,6 +209,16 @@ export function PricingPage() {
   const { user, signInWithGoogle } = useAuth();
   const { planId: currentPlan } = usePlan();
   const [modal, setModal] = useState<{ planId: 'starter' | 'pro'; planName: string } | null>(null);
+  const [pendingRequest, setPendingRequest] = useState<PaymentRequest | null>(null);
+
+  const loadPendingRequest = () => {
+    if (!user) { setPendingRequest(null); return; }
+    getUserPaymentRequests(user.uid)
+      .then(requests => setPendingRequest(requests.find(r => r.status === 'pending') ?? null))
+      .catch(() => setPendingRequest(null));
+  };
+
+  useEffect(loadPendingRequest, [user]);
 
   const handleCta = async (plan: Plan) => {
     trackEvent('upgrade_click', {
@@ -248,12 +259,22 @@ export function PricingPage() {
         <PaymentModal
           planId={modal.planId}
           planName={modal.planName}
-          onClose={() => setModal(null)}
+          onClose={() => { setModal(null); loadPendingRequest(); }}
         />
       )}
 
       <div className="min-h-screen bg-slate-50 dark:bg-gray-950 text-slate-900 dark:text-white py-20 px-4 transition-colors">
         <div className="max-w-6xl mx-auto">
+          {pendingRequest && (
+            <div className="mb-8 flex items-start gap-3 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm">
+              <Clock className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-amber-800 dark:text-amber-300">
+                Барањето за <strong>{PLANS.find(p => p.id === pendingRequest.planId)?.name ?? pendingRequest.planId}</strong> план
+                {' '}чека одобрување — ќе го активираме во рок од 24 часа по верификација на уплатата.
+              </p>
+            </div>
+          )}
+
           {/* Header */}
           <div className="text-center mb-16">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">

@@ -73,6 +73,7 @@ export function BoundCreator() {
         title: tpl.title ?? '',
         description: tpl.description ?? '',
         stages: tpl.stages ?? [],
+        ...(tpl.curriculumRef ? { pedagogy: { curriculumRef: tpl.curriculumRef } } : {}),
       });
       return;
     }

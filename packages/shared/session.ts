@@ -51,7 +51,7 @@ export function removePlayer(players: SessionPlayer[], uid: string): SessionPlay
 export function applyProgress(
   players: SessionPlayer[],
   uid: string,
-  patch: Partial<Pick<SessionPlayer, 'points' | 'stageIndex' | 'finished'>>,
+  patch: Partial<Pick<SessionPlayer, 'points' | 'stageIndex' | 'finished' | 'timeMultiplier'>>,
   now: string,
 ): SessionPlayer[] {
   const idx = players.findIndex(p => p.uid === uid);

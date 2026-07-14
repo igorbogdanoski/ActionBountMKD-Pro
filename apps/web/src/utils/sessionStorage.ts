@@ -134,7 +134,7 @@ export async function leaveSession(code: string, uid: string): Promise<void> {
 export async function updateProgress(
   code: string,
   uid: string,
-  patch: Partial<Pick<SessionPlayer, 'points' | 'stageIndex' | 'finished'>>,
+  patch: Partial<Pick<SessionPlayer, 'points' | 'stageIndex' | 'finished' | 'timeMultiplier'>>,
 ): Promise<void> {
   const ref = doc(db, SESSIONS, normalizeJoinCode(code));
   await runTransaction(db, async tx => {

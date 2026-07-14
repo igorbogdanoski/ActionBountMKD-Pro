@@ -4,6 +4,7 @@ import {
   getDocs,
   getDoc,
   setDoc,
+  updateDoc,
   deleteDoc,
   query,
   where,
@@ -15,7 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { cacheQuestLocally } from './offlineQueue';
-import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template, ClassGroup } from 'shared';
+import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template, ClassGroup, RubricGrade } from 'shared';
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +86,20 @@ export async function getQuestResults(questId?: string): Promise<QuestResult[]> 
     : query(collection(db, RESULTS), orderBy('completedAt', 'desc'), limit(200));
   const snap = await getDocs(q);
   return snap.docs.map(d => d.data() as QuestResult);
+}
+
+/**
+ * Records the teacher's rubric grade for one stage submission and recomputes
+ * the result's total points. Only touches `grades`/`points` — matches the
+ * Firestore rule, which denies any other field on this update.
+ */
+export async function gradeSubmission(result: QuestResult, grade: RubricGrade): Promise<void> {
+  const otherGrades = (result.grades ?? []).filter(g => g.stageId !== grade.stageId);
+  const grades = [...otherGrades, grade];
+  const bonus = grades.reduce((sum, g) => sum + g.totalPoints, 0);
+  const previousBonus = (result.grades ?? []).reduce((sum, g) => sum + g.totalPoints, 0);
+  const points = result.points - previousBonus + bonus;
+  await updateDoc(doc(db, RESULTS, result.id), { grades, points });
 }
 
 export async function getPublicQuestResults(questId: string, pageSize = 20): Promise<QuestResult[]> {

@@ -14,7 +14,7 @@ import { useGameSession } from '../../hooks/useGameSession';
 import { getQuestById } from '../../utils/storage';
 import {
   createSession, setSessionStatus, setBroadcastStage, deleteSession,
-  clearSosAlert,
+  clearSosAlert, updateProgress,
 } from '../../utils/sessionStorage';
 import type { LeaderboardEntry, Quest, SessionMode, SessionSosAlert } from 'shared';
 import { SEO } from '../SEO';
@@ -326,6 +326,16 @@ export function LiveSessionHost() {
                           p.rank === 1 ? 'bg-amber-400 text-slate-900' : p.rank === 2 ? 'bg-slate-300 text-slate-900' : p.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-300'
                         }`}>{p.rank}</span>
                         <span className="flex-1 font-semibold truncate">{p.name}{p.finished && <Check className="inline w-4 h-4 text-emerald-400 ml-1" />}</span>
+                        <button
+                          type="button"
+                          title="Дозволи +50% време на етапи со временско ограничување — за ученици на кои им треба поддршка"
+                          onClick={() => updateProgress(code, p.uid, { timeMultiplier: p.timeMultiplier && p.timeMultiplier > 1 ? 1 : 1.5 }).catch(() => {})}
+                          className={`text-xs font-bold px-2 py-1 rounded-full transition-colors shrink-0 ${
+                            p.timeMultiplier && p.timeMultiplier > 1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          ⏱ +50%
+                        </button>
                         <span className="text-xs text-slate-400">Е{p.stageIndex + 1}</span>
                         <span className="font-black text-indigo-400 tabular-nums">{p.points}</span>
                       </li>

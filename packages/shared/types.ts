@@ -394,6 +394,7 @@ export interface Template {
   title: string;
   subject: TemplateSubject;
   grade: string;              // '6 одд.' | '7-8 одд.' | 'Сите'
+  curriculumRef?: string;     // курикулумска тема/стандард, напр. „МАТ-6.3" (Phase 2 — институционална усогласеност)
   description: string;
   stages: Stage[];            // full stage data — copied on use
   stageCount: number;
@@ -416,6 +417,30 @@ export interface Template {
 
 // ─── QUEST RESULT ─────────────────────────────────────────────────────────────
 
+/** A student's raw answer to a manually-graded (MISSION/SURVEY) stage. */
+export interface StageSubmission {
+  stageId: string;
+  type: 'photo' | 'video' | 'audio' | 'survey';
+  mediaUrl?: string;          // Storage download URL — MISSION photo/video/audio
+  surveyAnswers?: string[];   // free-text answers, indexed to match surveyQuestions
+}
+
+/** A teacher's rubric-based grade for one submission. */
+export interface RubricGrade {
+  stageId: string;
+  criterionScores: Record<string, number>; // RubricCriterion.id -> awarded points
+  totalPoints: number;
+  feedback?: string;
+  gradedAt: string;
+}
+
+/** A player's first-attempt answer to a QUIZ stage — powers per-question analytics. */
+export interface QuizAnswerRecord {
+  stageId: string;
+  selectedAnswer: string;
+  correct: boolean;
+}
+
 export interface QuestResult {
   id: string;
   questId: string;
@@ -424,6 +449,9 @@ export interface QuestResult {
   completedAt: string;
   stageDurations?: { stageId: string; durationSec: number }[];
   teamCode?: string;
+  submissions?: StageSubmission[];
+  grades?: RubricGrade[];
+  quizAnswers?: QuizAnswerRecord[];
 }
 
 // ─── GRADEBOOK (Phase 7D-4) ───────────────────────────────────────────────────
@@ -512,6 +540,10 @@ export interface SessionPlayer {
   lastSeenAt?: string;
   joinedAt: string;
   updatedAt: string;
+  // Host-granted timed-stage accommodation (e.g. 1.5 = +50% time on QUIZ
+  // countdowns). Lives on the session, not the student's profile — an
+  // explicit, per-session grant instead of a persisted "needs support" flag.
+  timeMultiplier?: number;
 }
 
 export interface SessionSosAlert {

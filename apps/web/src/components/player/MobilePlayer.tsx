@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, questMaxScore } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, StageSubmission, QuizAnswerRecord, questMaxScore } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../utils/firebase';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
 import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
@@ -103,6 +105,17 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [recordedAudioURL, setRecordedAudioURL] = useState<string | null>(null);
+
+  // MISSION/SURVEY submissions (Phase 2 — rubric grading)
+  const [stageSubmissions, setStageSubmissions] = useState<StageSubmission[]>([]);
+  const [missionUploading, setMissionUploading] = useState(false);
+  const [missionUploadedUrl, setMissionUploadedUrl] = useState<string | null>(null);
+  const [missionUploadError, setMissionUploadError] = useState<string | null>(null);
+  const [surveyAnswers, setSurveyAnswers] = useState<Record<number, string>>({});
+  // First-attempt QUIZ answers, for per-question analytics (which distractors
+  // students actually pick). A ref, not state — read once at submitResult
+  // time, and doesn't need to trigger re-renders as it accumulates.
+  const quizAnswerRecordsRef = useRef<QuizAnswerRecord[]>([]);
 
   const [teamCode, setTeamCode] = useState('');
   const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
@@ -349,7 +362,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Timer effect — syncs timeLeft when stage changes (state declared at top)
   useEffect(() => {
     if (stage && (stage as any).timeLimitSeconds > 0) {
-      setTimeLeft((stage as any).timeLimitSeconds);
+      const multiplier = sessionPlayers.find(p => p.uid === sessionPlayerId)?.timeMultiplier || 1;
+      setTimeLeft(Math.round((stage as any).timeLimitSeconds * multiplier));
     } else {
       setTimeLeft(null);
     }
@@ -597,7 +611,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     );
   };
 
-  const submitResult = (finalPoints: number, finalDurations: typeof stageDurations) => {
+  const submitResult = (
+    finalPoints: number,
+    finalDurations: typeof stageDurations,
+    finalSubmissions: StageSubmission[] = stageSubmissions,
+  ) => {
     trackEvent('quest_finish', {
       quest_id: questId,
       points: finalPoints,
@@ -615,6 +633,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       points: finalPoints,
       completedAt: new Date().toISOString(),
       stageDurations: finalDurations,
+      ...(finalSubmissions.length > 0 ? { submissions: finalSubmissions } : {}),
+      ...(quizAnswerRecordsRef.current.length > 0 ? { quizAnswers: quizAnswerRecordsRef.current } : {}),
     };
     if (navigator.onLine) {
       saveQuestResultOnline(result).catch(() => {
@@ -634,7 +654,28 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     if (idx !== -1) setCurrentStageIndex(idx);
   };
 
-  const handleNextStage = (overrideNextId?: string) => {
+  /** Uploads a MISSION photo/video/audio submission to Storage and returns its download URL. */
+  const uploadSubmissionBlob = (blob: Blob, stageId: string, ext: string): Promise<string> => {
+    setMissionUploading(true);
+    setMissionUploadError(null);
+    const storageRef = ref(storage, `submissions/${questId}/${stageId}-${Date.now()}.${ext}`);
+    const task = uploadBytesResumable(storageRef, blob, { contentType: blob.type });
+    return new Promise((resolve, reject) => {
+      task.on(
+        'state_changed',
+        undefined,
+        err => { setMissionUploading(false); setMissionUploadError('Прикачувањето не успеа. Обиди се повторно.'); reject(err); },
+        async () => {
+          const url = await getDownloadURL(task.snapshot.ref);
+          setMissionUploading(false);
+          setMissionUploadedUrl(url);
+          resolve(url);
+        },
+      );
+    });
+  };
+
+  const handleNextStage = (overrideNextId?: string, submission?: StageSubmission) => {
     const now = Date.now();
     const duration = Math.floor((now - stageStartMark) / 1000);
     setStageDurations(prev => [...prev, { stageId: stage.id, durationSec: duration }]);
@@ -654,11 +695,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setDistanceToTarget(null);
     setScanError(null);
     setQrTaskScanned(false);
+    setMissionUploadedUrl(null);
+    setMissionUploadError(null);
+    setSurveyAnswers({});
 
     const newCompleted = [...completedStageIds, stage.id];
     const nextCollectedItemIds = collectGrantedItem(collectedItemIds, stage);
+    const newSubmissions = submission ? [...stageSubmissions, submission] : stageSubmissions;
     setCompletedStageIds(newCompleted);
     setCollectedItemIds(nextCollectedItemIds);
+    if (submission) setStageSubmissions(newSubmissions);
 
     // SWITCH stage: jump to evaluated target directly
     if (overrideNextId) {
@@ -674,7 +720,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       const completedNonSwitch = newCompleted.filter(id => stages.find(s => s.id === id && s.type !== 'SWITCH'));
       if (completedNonSwitch.length >= nonSwitchStages.length) {
         setIsFinished(true);
-        submitResult(points, finalDurations);
+        submitResult(points, finalDurations, newSubmissions);
       } else {
         setIsSelectingStage(true);
       }
@@ -684,7 +730,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         setCurrentStageIndex(nextIdx);
       } else {
         setIsFinished(true);
-        submitResult(points, finalDurations);
+        submitResult(points, finalDurations, newSubmissions);
       }
     }
     setStageStartMark(Date.now());
@@ -694,6 +740,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     const correct = (stage as any).correctAnswer;
     // Normalize both to trimmed strings for comparison (handles string + number types)
     const isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).trim().toLowerCase();
+    // Only the first attempt is recorded — it's the one that reveals a real
+    // misconception; retries after that are just "trying again".
+    if (quizAttempts === 0) {
+      quizAnswerRecordsRef.current = [
+        ...quizAnswerRecordsRef.current,
+        { stageId: stage.id, selectedAnswer: String(quizAnswer), correct: isCorrect },
+      ];
+    }
     if (isCorrect) {
       setPoints(prev => prev + (stage.points || 0));
       setQuizFeedback('success');
@@ -1431,9 +1485,22 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         );
       }
 
-      case 'MISSION':
+      case 'MISSION': {
         const isAudio = (stage as any).submissionType === 'audio';
-        
+        const missionHasRubric = !!(stage as any).rubric?.criteria?.length;
+
+        const finishMission = () => {
+          if (!missionUploadedUrl) return;
+          const submission: StageSubmission = {
+            stageId: stage.id,
+            type: (stage as any).submissionType,
+            mediaUrl: missionUploadedUrl,
+          };
+          if (!missionHasRubric) setPoints(p => p + (stage.points || 0));
+          handleNextStage(undefined, submission);
+          setRecordedAudioURL(null);
+        };
+
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center text-center">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
@@ -1448,14 +1515,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                      <Mic className="w-8 h-8" />
                    </div>
                    <p className={`text-sm font-bold ${isNightMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}>Снимете го вашиот одговор</p>
-                   
+
                    {recordedAudioURL ? (
                      <div className="flex flex-col items-center w-full mt-4">
                        <audio src={recordedAudioURL} controls className="w-full h-10 outline-none mb-3" />
-                       <button onClick={() => { setRecordedAudioURL(null); setQuizAnswer(''); }} className="text-sm font-bold text-slate-500 hover:text-rose-500 transition-colors">Сними повторно</button>
+                       {missionUploading && <p className="text-xs text-slate-500 mt-1">Се прикачува...</p>}
+                       {missionUploadedUrl && !missionUploading && <p className="text-xs text-emerald-500 mt-1 font-bold">✓ Прикачено</p>}
+                       <button onClick={() => { setRecordedAudioURL(null); setQuizAnswer(''); setMissionUploadedUrl(null); }} className="text-sm font-bold text-slate-500 hover:text-rose-500 transition-colors mt-2">Сними повторно</button>
                      </div>
                    ) : (
-                     <button 
+                     <button
                        onClick={async () => {
                          if (!isRecording) {
                            try {
@@ -1468,6 +1537,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                                setRecordedAudioURL(URL.createObjectURL(blob));
                                setQuizAnswer('recorded_audio');
                                stream.getTracks().forEach(t => t.stop());
+                               uploadSubmissionBlob(blob, stage.id, 'webm').catch(() => {});
                              };
                              mediaRecorderRef.current.start();
                              setIsRecording(true);
@@ -1491,33 +1561,59 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                      <Camera className="w-8 h-8" />
                    </div>
                    <p className={`text-sm font-bold ${isNightMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}>Прикачете медија</p>
-                   <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-500'}`}>Слика или Видео</p>
-                   
-                   <button 
-                     onClick={() => setQuizAnswer('uploaded')}
-                     className={`mt-4 px-6 py-2 rounded-xl text-sm font-bold transition-all ${quizAnswer ? 'bg-emerald-500 text-white' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200')}`}
-                   >
-                     {quizAnswer ? 'Прикачено!' : 'Избери датотека'}
-                   </button>
+                   <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-500'}`}>{(stage as any).submissionType === 'video' ? 'Видео' : 'Слика'} · max 20MB</p>
+
+                   <label className={`mt-4 px-6 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all ${missionUploadedUrl ? 'bg-emerald-500 text-white' : missionUploading ? 'bg-slate-400 text-white' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200')}`}>
+                     {missionUploading ? 'Се прикачува...' : missionUploadedUrl ? '✓ Прикачено' : 'Избери датотека'}
+                     <input
+                       type="file"
+                       accept={(stage as any).submissionType === 'video' ? 'video/*' : 'image/*'}
+                       capture="environment"
+                       className="hidden"
+                       disabled={missionUploading}
+                       onChange={e => {
+                         const file = e.target.files?.[0];
+                         if (!file) return;
+                         if (file.size > 20 * 1024 * 1024) { setMissionUploadError('Датотеката е преголема (max 20MB).'); return; }
+                         setQuizAnswer('uploaded');
+                         const ext = file.name.split('.').pop() || (file.type.includes('video') ? 'mp4' : 'jpg');
+                         uploadSubmissionBlob(file, stage.id, ext).catch(() => {});
+                       }}
+                     />
+                   </label>
                  </>
               )}
+              {missionUploadError && <p className="text-xs text-red-500 mt-3">{missionUploadError}</p>}
             </div>
-            
-            <button 
-              onClick={() => { 
-                setPoints(p => p + (stage.points || 0)); 
-                handleNextStage(); 
-                setRecordedAudioURL(null); 
-              }} 
-              disabled={!quizAnswer || isRecording}
+
+            <button
+              onClick={finishMission}
+              disabled={!missionUploadedUrl || isRecording || missionUploading}
               className="w-full py-4 bg-emerald-500 disabled:bg-slate-300 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
             >
-              Заврши ја мисијата (+{stage.points})
+              {missionHasRubric ? 'Испрати за оценување' : `Заврши ја мисијата (+${stage.points})`}
             </button>
           </div>
         );
+      }
 
-      case 'SURVEY':
+      case 'SURVEY': {
+        const surveyQuestions: string[] = (stage as any).surveyQuestions || [];
+        const surveyHasRubric = !!(stage as any).rubric?.criteria?.length;
+        const surveyComplete = surveyQuestions.length > 0
+          && surveyQuestions.every((_, i) => (surveyAnswers[i] || '').trim().length >= 3);
+
+        const finishSurvey = () => {
+          if (!surveyComplete) return;
+          const submission: StageSubmission = {
+            stageId: stage.id,
+            type: 'survey',
+            surveyAnswers: surveyQuestions.map((_, i) => surveyAnswers[i] || ''),
+          };
+          if (!surveyHasRubric) setPoints(p => p + (stage.points || 0));
+          handleNextStage(undefined, submission);
+        };
+
         return (
           <div className="flex-1 overflow-y-auto p-6 flex flex-col">
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2 text-center`}>{stage.title}</h2>
@@ -1525,29 +1621,34 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
             {renderRubric()}
 
-            <div className="mb-8">
-              <label className={`block text-lg font-bold mb-4 text-center ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>Внесете го вашиот одговор:</label>
-              <textarea 
-                value={quizAnswer || ''}
-                onChange={(e) => setQuizAnswer(e.target.value)}
-                className={`w-full rounded-2xl p-4 min-h-[120px] resize-none outline-none border-2 transition-colors ${
-                  isNightMode 
-                    ? 'bg-slate-800 border-slate-700 text-slate-200 focus:border-indigo-500' 
-                    : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-500'
-                }`}
-                placeholder="Вашето мислење овде..."
-              />
+            <div className="mb-8 space-y-5">
+              {surveyQuestions.map((q, i) => (
+                <div key={i}>
+                  <label className={`block text-base font-bold mb-2 ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>{q}</label>
+                  <textarea
+                    value={surveyAnswers[i] || ''}
+                    onChange={e => setSurveyAnswers(prev => ({ ...prev, [i]: e.target.value }))}
+                    className={`w-full rounded-2xl p-4 min-h-[100px] resize-none outline-none border-2 transition-colors ${
+                      isNightMode
+                        ? 'bg-slate-800 border-slate-700 text-slate-200 focus:border-indigo-500'
+                        : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-500'
+                    }`}
+                    placeholder="Вашето мислење овде..."
+                  />
+                </div>
+              ))}
             </div>
-            
-            <button 
-              onClick={() => { handleNextStage(); }} 
-              disabled={!quizAnswer || quizAnswer.length < 3}
+
+            <button
+              onClick={finishSurvey}
+              disabled={!surveyComplete}
               className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
             >
-              Поднеси анкета
+              {surveyHasRubric ? 'Испрати за оценување' : 'Поднеси анкета'}
             </button>
           </div>
         );
+      }
 
       case 'TOURNAMENT':
         return (

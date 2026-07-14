@@ -16,7 +16,7 @@ const DIFFICULTY_COLORS = {
 };
 
 interface Props {
-  onUseTemplate: (template: { title: string; description: string; stages: Template['stages'] }) => void;
+  onUseTemplate: (template: { title: string; description: string; stages: Template['stages']; curriculumRef?: string }) => void;
 }
 
 function TemplateCard({
@@ -48,6 +48,11 @@ function TemplateCard({
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${DIFFICULTY_COLORS[template.difficulty]}`}>
               {template.difficulty}
             </span>
+            {template.curriculumRef && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400">
+                🏷 {template.curriculumRef}
+              </span>
+            )}
             {template.isFeatured && (
               <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400">
                 ⭐ Избор на редакција
@@ -126,6 +131,7 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
   const [submitForm, setSubmitForm] = useState({
     subject: 'Математика' as TemplateSubject,
     grade: '',
+    curriculumRef: '',
     difficulty: 'средно' as Template['difficulty'],
     estimatedMinutes: 30,
     tags: '',
@@ -157,6 +163,7 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
       title: `(Копија) ${template.title}`,
       description: template.description,
       stages: template.stages,
+      curriculumRef: template.curriculumRef,
     });
   };
 
@@ -168,7 +175,9 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
     if (selectedSubject !== 'Сите' && t.subject !== selectedSubject) return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      return t.title.toLowerCase().includes(q) || t.description.toLowerCase().includes(q);
+      return t.title.toLowerCase().includes(q)
+        || t.description.toLowerCase().includes(q)
+        || (t.curriculumRef ?? '').toLowerCase().includes(q);
     }
     return true;
   });
@@ -182,6 +191,7 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
         title: submitQuest.title,
         subject: submitForm.subject,
         grade: submitForm.grade,
+        ...(submitForm.curriculumRef.trim() ? { curriculumRef: submitForm.curriculumRef.trim() } : {}),
         description: submitQuest.description,
         stages: submitQuest.stages,
         stageCount: submitQuest.stages.length,
@@ -266,6 +276,15 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
                     placeholder="на пр. 8 одд. или 7-9 одд."
                     value={submitForm.grade}
                     onChange={e => setSubmitForm(f => ({ ...f, grade: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Курикулумски стандард (опц.)</label>
+                  <input
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+                    placeholder="на пр. МАТ-6.3"
+                    value={submitForm.curriculumRef}
+                    onChange={e => setSubmitForm(f => ({ ...f, curriculumRef: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1.5">

@@ -61,7 +61,22 @@ service cloud.firestore {
         && data.playerName.size() >= 1
         && data.playerName.size() <= 100
         && data.points is number
-        && data.points >= 0;
+        && data.points >= 0
+        && (!('submissions' in data) || (data.submissions is list && data.submissions.size() <= 30))
+        && (!('quizAnswers' in data) || (data.quizAnswers is list && data.quizAnswers.size() <= 100))
+        // grades are only ever written by the teacher via the dedicated
+        // update rule below — a player's initial create must never include them.
+        && !('grades' in data);
+    }
+
+    // A rubric grade update may only touch `grades` (append/replace the
+    // teacher's scores) and `points` (recomputed total after grading).
+    function isValidGradeUpdate(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['grades', 'points'])
+        && after.grades is list
+        && after.grades.size() <= 30
+        && after.points is number
+        && after.points >= 0;
     }
 
     // ─── QUESTS ──────────────────────────────────────────────────────────────
@@ -100,8 +115,12 @@ service cloud.firestore {
       // Only the quest's own creator can read its results (analytics dashboard)
       allow read: if ownsQuest(resource.data.questId);
 
-      // No updates or deletes from the client
-      allow update, delete: if false;
+      // Only the quest owner may grade a submission (rubric review screen),
+      // and only by touching grades/points — everything else is immutable.
+      allow update: if ownsQuest(resource.data.questId)
+                    && isValidGradeUpdate(resource.data, request.resource.data);
+
+      allow delete: if false;
     }
 
     // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────

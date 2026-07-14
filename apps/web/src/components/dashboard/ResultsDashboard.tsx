@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { getQuests, getQuestResults } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
-import { Quest } from 'shared';
+import { Quest, QuestResult } from 'shared';
 import { computeStageCompletion } from '../../utils/completion';
 import { downloadWorkbook, type SheetData } from '../../utils/excelExport';
-import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
+import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
+import { SubmissionReviewModal } from './SubmissionReviewModal';
 
 export function ResultsDashboard() {
   const { user } = useAuth();
@@ -18,7 +19,8 @@ export function ResultsDashboard() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortByStageId, setSortByStageId] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel'>('leaderboard');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel' | 'grade'>('leaderboard');
+  const [reviewing, setReviewing] = useState<{ result: QuestResult; stageId: string } | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -85,6 +87,52 @@ export function ResultsDashboard() {
     () => computeStageCompletion(selectedQuest?.stages ?? [], results),
     [selectedQuest, results],
   );
+
+  // Rubric-graded MISSION/SURVEY submissions, newest-first, ungraded first.
+  const gradeQueue = useMemo(() => {
+    const gradableStages = (selectedQuest?.stages ?? []).filter(
+      (s: any) => (s.type === 'MISSION' || s.type === 'SURVEY') && s.rubric?.criteria?.length,
+    );
+    if (gradableStages.length === 0) return [];
+    const items: { result: QuestResult; stage: any; graded: boolean }[] = [];
+    for (const r of results as QuestResult[]) {
+      for (const stage of gradableStages) {
+        const submission = r.submissions?.find(s => s.stageId === stage.id);
+        if (!submission) continue;
+        const graded = (r.grades ?? []).some(g => g.stageId === stage.id);
+        items.push({ result: r, stage, graded });
+      }
+    }
+    return items.sort((a, b) => Number(a.graded) - Number(b.graded));
+  }, [selectedQuest, results]);
+  const pendingGradeCount = gradeQueue.filter(i => !i.graded).length;
+
+  // Per-question accuracy + distractor breakdown for QUIZ stages — which
+  // wrong options students actually pick, not just that a stage was slow.
+  const quizStats = useMemo(() => {
+    const quizStages = (selectedQuest?.stages ?? []).filter((s: any) => s.type === 'QUIZ');
+    if (quizStages.length === 0) return [];
+    return quizStages.map((stage: any, idx: number) => {
+      const answers = (results as QuestResult[]).flatMap(r => (r.quizAnswers ?? []).filter(a => a.stageId === stage.id));
+      const correctCount = answers.filter(a => a.correct).length;
+      const accuracy = answers.length > 0 ? Math.round((correctCount / answers.length) * 100) : null;
+
+      const counts = new Map<string, number>();
+      for (const a of answers) counts.set(a.selectedAnswer, (counts.get(a.selectedAnswer) ?? 0) + 1);
+      const optionPool = stage.questionType === 'multiple_choice' && stage.options?.length
+        ? stage.options
+        : [...counts.keys()];
+      const distribution = optionPool
+        .map((opt: string) => ({
+          option: opt,
+          count: counts.get(opt) ?? 0,
+          isCorrect: String(opt).trim().toLowerCase() === String(stage.correctAnswer).trim().toLowerCase(),
+        }))
+        .sort((a, b) => b.count - a.count);
+
+      return { id: stage.id, name: `Прашање ${idx + 1}`, title: stage.title, answers: answers.length, accuracy, distribution };
+    });
+  }, [selectedQuest, results]);
 
   const sortedResults = useMemo(() => {
     const data = [...results];
@@ -258,12 +306,12 @@ export function ResultsDashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-700">
-        {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика']] as const).map(([tab, label]) => (
+        {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика'], ['grade', '📝 За оценување']] as const).map(([tab, label]) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px flex items-center gap-1.5 ${
               activeTab === tab
                 ? 'border-indigo-500 text-indigo-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -272,6 +320,11 @@ export function ResultsDashboard() {
             {label}
             {tab === 'funnel' && !isPro && (
               <Lock className="inline w-3 h-3 ml-1.5 text-slate-600" />
+            )}
+            {tab === 'grade' && pendingGradeCount > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                {pendingGradeCount}
+              </span>
             )}
           </button>
         ))}
@@ -369,6 +422,48 @@ export function ResultsDashboard() {
                     </div>
                   ))}
                 </div>
+
+                {/* Per-question accuracy + distractor breakdown */}
+                {quizStats.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-bold text-slate-200 flex items-center gap-2 mt-2">
+                      <ClipboardCheck className="w-4 h-4 text-indigo-400" />
+                      Точност по прашање
+                    </h3>
+                    {quizStats.map(q => (
+                      <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <p className="text-sm font-semibold text-slate-200 truncate">{q.title || q.name}</p>
+                          {q.accuracy !== null ? (
+                            <span className={`text-xs font-bold shrink-0 ${q.accuracy >= 70 ? 'text-emerald-400' : q.accuracy >= 40 ? 'text-amber-400' : 'text-rose-400'}`}>
+                              {q.accuracy}% точност · {q.answers} одговори
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-500 shrink-0">Нема одговори</span>
+                          )}
+                        </div>
+                        {q.distribution.length > 0 && (
+                          <div className="space-y-1.5">
+                            {q.distribution.map((d, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <span className={`text-xs w-40 sm:w-56 truncate ${d.isCorrect ? 'text-emerald-400 font-semibold' : 'text-slate-400'}`}>
+                                  {d.isCorrect ? '✓ ' : ''}{d.option}
+                                </span>
+                                <div className="flex-1 h-1.5 rounded-full bg-slate-700 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${d.isCorrect ? 'bg-emerald-500' : 'bg-rose-400'}`}
+                                    style={{ width: `${q.answers > 0 ? Math.round((d.count / q.answers) * 100) : 0}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs text-slate-500 w-8 text-right shrink-0">{d.count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -386,6 +481,52 @@ export function ResultsDashboard() {
             </a>
           </div>
         )
+      ) : activeTab === 'grade' ? (
+        /* ── GRADE TAB ───────────────────────────────────────────────── */
+        <div className="space-y-2">
+          {gradeQueue.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center">
+                <ClipboardCheck className="w-7 h-7 text-slate-600" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-300">Нема поднесоци за оценување</h3>
+              <p className="text-slate-500 text-sm max-w-sm">
+                Кога етапа со рубрика (MISSION/SURVEY) има рубрика за оценување и играч ќе поднесе одговор, ќе се појави тука.
+              </p>
+            </div>
+          ) : (
+            gradeQueue.map(({ result, stage, graded }) => (
+              <div
+                key={`${result.id}-${stage.id}`}
+                className={`rounded-xl border px-4 py-3 flex items-center gap-4 ${
+                  graded ? 'bg-slate-800/50 border-slate-700' : 'bg-amber-500/5 border-amber-500/20'
+                }`}
+              >
+                <div className="w-9 h-9 rounded-full bg-slate-900 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-slate-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-200 truncate">{result.playerName || 'Анонимен'}</p>
+                  <p className="text-xs text-slate-500 truncate">{stage.title || stage.type}</p>
+                </div>
+                {graded ? (
+                  <span className="flex items-center gap-1 text-xs font-bold text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-4 h-4" /> Оценето
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-amber-400 shrink-0">Чека оценување</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setReviewing({ result, stageId: stage.id })}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0"
+                >
+                  {graded ? 'Прегледај' : 'Оцени'}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       ) : (
         /* ── LEADERBOARD TAB ────────────────────────────────────────── */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -519,6 +660,19 @@ export function ResultsDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {reviewing && selectedQuest && (
+        <SubmissionReviewModal
+          open
+          onClose={() => setReviewing(null)}
+          quest={selectedQuest}
+          result={reviewing.result}
+          stageId={reviewing.stageId}
+          onGraded={updated => {
+            setResults(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+          }}
+        />
       )}
     </div>
   );

@@ -25,6 +25,18 @@ service firebase.storage {
       allow delete: if isOwner(userId);
     }
 
+    // ─── STUDENT SUBMISSIONS (MISSION/SURVEY rubric grading) ──────────────────
+    // Players are frequently unauthenticated (public play links, live sessions),
+    // so this path can't be owner-gated like the uploads above — scoped instead
+    // by path, size and content-type. Readable via its unguessable download-URL
+    // token only, same trust model as every other path in this file.
+    match /submissions/{questId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|video/.*|audio/.*');
+      allow delete: if false;
+    }
+
     // ─── DENY EVERYTHING ELSE ─────────────────────────────────────────────────
     match /{allPaths=**} {
       allow read, write: if false;

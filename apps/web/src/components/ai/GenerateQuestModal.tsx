@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, X, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
 import { generateQuest } from '../../utils/aiService';
 import { trackEvent } from '../../utils/analytics';
 import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES, type TemplateSubject } from 'shared';
+import { Modal } from '../ui/Modal';
 
 interface GenerateQuestModalProps {
   open: boolean;
@@ -25,8 +26,6 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
   const [stageCount, setStageCount] = useState(5);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
-
-  if (!open) return null;
 
   const handleGenerate = async () => {
     const t = topic.trim();
@@ -55,109 +54,13 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Генерирај авантура со AI"
-    >
-      <div
-        className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xl"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">AI Генератор на авантури</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Опиши тема — AI ќе создаде нацрт за уредување</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            aria-label="Затвори"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-5 space-y-4">
-          <div>
-            <label htmlFor="ai-topic" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Тема
-            </label>
-            <input
-              id="ai-topic"
-              type="text"
-              value={topic}
-              onChange={e => setTopic(e.target.value)}
-              placeholder="на пр. Сончевиот систем, Втора светска војна, Дропки…"
-              maxLength={200}
-              className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="ai-subject" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Предмет
-              </label>
-              <select
-                id="ai-subject"
-                value={subject}
-                onChange={e => setSubject(e.target.value as TemplateSubject)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="ai-grade" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Возраст
-              </label>
-              <select
-                id="ai-grade"
-                value={grade}
-                onChange={e => setGrade(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="ai-stages" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              Број на етапи: <span className="text-indigo-500 dark:text-indigo-400 font-bold">{stageCount}</span>
-            </label>
-            <input
-              id="ai-stages"
-              type="range"
-              min={MIN_STAGES}
-              max={MAX_STAGES}
-              value={stageCount}
-              onChange={e => setStageCount(Number(e.target.value))}
-              className="w-full accent-indigo-500"
-            />
-          </div>
-
-          {error && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-300">
-              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="AI Генератор на авантури"
+      size="lg"
+      footer={
+        <>
           <button
             type="button"
             onClick={onClose}
@@ -175,9 +78,83 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
               ? <><Loader2 className="w-4 h-4 animate-spin" /> Генерирам…</>
               : <><Wand2 className="w-4 h-4" /> Генерирај</>}
           </button>
+        </>
+      }
+    >
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500 to-indigo-600 flex items-center justify-center shrink-0">
+          <Sparkles className="w-5 h-5 text-white" />
         </div>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Опиши тема — AI ќе создаде нацрт за уредување</p>
       </div>
-    </div>
+
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="ai-topic" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Тема
+          </label>
+          <input
+            id="ai-topic"
+            type="text"
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            placeholder="на пр. Сончевиот систем, Втора светска војна, Дропки…"
+            maxLength={200}
+            className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label htmlFor="ai-subject" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Предмет
+            </label>
+            <select
+              id="ai-subject"
+              value={subject}
+              onChange={e => setSubject(e.target.value as TemplateSubject)}
+              className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="ai-grade" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+              Возраст
+            </label>
+            <select
+              id="ai-grade"
+              value={grade}
+              onChange={e => setGrade(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {GRADES.map(g => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="ai-stages" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+            Број на етапи: <span className="text-indigo-500 dark:text-indigo-400 font-bold">{stageCount}</span>
+          </label>
+          <input
+            id="ai-stages"
+            type="range"
+            min={MIN_STAGES}
+            max={MAX_STAGES}
+            value={stageCount}
+            onChange={e => setStageCount(Number(e.target.value))}
+            className="w-full accent-indigo-500"
+          />
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-300">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
-

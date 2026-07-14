@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
+import { Modal } from '../ui/Modal';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -46,8 +47,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     if (tab === 'email') emailRef.current?.focus();
   }, [tab, mode]);
 
-  if (!isOpen) return null;
-
   const handleGoogleSignIn = async () => {
     setBusy(true);
     await signInWithGoogle();
@@ -85,15 +84,8 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const isEmailMode = tab === 'email';
 
   return (
-    <div
-      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-      {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+    <Modal open={isOpen} onClose={onClose} showHeader={false}>
+      <div className="relative overflow-hidden rounded-2xl">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -292,6 +284,6 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

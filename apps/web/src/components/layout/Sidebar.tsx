@@ -158,13 +158,13 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
             <Compass className="h-4 w-4 shrink-0" />
             {t('nav.explore')}
           </button>
-          <button
-            type="button"
+          <a
+            href="mailto:igor.bogdanoski@mismath.net"
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"
           >
             <HelpCircle className="h-4 w-4 shrink-0" />
             {t('nav.help')}
-          </button>
+          </a>
           <button
             type="button"
             onClick={logout}

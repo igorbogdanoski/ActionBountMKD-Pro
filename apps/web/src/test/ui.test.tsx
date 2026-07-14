@@ -24,12 +24,54 @@ describe('Button', () => {
     fireEvent.click(btn);
     expect(onClick).not.toHaveBeenCalled();
   });
+
+  it('applies the indigo app-primary variant, distinct from the coral primary', () => {
+    render(<Button variant="app-primary">Зачувај</Button>);
+    const cls = screen.getByRole('button').className;
+    expect(cls).toContain('bg-indigo-600');
+    expect(cls).not.toContain('bg-brand-500');
+  });
+
+  it('applies the emerald success and rose danger variants (consolidated from green/red)', () => {
+    const { rerender } = render(<Button variant="success">OK</Button>);
+    expect(screen.getByRole('button').className).toContain('bg-emerald-600');
+    rerender(<Button variant="danger">Избриши</Button>);
+    expect(screen.getByRole('button').className).toContain('bg-rose-600');
+  });
+
+  it('colorClassName overrides the variant color entirely', () => {
+    render(<Button variant="primary" colorClassName="bg-purple-700 text-white">Custom</Button>);
+    const cls = screen.getByRole('button').className;
+    expect(cls).toContain('bg-purple-700');
+    expect(cls).not.toContain('bg-brand-500');
+  });
+
+  it('size="icon" applies compact square padding with no text gap', () => {
+    render(<Button size="icon" aria-label="Затвори">×</Button>);
+    const cls = screen.getByRole('button', { name: 'Затвори' }).className;
+    expect(cls).toContain('p-2');
+    expect(cls).not.toContain('gap-2');
+  });
 });
 
 describe('Card', () => {
   it('renders children', () => {
     render(<Card>содржина</Card>);
     expect(screen.getByText('содржина')).toBeTruthy();
+  });
+
+  it('defaults to the theme-aware tone (light/dark pair)', () => {
+    render(<Card>содржина</Card>);
+    const cls = screen.getByText('содржина').className;
+    expect(cls).toContain('bg-white');
+    expect(cls).toContain('dark:bg-slate-800');
+  });
+
+  it('tone="dark" always renders the dark palette, no dark: prefix', () => {
+    render(<Card tone="dark">содржина</Card>);
+    const cls = screen.getByText('содржина').className;
+    expect(cls).toContain('bg-slate-800');
+    expect(cls).not.toContain('dark:bg-slate-800');
   });
 });
 

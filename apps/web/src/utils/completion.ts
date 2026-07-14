@@ -68,3 +68,39 @@ export function computeStageCompletion(
     return { ...entry, dropOff };
   });
 }
+
+// ─── Quiz accuracy (Phase 1 — cross-quest weak-spot dashboard) ────────────────
+
+export interface QuizStageLike {
+  id: string;
+  title?: string;
+}
+
+export interface QuizAnswerLike {
+  stageId: string;
+  correct: boolean;
+}
+
+export interface QuizResultLike {
+  quizAnswers?: QuizAnswerLike[] | null;
+}
+
+export interface QuizAccuracy {
+  id: string;
+  title: string;
+  answers: number;
+  /** 0-100, or null when no player has answered this question yet. */
+  accuracy: number | null;
+}
+
+/** Per-question accuracy across a set of results — the same derivation
+ * ResultsDashboard uses per-quest, extracted so it can also be aggregated
+ * across every quest a teacher owns (cross-quest weak-spot view). */
+export function computeQuizAccuracy(quizStages: QuizStageLike[], results: QuizResultLike[]): QuizAccuracy[] {
+  return quizStages.map(stage => {
+    const answers = results.flatMap(r => (r.quizAnswers ?? []).filter(a => a.stageId === stage.id));
+    const correctCount = answers.filter(a => a.correct).length;
+    const accuracy = answers.length > 0 ? Math.round((correctCount / answers.length) * 100) : null;
+    return { id: stage.id, title: stage.title ?? '', answers: answers.length, accuracy };
+  });
+}

@@ -3,7 +3,7 @@ import { getQuests, getQuestResults } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { Quest, QuestResult } from 'shared';
-import { computeStageCompletion } from '../../utils/completion';
+import { computeStageCompletion, computeQuizAccuracy } from '../../utils/completion';
 import { downloadWorkbook, type SheetData } from '../../utils/excelExport';
 import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock, ClipboardCheck, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -19,8 +19,14 @@ export function ResultsDashboard() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortByStageId, setSortByStageId] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel' | 'grade'>('leaderboard');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel' | 'weakspots' | 'grade'>('leaderboard');
   const [reviewing, setReviewing] = useState<{ result: QuestResult; stageId: string } | null>(null);
+
+  // Cross-quest weak-spot data — loaded lazily (only once the tab is opened)
+  // and cached per session, since it means fetching results for every quest
+  // the teacher owns, not just the one currently selected.
+  const [weakspotResults, setWeakspotResults] = useState<Record<string, QuestResult[]> | null>(null);
+  const [weakspotsLoading, setWeakspotsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -46,6 +52,44 @@ export function ResultsDashboard() {
     }
     loadResults();
   }, [selectedQuestId]);
+
+  useEffect(() => {
+    if (activeTab !== 'weakspots' || !isPro || weakspotResults !== null || quests.length === 0) return;
+    setWeakspotsLoading(true);
+    Promise.all(quests.map(q => getQuestResults(q.id).then(r => [q.id, r] as const)))
+      .then(entries => setWeakspotResults(Object.fromEntries(entries)))
+      .finally(() => setWeakspotsLoading(false));
+  }, [activeTab, isPro, quests, weakspotResults]);
+
+  // Ranked lists across every quest the teacher owns: the lowest-accuracy
+  // QUIZ questions and the biggest per-stage drop-offs, each reusing the
+  // exact same pure derivations the per-quest funnel tab already uses.
+  const crossQuestWeakQuestions = useMemo(() => {
+    if (!weakspotResults) return [];
+    const MIN_ANSWERS = 3;
+    return quests.flatMap(q => {
+      const quizStages = (q.stages ?? []).filter((s: any) => s.type === 'QUIZ');
+      if (quizStages.length === 0) return [];
+      return computeQuizAccuracy(quizStages, weakspotResults[q.id] ?? [])
+        .filter(s => s.answers >= MIN_ANSWERS && s.accuracy !== null)
+        .map(s => ({ ...s, questId: q.id, questTitle: q.title }));
+    }).sort((a, b) => (a.accuracy ?? 0) - (b.accuracy ?? 0)).slice(0, 10);
+  }, [quests, weakspotResults]);
+
+  const crossQuestDropOffs = useMemo(() => {
+    if (!weakspotResults) return [];
+    const MIN_DROP = 15;
+    return quests.flatMap(q =>
+      computeStageCompletion(q.stages ?? [], weakspotResults[q.id] ?? [])
+        .filter(s => s.dropOff >= MIN_DROP)
+        .map(s => ({ ...s, questId: q.id, questTitle: q.title }))
+    ).sort((a, b) => b.dropOff - a.dropOff).slice(0, 10);
+  }, [quests, weakspotResults]);
+
+  const openQuestInFunnel = (questId: string) => {
+    setSelectedQuestId(questId);
+    setActiveTab('funnel');
+  };
 
   const selectedQuest = quests.find(q => q.id === selectedQuestId);
 
@@ -112,10 +156,10 @@ export function ResultsDashboard() {
   const quizStats = useMemo(() => {
     const quizStages = (selectedQuest?.stages ?? []).filter((s: any) => s.type === 'QUIZ');
     if (quizStages.length === 0) return [];
+    const accuracyById = new Map(computeQuizAccuracy(quizStages, results as QuestResult[]).map(a => [a.id, a]));
     return quizStages.map((stage: any, idx: number) => {
       const answers = (results as QuestResult[]).flatMap(r => (r.quizAnswers ?? []).filter(a => a.stageId === stage.id));
-      const correctCount = answers.filter(a => a.correct).length;
-      const accuracy = answers.length > 0 ? Math.round((correctCount / answers.length) * 100) : null;
+      const { accuracy } = accuracyById.get(stage.id)!;
 
       const counts = new Map<string, number>();
       for (const a of answers) counts.set(a.selectedAnswer, (counts.get(a.selectedAnswer) ?? 0) + 1);
@@ -306,7 +350,7 @@ export function ResultsDashboard() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-slate-700">
-        {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика'], ['grade', '📝 За оценување']] as const).map(([tab, label]) => (
+        {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика'], ['weakspots', '🎯 Слаби точки'], ['grade', '📝 За оценување']] as const).map(([tab, label]) => (
           <button
             key={tab}
             type="button"
@@ -318,7 +362,7 @@ export function ResultsDashboard() {
             }`}
           >
             {label}
-            {tab === 'funnel' && !isPro && (
+            {(tab === 'funnel' || tab === 'weakspots') && !isPro && (
               <Lock className="inline w-3 h-3 ml-1.5 text-slate-600" />
             )}
             {tab === 'grade' && pendingGradeCount > 0 && (
@@ -475,6 +519,93 @@ export function ResultsDashboard() {
             <h3 className="text-lg font-bold text-slate-300">Funnel Аналитика — Pro план</h3>
             <p className="text-slate-500 text-sm max-w-xs">
               Видете каде ги губите играчите — стапка на завршување и критични падови по етапа.
+            </p>
+            <a href="/pricing" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors">
+              Надгради во Pro
+            </a>
+          </div>
+        )
+      ) : activeTab === 'weakspots' ? (
+        /* ── CROSS-QUEST WEAK SPOTS TAB ─────────────────────────────── */
+        isPro ? (
+          weakspotsLoading ? (
+            <div className="p-8 text-center text-slate-400 font-medium">Се вчитува...</div>
+          ) : (
+            <div className="space-y-8">
+              <p className="text-sm text-slate-400">
+                Најслаби прашања и најголеми падови низ <strong className="text-slate-300">сите</strong> твои авантури —
+                не само во тековно избраната.
+              </p>
+
+              <div>
+                <h3 className="font-bold text-slate-200 flex items-center gap-2 mb-3">
+                  <ClipboardCheck className="w-4 h-4 text-rose-400" />
+                  Најслаби прашања (минимум 3 одговори)
+                </h3>
+                {crossQuestWeakQuestions.length === 0 ? (
+                  <p className="text-sm text-slate-500 py-4">Сè уште нема доволно податоци низ квестовите.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {crossQuestWeakQuestions.map(q => (
+                      <button
+                        key={`${q.questId}-${q.id}`}
+                        type="button"
+                        onClick={() => openQuestInFunnel(q.questId)}
+                        className="w-full text-left rounded-xl border border-slate-700 bg-slate-800 hover:border-indigo-500/50 px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-200 truncate">{q.title}</p>
+                          <p className="text-xs text-slate-500 truncate">{q.questTitle} · {q.answers} одговори</p>
+                        </div>
+                        <span className={`text-sm font-bold shrink-0 ${
+                          (q.accuracy ?? 0) >= 40 ? 'text-amber-400' : 'text-rose-400'
+                        }`}>
+                          {q.accuracy}%
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="font-bold text-slate-200 flex items-center gap-2 mb-3">
+                  <TrendingDown className="w-4 h-4 text-rose-400" />
+                  Најголеми падови по етапа (&gt;15 п.п.)
+                </h3>
+                {crossQuestDropOffs.length === 0 ? (
+                  <p className="text-sm text-slate-500 py-4">Сè уште нема доволно податоци низ квестовите.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {crossQuestDropOffs.map(s => (
+                      <button
+                        key={`${s.questId}-${s.id}`}
+                        type="button"
+                        onClick={() => openQuestInFunnel(s.questId)}
+                        className="w-full text-left rounded-xl border border-rose-500/20 bg-rose-500/5 hover:border-rose-500/50 px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-200 truncate">{s.title || s.label}</p>
+                          <p className="text-xs text-slate-500 truncate">{s.questTitle}</p>
+                        </div>
+                        <span className="text-sm font-bold text-rose-400 shrink-0 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5" /> -{s.dropOff}%
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center">
+              <Lock className="w-7 h-7 text-slate-600" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-300">Слаби точки — Pro план</h3>
+            <p className="text-slate-500 text-sm max-w-xs">
+              Најслаби прашања и падови низ сите твои авантури, на едно место.
             </p>
             <a href="/pricing" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-colors">
               Надгради во Pro

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeStageCompletion, type ResultLike, type StageRefLike } from '../utils/completion';
+import { computeStageCompletion, computeQuizAccuracy, type ResultLike, type StageRefLike, type QuizStageLike, type QuizResultLike } from '../utils/completion';
 
 const stages: StageRefLike[] = [
   { id: 's1', title: 'Старт' },
@@ -43,5 +43,45 @@ describe('computeStageCompletion', () => {
     expect(out[0].label).toBe('Етапа 1');
     expect(out[2].label).toBe('Етапа 3');
     expect(out[1].title).toBe('Средина');
+  });
+});
+
+describe('computeQuizAccuracy', () => {
+  const quizStages: QuizStageLike[] = [
+    { id: 'q1', title: 'Прашање 1' },
+    { id: 'q2', title: 'Прашање 2' },
+  ];
+
+  function quizResult(answers: { stageId: string; correct: boolean }[]): QuizResultLike {
+    return { quizAnswers: answers };
+  }
+
+  it('returns null accuracy and zero answers for an unanswered question', () => {
+    const out = computeQuizAccuracy(quizStages, []);
+    expect(out).toEqual([
+      { id: 'q1', title: 'Прашање 1', answers: 0, accuracy: null },
+      { id: 'q2', title: 'Прашање 2', answers: 0, accuracy: null },
+    ]);
+  });
+
+  it('computes accuracy as a 0-100 percentage of correct answers', () => {
+    const results = [
+      quizResult([{ stageId: 'q1', correct: true }]),
+      quizResult([{ stageId: 'q1', correct: false }]),
+      quizResult([{ stageId: 'q1', correct: true }]),
+    ];
+    const out = computeQuizAccuracy(quizStages, results);
+    expect(out[0]).toEqual({ id: 'q1', title: 'Прашање 1', answers: 3, accuracy: 67 });
+    expect(out[1]).toEqual({ id: 'q2', title: 'Прашање 2', answers: 0, accuracy: null });
+  });
+
+  it('only counts answers for the matching stage id', () => {
+    const results = [
+      quizResult([{ stageId: 'q1', correct: true }, { stageId: 'q2', correct: false }]),
+    ];
+    const out = computeQuizAccuracy(quizStages, results);
+    expect(out[0].answers).toBe(1);
+    expect(out[1].answers).toBe(1);
+    expect(out[1].accuracy).toBe(0);
   });
 });

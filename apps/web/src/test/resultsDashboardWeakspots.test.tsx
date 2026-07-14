@@ -1,0 +1,89 @@
+// Cross-quest weak-spot tab (Phase 1) — ranks the lowest-accuracy QUIZ
+// questions and biggest per-stage drop-offs across every quest a teacher
+// owns, reusing the same pure completion.ts derivations the per-quest
+// funnel tab already uses.
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { Quest, QuestResult } from 'shared';
+
+vi.mock('../utils/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'teacher-1' } }) }));
+
+const planState = vi.hoisted(() => ({ planId: 'pro' as 'free' | 'pro' }));
+vi.mock('../hooks/usePlan', () => ({ usePlan: () => planState }));
+
+const getQuests = vi.hoisted(() => vi.fn());
+const getQuestResults = vi.hoisted(() => vi.fn());
+vi.mock('../utils/storage', () => ({ getQuests, getQuestResults }));
+
+import { ResultsDashboard } from '../components/dashboard/ResultsDashboard';
+
+function makeQuiz(id: string, title: string) {
+  return { id, type: 'QUIZ' as const, title, description: '', order: 0, points: 10, questionType: 'multiple_choice' as const, options: ['A', 'B'], correctAnswer: 'A' };
+}
+
+function quests(): Quest[] {
+  return [
+    { id: 'q1', creatorId: 'teacher-1', title: 'Слаб квест', description: '', visibility: 'secret', playMode: 'singleplayer', sequence: 'fixed', stages: [makeQuiz('s1', 'Тешко прашање')], createdAt: '', updatedAt: '' } as Quest,
+    { id: 'q2', creatorId: 'teacher-1', title: 'Добар квест', description: '', visibility: 'secret', playMode: 'singleplayer', sequence: 'fixed', stages: [makeQuiz('s2', 'Лесно прашање')], createdAt: '', updatedAt: '' } as Quest,
+  ];
+}
+
+function resultsFor(questId: string): QuestResult[] {
+  if (questId === 'q1') {
+    // 1 correct out of 4 -> 25% accuracy, well past the 3-answer noise floor
+    return [
+      { id: 'r1', questId, playerName: 'A', points: 0, completedAt: '', quizAnswers: [{ stageId: 's1', selectedAnswer: 'B', correct: false }] },
+      { id: 'r2', questId, playerName: 'B', points: 0, completedAt: '', quizAnswers: [{ stageId: 's1', selectedAnswer: 'B', correct: false }] },
+      { id: 'r3', questId, playerName: 'C', points: 0, completedAt: '', quizAnswers: [{ stageId: 's1', selectedAnswer: 'B', correct: false }] },
+      { id: 'r4', questId, playerName: 'D', points: 10, completedAt: '', quizAnswers: [{ stageId: 's1', selectedAnswer: 'A', correct: true }] },
+    ] as QuestResult[];
+  }
+  return [
+    { id: 'r5', questId, playerName: 'A', points: 10, completedAt: '', quizAnswers: [{ stageId: 's2', selectedAnswer: 'A', correct: true }] },
+    { id: 'r6', questId, playerName: 'B', points: 10, completedAt: '', quizAnswers: [{ stageId: 's2', selectedAnswer: 'A', correct: true }] },
+    { id: 'r7', questId, playerName: 'C', points: 10, completedAt: '', quizAnswers: [{ stageId: 's2', selectedAnswer: 'A', correct: true }] },
+  ] as QuestResult[];
+}
+
+beforeEach(() => {
+  planState.planId = 'pro';
+  getQuests.mockReset().mockResolvedValue(quests());
+  getQuestResults.mockReset().mockImplementation((questId: string) => Promise.resolve(resultsFor(questId)));
+});
+
+describe('ResultsDashboard cross-quest weak-spots tab', () => {
+  it('is gated behind Pro, matching the funnel tab', async () => {
+    planState.planId = 'free';
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByText('🎯 Слаби точки'));
+
+    expect(await screen.findByText('Слаби точки — Pro план')).toBeTruthy();
+    expect(getQuestResults).not.toHaveBeenCalledWith('q2');
+  });
+
+  it('ranks the lowest-accuracy question first, across both quests, with the quest name shown', async () => {
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByText('🎯 Слаби точки'));
+
+    const weakQuestion = await screen.findByText('Тешко прашање');
+    expect(weakQuestion).toBeTruthy();
+    expect(screen.getByText('25%')).toBeTruthy();
+    const subtitle = weakQuestion.closest('button')!.querySelector('p:last-child');
+    expect(subtitle?.textContent).toContain('Слаб квест');
+    await waitFor(() => expect(getQuestResults).toHaveBeenCalledWith('q2'));
+  });
+
+  it('jumping to a weak question switches to the funnel tab for that quest', async () => {
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByText('🎯 Слаби точки'));
+    fireEvent.click(await screen.findByText('Тешко прашање'));
+
+    expect(await screen.findByText('Точност по прашање')).toBeTruthy();
+  });
+});

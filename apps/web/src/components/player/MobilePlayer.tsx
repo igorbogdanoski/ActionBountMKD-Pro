@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
@@ -59,7 +59,7 @@ function getDistance(coord1: Coordinates, coord2: Coordinates): number {
             Math.sin(diffLambda/2) * Math.sin(diffLambda/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-  return R * c; 
+  return R * c;
 }
 
 export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
@@ -356,7 +356,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   const stages = quest?.stages || [];
   const stage = stages[currentStageIndex];
-  const inventoryItems = quest?.inventoryItems ?? [];
+  // `?? []` alone would mint a new array every render; since it's a dependency
+  // of the collected-items effect below, that caused an infinite render loop
+  // (new inventoryItems ref -> effect re-fires -> setCollectedItemIds with a
+  // new ref -> re-render -> repeat) for any quest with no inventory items set.
+  const inventoryItems = useMemo(() => quest?.inventoryItems ?? [], [quest]);
   const stageLocked = stage ? !canAccessStage(stage, collectedItemIds) : false;
   const missingRequiredItem = inventoryItems.find(item => item.id === stage?.requiresItemId);
 

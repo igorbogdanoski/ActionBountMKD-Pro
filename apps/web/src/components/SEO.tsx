@@ -127,6 +127,36 @@ export function PricingSchema() {
   );
 }
 
+interface LearningResourceSchemaProps {
+  title: string;
+  description: string;
+  url: string;
+  subject?: string;
+  grade?: string;
+}
+
+export function LearningResourceSchema({ title, description, url, subject, grade }: LearningResourceSchemaProps) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'LearningResource',
+    name: title,
+    description,
+    url: `${APP_URL}${url}`,
+    learningResourceType: 'Interactive Activity',
+    ...(subject ? { about: subject } : {}),
+    ...(grade ? { educationalLevel: grade } : {}),
+    isAccessibleForFree: true,
+    inLanguage: 'mk',
+    provider: { '@type': 'Organization', name: APP_NAME, url: APP_URL },
+  };
+
+  return (
+    <Helmet>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+    </Helmet>
+  );
+}
+
 interface BreadcrumbItem {
   name: string;
   url?: string;

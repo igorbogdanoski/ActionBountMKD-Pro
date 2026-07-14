@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
 import { generateQuest } from '../../utils/aiService';
+import { trackEvent } from '../../utils/analytics';
 import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES, type TemplateSubject } from 'shared';
 
 interface GenerateQuestModalProps {
@@ -39,6 +40,7 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
         grade,
         stageCount: clampStageCount(stageCount),
       });
+      trackEvent('ai_generation_used', { subject, grade, stage_count: clampStageCount(stageCount) });
       navigate('/creator', { state: { templateData: quest } });
       onClose();
     } catch (err) {

@@ -3,6 +3,7 @@ import { Search, BookOpen, Star, Heart, Play, Lock, Loader2, GitBranch, Upload, 
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { getPublicTemplates, incrementTemplateUsage, saveTemplate } from '../../utils/storage';
+import { trackEvent } from '../../utils/analytics';
 import type { Template, TemplateSubject, Quest } from 'shared';
 
 const SUBJECTS: TemplateSubject[] = [
@@ -159,6 +160,7 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
 
   const handleUse = async (template: Template) => {
     await incrementTemplateUsage(template.id).catch(() => {});
+    trackEvent('template_used', { template_id: template.id, subject: template.subject });
     onUseTemplate({
       title: `(Копија) ${template.title}`,
       description: template.description,

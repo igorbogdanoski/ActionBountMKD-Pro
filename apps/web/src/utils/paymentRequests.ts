@@ -1,5 +1,6 @@
 import { collection, doc, addDoc, getDocs, updateDoc, query, where, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
+import { trackEvent } from './analytics';
 import type { PlanId } from 'shared';
 
 export type PaymentMethod = 'paypal' | 'bank';
@@ -51,12 +52,14 @@ export async function getPaymentRequests(status?: PaymentStatus): Promise<Paymen
  * double-click or retried request can't be processed twice.
  */
 export async function approvePaymentRequest(requestId: string, userId: string, planId: PlanId): Promise<void> {
+  let approved: PaymentRequest | null = null;
   await runTransaction(db, async (tx) => {
     const reqRef = doc(db, COL, requestId);
     const reqSnap = await tx.get(reqRef);
     if (!reqSnap.exists() || (reqSnap.data() as PaymentRequest).status !== 'pending') {
       throw new Error('Барањето веќе е обработено или не постои.');
     }
+    approved = reqSnap.data() as PaymentRequest;
     tx.update(reqRef, {
       status: 'approved',
       processedAt: new Date().toISOString(),
@@ -65,6 +68,13 @@ export async function approvePaymentRequest(requestId: string, userId: string, p
       plan: planId,
       updatedAt: new Date().toISOString(),
     });
+  });
+  // Real completed-payment signal, not just an upgrade-button click — fired
+  // only once the transaction actually commits.
+  trackEvent('payment_completed', {
+    plan_id: planId,
+    method: approved?.method,
+    amount_mkd: approved?.amountMkd,
   });
 }
 

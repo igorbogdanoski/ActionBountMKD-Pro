@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getQuestById, saveQuest } from '../../utils/storage';
+import { trackEvent } from '../../utils/analytics';
 import { useQuestEditor } from './hooks/useQuestEditor';
 import { useAutoSave }    from './hooks/useAutoSave';
 import { StageList }      from './StageList';
@@ -57,6 +58,12 @@ export function BoundCreator() {
   const { state, setField, addStage, dupStage, delStage, updateStage, reorder, select, load, setClean } = editor;
   const { quest, selectedStageId, isDirty } = state;
 
+  // Activation/publish tracking refs — declared here (not inline where used
+  // below) since the quest-load effect needs to seed
+  // lastPersistedVisibilityRef before the save-tracking effect reads it.
+  const createdTrackedRef = useRef(false);
+  const lastPersistedVisibilityRef = useRef<Quest['visibility'] | null>(null);
+
   // Sync creatorId once user is confirmed (avoids Firestore permission error on cold load)
   useEffect(() => {
     if (user?.uid && !quest.creatorId) {
@@ -80,7 +87,7 @@ export function BoundCreator() {
     if (!questId) return;
     setLoading(true);
     getQuestById(questId)
-      .then(q => { if (q) load(q); })
+      .then(q => { if (q) { load(q); lastPersistedVisibilityRef.current = q.visibility; } })
       .finally(() => setLoading(false));
   }, [questId]);
 
@@ -92,6 +99,22 @@ export function BoundCreator() {
     await saveQuest(quest);
     setClean();
   };
+
+  // Activation/publish signals — fired once a save actually persists, not
+  // on every keystroke. quest_created: the first successful save of a
+  // brand-new quest (opened via /creator, no questId param). quest_published:
+  // each time a save persists visibility flipping to 'public'.
+  useEffect(() => {
+    if (!lastSaved) return;
+    if (!questId && !createdTrackedRef.current) {
+      createdTrackedRef.current = true;
+      trackEvent('quest_created', { quest_id: quest.id });
+    }
+    if (quest.visibility === 'public' && lastPersistedVisibilityRef.current !== 'public') {
+      trackEvent('quest_published', { quest_id: quest.id });
+    }
+    lastPersistedVisibilityRef.current = quest.visibility;
+  }, [lastSaved]);
 
   const selectedStage = quest.stages.find(s => s.id === selectedStageId) ?? null;
 

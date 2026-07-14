@@ -5,7 +5,16 @@ export type AnalyticsEventName =
   | 'stage_complete'
   | 'quest_finish'
   | 'signup'
-  | 'upgrade_click';
+  | 'upgrade_click'
+  // Activation/retention funnel additions (Phase 3 SEO/growth audit) — the
+  // original 5 events could tell you a quest was played, never whether a
+  // new teacher actually got from signup to a real, published quest, used a
+  // template, used AI, or completed (not just clicked) an upgrade.
+  | 'quest_created'
+  | 'quest_published'
+  | 'template_used'
+  | 'ai_generation_used'
+  | 'payment_completed';
 
 export type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 

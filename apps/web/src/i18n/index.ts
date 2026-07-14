@@ -3,6 +3,17 @@ import { initReactI18next } from 'react-i18next';
 import mk from './mk.json';
 import en from './en.json';
 
+// Decision record (Phase 3 SEO audit): English stays UI-only, deliberately
+// not promoted to crawlable /en content routes with hreflang. The language
+// choice lives in localStorage — Googlebot never sees it, so 100% of organic
+// search traffic can only ever reach the Macedonian content regardless of
+// translation quality. That's accepted as correct for now: every other
+// content decision in this app (the 15 curated templates, БРО curriculum
+// alignment, МОН/БРО positioning) targets Macedonian schools specifically,
+// so there's no real EN organic-search audience to capture yet. Revisit this
+// if/when international expansion becomes an actual goal — at that point
+// this needs real /en routes, hreflang tags, and localized content, not
+// just a client-side string swap.
 const STORAGE_KEY = 'ak_lang';
 
 export type SupportedLang = 'mk' | 'en';

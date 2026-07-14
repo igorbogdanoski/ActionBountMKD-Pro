@@ -2,6 +2,17 @@
   "buildCommand": "npm run build --workspace web",
   "outputDirectory": "apps/web/dist",
   "rewrites": [
+    {
+      "source": "/play/:questId",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot|Viber|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|W3C_Validator).*" }],
+      "destination": "/api/social-preview?type=play&id=:questId"
+    },
+    {
+      "source": "/leaderboard/:questId",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(facebookexternalhit|Facebot|WhatsApp|Twitterbot|LinkedInBot|TelegramBot|Slackbot|Discordbot|Googlebot|bingbot|Viber|Pinterest|redditbot|Applebot|SkypeUriPreview|vkShare|W3C_Validator).*" }],
+      "destination": "/api/social-preview?type=leaderboard&id=:questId"
+    },
+    { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/((?!assets|favicon|manifest|sw|sitemap|og-image|api).*)", "destination": "/index.html" }
   ],
   "headers": [

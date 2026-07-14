@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../utils/firebase';
-import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
+import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
 import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
@@ -21,6 +21,7 @@ import { MathRenderer } from '../editor/MathRenderer';
 import { SEO, LearningResourceSchema } from '../SEO';
 import { TournamentStagePlayer } from './stages/TournamentStagePlayer';
 import { SurveyStagePlayer } from './stages/SurveyStagePlayer';
+import { MissionStagePlayer } from './stages/MissionStagePlayer';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
@@ -1497,114 +1498,64 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       }
 
       case 'MISSION': {
-        const isAudio = (stage as any).submissionType === 'audio';
-        const missionHasRubric = !!(stage as any).rubric?.criteria?.length;
+        const missionStage = stage as import('shared').MissionStage;
+
+        const handleToggleRecording = async () => {
+          if (!isRecording) {
+            try {
+              const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              mediaRecorderRef.current = new MediaRecorder(stream);
+              const chunks: Blob[] = [];
+              mediaRecorderRef.current.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+              mediaRecorderRef.current.onstop = () => {
+                const blob = new Blob(chunks, { type: 'audio/webm' });
+                setRecordedAudioURL(URL.createObjectURL(blob));
+                stream.getTracks().forEach(t => t.stop());
+                uploadSubmissionBlob(blob, stage.id, 'webm').catch(() => {});
+              };
+              mediaRecorderRef.current.start();
+              setIsRecording(true);
+            } catch (e) {
+              alert("Грешка при пристап до микрофонот.");
+            }
+          } else {
+            mediaRecorderRef.current?.stop();
+            setIsRecording(false);
+          }
+        };
+
+        const handleFileSelected = (file: File) => {
+          if (file.size > 20 * 1024 * 1024) { setMissionUploadError('Датотеката е преголема (max 20MB).'); return; }
+          const ext = file.name.split('.').pop() || (file.type.includes('video') ? 'mp4' : 'jpg');
+          uploadSubmissionBlob(file, stage.id, ext).catch(() => {});
+        };
 
         const finishMission = () => {
           if (!missionUploadedUrl) return;
           const submission: StageSubmission = {
             stageId: stage.id,
-            type: (stage as any).submissionType,
+            type: missionStage.submissionType,
             mediaUrl: missionUploadedUrl,
           };
-          if (!missionHasRubric) setPoints(p => p + (stage.points || 0));
+          if (!missionStage.rubric?.criteria?.length) setPoints(p => p + (stage.points || 0));
           handleNextStage(undefined, submission);
           setRecordedAudioURL(null);
         };
 
         return (
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center text-center">
-            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>{stage.title}</h2>
-            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
-
-            {renderRubric()}
-
-            <div className={`w-full max-w-sm rounded-3xl border-2 border-dashed ${isNightMode ? 'border-slate-700 bg-slate-800/50' : 'border-slate-300 bg-slate-50'} flex flex-col items-center justify-center p-8 mb-6`}>
-              {isAudio ? (
-                 <>
-                   <div className={`w-16 h-16 rounded-full ${isNightMode ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'} flex items-center justify-center mb-4`}>
-                     <Mic className="w-8 h-8" />
-                   </div>
-                   <p className={`text-sm font-bold ${isNightMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}>Снимете го вашиот одговор</p>
-
-                   {recordedAudioURL ? (
-                     <div className="flex flex-col items-center w-full mt-4">
-                       <audio src={recordedAudioURL} controls className="w-full h-10 outline-none mb-3" />
-                       {missionUploading && <p className="text-xs text-slate-500 mt-1">Се прикачува...</p>}
-                       {missionUploadedUrl && !missionUploading && <p className="text-xs text-emerald-500 mt-1 font-bold">✓ Прикачено</p>}
-                       <button onClick={() => { setRecordedAudioURL(null); setQuizAnswer(''); setMissionUploadedUrl(null); }} className="text-sm font-bold text-slate-500 hover:text-rose-500 transition-colors mt-2">Сними повторно</button>
-                     </div>
-                   ) : (
-                     <button
-                       onClick={async () => {
-                         if (!isRecording) {
-                           try {
-                             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                             mediaRecorderRef.current = new MediaRecorder(stream);
-                             const chunks: Blob[] = [];
-                             mediaRecorderRef.current.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
-                             mediaRecorderRef.current.onstop = () => {
-                               const blob = new Blob(chunks, { type: 'audio/webm' });
-                               setRecordedAudioURL(URL.createObjectURL(blob));
-                               setQuizAnswer('recorded_audio');
-                               stream.getTracks().forEach(t => t.stop());
-                               uploadSubmissionBlob(blob, stage.id, 'webm').catch(() => {});
-                             };
-                             mediaRecorderRef.current.start();
-                             setIsRecording(true);
-                           } catch (e) {
-                             alert("Грешка при пристап до микрофонот.");
-                           }
-                         } else {
-                           mediaRecorderRef.current?.stop();
-                           setIsRecording(false);
-                         }
-                       }}
-                       className={`mt-4 px-6 py-3 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${isRecording ? 'bg-rose-500 text-white animate-pulse' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-300 shadow-sm')}`}
-                     >
-                       {isRecording ? <><Square className="w-4 h-4 fill-current"/> Стопирај Снимање</> : <><Mic className="w-4 h-4"/> Започни Снимање</>}
-                     </button>
-                   )}
-                 </>
-              ) : (
-                 <>
-                   <div className={`w-16 h-16 rounded-full ${isNightMode ? 'bg-indigo-500/20 text-indigo-400' : 'bg-indigo-100 text-indigo-600'} flex items-center justify-center mb-4`}>
-                     <Camera className="w-8 h-8" />
-                   </div>
-                   <p className={`text-sm font-bold ${isNightMode ? 'text-slate-300' : 'text-slate-700'} mb-2`}>Прикачете медија</p>
-                   <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-500'}`}>{(stage as any).submissionType === 'video' ? 'Видео' : 'Слика'} · max 20MB</p>
-
-                   <label className={`mt-4 px-6 py-2 rounded-xl text-sm font-bold cursor-pointer transition-all ${missionUploadedUrl ? 'bg-emerald-500 text-white' : missionUploading ? 'bg-slate-400 text-white' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200')}`}>
-                     {missionUploading ? 'Се прикачува...' : missionUploadedUrl ? '✓ Прикачено' : 'Избери датотека'}
-                     <input
-                       type="file"
-                       accept={(stage as any).submissionType === 'video' ? 'video/*' : 'image/*'}
-                       capture="environment"
-                       className="hidden"
-                       disabled={missionUploading}
-                       onChange={e => {
-                         const file = e.target.files?.[0];
-                         if (!file) return;
-                         if (file.size > 20 * 1024 * 1024) { setMissionUploadError('Датотеката е преголема (max 20MB).'); return; }
-                         setQuizAnswer('uploaded');
-                         const ext = file.name.split('.').pop() || (file.type.includes('video') ? 'mp4' : 'jpg');
-                         uploadSubmissionBlob(file, stage.id, ext).catch(() => {});
-                       }}
-                     />
-                   </label>
-                 </>
-              )}
-              {missionUploadError && <p className="text-xs text-red-500 mt-3">{missionUploadError}</p>}
-            </div>
-
-            <button
-              onClick={finishMission}
-              disabled={!missionUploadedUrl || isRecording || missionUploading}
-              className="w-full py-4 bg-emerald-500 disabled:bg-slate-300 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
-            >
-              {missionHasRubric ? 'Испрати за оценување' : `Заврши ја мисијата (+${stage.points})`}
-            </button>
-          </div>
+          <MissionStagePlayer
+            stage={missionStage}
+            isNightMode={isNightMode}
+            isRecording={isRecording}
+            recordedAudioURL={recordedAudioURL}
+            missionUploading={missionUploading}
+            missionUploadedUrl={missionUploadedUrl}
+            missionUploadError={missionUploadError}
+            onToggleRecording={handleToggleRecording}
+            onRetakeAudio={() => { setRecordedAudioURL(null); setMissionUploadedUrl(null); }}
+            onFileSelected={handleFileSelected}
+            onFinish={finishMission}
+          />
         );
       }
 

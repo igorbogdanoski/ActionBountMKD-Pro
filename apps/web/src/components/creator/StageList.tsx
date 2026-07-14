@@ -137,7 +137,10 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
           <button
             type="button"
             title="Избриши"
-            onClick={onDelete}
+            onClick={() => {
+              const label = stage.title.trim() || `Етапа ${index + 1}`;
+              if (window.confirm(`Дали сакаш да ја избришеш „${label}"? Ова не може да се врати.`)) onDelete();
+            }}
             className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-red-400 hover:bg-slate-900 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />

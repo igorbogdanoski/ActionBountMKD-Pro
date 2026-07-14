@@ -16,6 +16,7 @@ import {
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
+import { SEO } from '../SEO';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
@@ -266,7 +267,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             cached[stage.id] = isCached;
         });
         setCachedStages(cached);
-      }).catch(err => console.log('Cache check err:', err));
+      }).catch(err => console.warn('Cache check err:', err));
     }
   }, [quest]);
 
@@ -751,6 +752,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   if (!hasStarted) {
     return (
       <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-800'} font-sans shadow-2xl relative overflow-hidden transition-colors`}>
+        <SEO title={quest.title} description={quest.description} noIndex />
         <div className="absolute top-4 right-4 flex items-center gap-4 z-50">
           <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-yellow-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
              {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -1645,6 +1647,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   return (
     <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-50 text-slate-800'} font-sans shadow-2xl border-x ${isNightMode ? 'border-slate-800' : 'border-slate-200'} transition-colors`}>
+      <SEO title={quest.title} description={quest.description} noIndex />
       {/* Top HUD */}
       <header className={`h-16 ${isNightMode ? 'bg-slate-950' : 'bg-indigo-950'} text-white px-6 flex items-center shrink-0 shadow-md relative z-20 transition-colors gap-4`}>
         <div className="flex-1 flex flex-col">

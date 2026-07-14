@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Trophy, Medal, Clock, User, ArrowLeft, Loader2, Lock } from 'lucide-react';
 import { getQuestById, getPublicQuestResults } from '../../utils/storage';
+import { SEO } from '../SEO';
 import type { Quest, QuestResult } from 'shared';
 
 function formatDate(iso: string) {
@@ -52,6 +53,7 @@ export function PublicLeaderboard() {
   if (notFound) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center gap-4 text-center p-6">
+        <SEO title="Табелата не е достапна" noIndex />
         <Lock className="w-12 h-12 text-slate-600" />
         <h1 className="text-xl font-bold text-slate-300">Табелата не е достапна</h1>
         <p className="text-slate-500 text-sm max-w-xs">
@@ -66,6 +68,11 @@ export function PublicLeaderboard() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
+      <SEO
+        title={`${quest?.title ?? 'Табела'} — Јавна табела`}
+        description={`Јавна табела со резултати за „${quest?.title ?? ''}". Топ 20 играчи.`}
+        url={`/leaderboard/${questId}`}
+      />
       {/* Header */}
       <div className="bg-gradient-to-b from-indigo-900/40 to-slate-950 border-b border-slate-800">
         <div className="max-w-2xl mx-auto px-4 py-8">

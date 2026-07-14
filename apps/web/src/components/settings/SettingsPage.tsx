@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { updateProfile } from 'firebase/auth';
-import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight, BellRing } from 'lucide-react';
+import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight, BellRing, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
@@ -60,6 +60,7 @@ export function SettingsPage() {
   const [displayName, setDisplayName] = useState(user?.displayName ?? '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isDark, setIsDark] = useState(true);
   const [outdoor, setOutdoor] = useState(() => readOutdoorPref(typeof window !== 'undefined' ? window.localStorage : null));
   const [pushToken, setPushToken] = useState<string | null>(null);
@@ -83,6 +84,7 @@ export function SettingsPage() {
   const saveDisplayName = async () => {
     if (!user || !displayName.trim() || displayName === user.displayName) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await updateProfile(user, { displayName: displayName.trim() });
       if (profile) {
@@ -92,6 +94,7 @@ export function SettingsPage() {
       setTimeout(() => setSaved(false), 2500);
     } catch (e) {
       console.error(e);
+      setSaveError('Не успеа зачувувањето. Провери ја интернет врската и обиди се повторно.');
     } finally {
       setSaving(false);
     }
@@ -205,6 +208,11 @@ export function SettingsPage() {
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> Зачувано</> : 'Зачувај'}
                   </button>
                 </div>
+                {saveError && (
+                  <p className="flex items-center gap-1.5 text-xs text-red-400">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {saveError}
+                  </p>
+                )}
               </div>
             </div>
             <Row label="Email" hint="Не може да се менува — поврзано со Google">

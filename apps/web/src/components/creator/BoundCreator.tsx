@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft } from 'lucide-react';
+import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getQuestById, saveQuest } from '../../utils/storage';
 import { useQuestEditor } from './hooks/useQuestEditor';
@@ -84,7 +84,7 @@ export function BoundCreator() {
   }, [questId]);
 
   // Auto-save with 2s debounce
-  const { lastSaved, saving } = useAutoSave(quest, isDirty, setClean);
+  const { lastSaved, saving, error: saveError, retry: retrySave } = useAutoSave(quest, isDirty, setClean);
 
   // Manual save
   const handleSave = async () => {
@@ -140,8 +140,14 @@ export function BoundCreator() {
         {/* Save status */}
         <div className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
           {saving && <><Loader2 className="w-3 h-3 animate-spin" /> Зачувување...</>}
-          {!saving && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
-          {!saving && !lastSaved && isDirty && <span className="text-amber-400">● Незачувано</span>}
+          {!saving && saveError && (
+            <button type="button" onClick={() => retrySave()} title={saveError}
+              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors">
+              <AlertTriangle className="w-3 h-3" /> Грешка при зачувување — обиди се
+            </button>
+          )}
+          {!saving && !saveError && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
+          {!saving && !saveError && !lastSaved && isDirty && <span className="text-amber-400">● Незачувано</span>}
         </div>
 
         {/* Actions */}

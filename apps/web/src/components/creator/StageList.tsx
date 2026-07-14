@@ -67,18 +67,26 @@ interface StageCardProps {
   onDelete: () => void;
 }
 
+/** The image a stage actually shows to players, if any — used as the card thumbnail. */
+function getStageThumbnail(stage: Stage): string | undefined {
+  if (stage.type === 'INFO' && stage.mediaType === 'image' && stage.mediaUrl) return stage.mediaUrl;
+  if (stage.type === 'QR_TASK' && stage.taskMediaUrl) return stage.taskMediaUrl;
+  return undefined;
+}
+
 function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, onDelete }: StageCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: stage.id });
 
   const cfg = STAGE_TYPE_CONFIG[stage.type];
   const Icon = cfg.icon;
+  const thumbnail = getStageThumbnail(stage);
 
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`relative rounded-xl border-2 transition-all cursor-pointer select-none ${
+      className={`group relative rounded-xl border-2 overflow-hidden transition-all cursor-pointer select-none ${
         isDragging ? 'opacity-50 scale-95' : ''
       } ${
         isSelected
@@ -87,47 +95,42 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
       }`}
       onClick={onSelect}
     >
-      {/* Index bubble */}
-      <span className={`absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 border-slate-900 ${
-        isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-600 text-slate-300'
-      }`}>
-        {index + 1}
-      </span>
+      {/* Thumbnail */}
+      <div className={`relative h-20 w-full flex items-center justify-center ${thumbnail ? 'bg-slate-950' : cfg.bg}`}>
+        {thumbnail ? (
+          <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <Icon className={`w-7 h-7 ${cfg.color}`} />
+        )}
 
-      <div className="flex items-center gap-3 p-3 pr-2">
+        {/* Index bubble */}
+        <span className={`absolute left-2 top-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shadow ${
+          isSelected ? 'bg-indigo-500 text-white' : 'bg-slate-900/90 text-slate-200'
+        }`}>
+          {index + 1}
+        </span>
+
         {/* Drag handle */}
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 shrink-0 touch-none"
+          title="Повлечи за прередување"
+          className="absolute right-2 top-2 p-1 rounded bg-slate-900/70 text-slate-400 hover:text-slate-200 cursor-grab active:cursor-grabbing touch-none"
           onClick={e => e.stopPropagation()}
         >
-          <GripVertical className="w-4 h-4" />
-        </div>
-
-        {/* Type icon */}
-        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${cfg.bg}`}>
-          <Icon className={`w-4.5 h-4.5 ${cfg.color}`} />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-slate-200 truncate">
-            {stage.title || <span className="text-slate-500 italic">Без наслов</span>}
-          </p>
-          <p className="text-xs text-slate-500">{cfg.label}</p>
+          <GripVertical className="w-3.5 h-3.5" />
         </div>
 
         {/* Actions */}
         <div
-          className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100"
+          className="absolute right-2 bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
           onClick={e => e.stopPropagation()}
         >
           <button
             type="button"
             title="Дупликат"
             onClick={onDuplicate}
-            className="p-1.5 rounded text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+            className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-indigo-400 hover:bg-slate-900 transition-colors"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
@@ -135,10 +138,23 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
             type="button"
             title="Избриши"
             onClick={onDelete}
-            className="p-1.5 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+            className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-red-400 hover:bg-slate-900 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex items-center gap-2 px-3 py-2">
+        <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${cfg.bg}`}>
+          <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-200 truncate">
+            {stage.title || <span className="text-slate-500 italic">Без наслов</span>}
+          </p>
+          <p className="text-xs text-slate-500">{cfg.label}</p>
         </div>
       </div>
     </div>

@@ -64,18 +64,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     adminApp();
     const decoded = await getAuth().verifyIdToken(idToken);
     const uid = decoded.uid;
+    const isAdmin = decoded.admin === true;
 
-    const profileSnap = await getFirestore().collection('user_profiles').doc(uid).get();
-    const plan = (profileSnap.data()?.plan as string | undefined) ?? 'free';
-    if (!AI_PLANS.has(plan)) {
-      res.status(403).json({ code: 'invalid', error: 'AI генераторот е достапен на Starter план и повисоко.' });
-      return;
-    }
+    // The platform admin isn't a customer — skip the plan gate and the
+    // per-user quota entirely instead of trusting a Firestore plan field.
+    if (!isAdmin) {
+      const profileSnap = await getFirestore().collection('user_profiles').doc(uid).get();
+      const plan = (profileSnap.data()?.plan as string | undefined) ?? 'free';
+      if (!AI_PLANS.has(plan)) {
+        res.status(403).json({ code: 'invalid', error: 'AI генераторот е достапен на Starter план и повисоко.' });
+        return;
+      }
 
-    const withinQuota = await checkAndConsumeQuota(uid);
-    if (!withinQuota) {
-      res.status(429).json({ code: 'invalid', error: 'Го достигна дневниот лимит за AI генерирање. Обиди се утре.' });
-      return;
+      const withinQuota = await checkAndConsumeQuota(uid);
+      if (!withinQuota) {
+        res.status(429).json({ code: 'invalid', error: 'Го достигна дневниот лимит за AI генерирање. Обиди се утре.' });
+        return;
+      }
     }
 
     const body = (req.body ?? {}) as Partial<AiQuestRequest>;

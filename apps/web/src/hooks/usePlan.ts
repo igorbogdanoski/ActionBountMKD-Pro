@@ -12,8 +12,10 @@ export interface UsePlanReturn {
 }
 
 export function usePlan(): UsePlanReturn {
-  const { profile } = useAuth();
-  const planId: PlanId = profile?.plan ?? 'free';
+  const { profile, isAdmin } = useAuth();
+  // The platform admin isn't a customer — never gate them behind plan
+  // limits/upsells, regardless of what user_profiles.plan happens to hold.
+  const planId: PlanId = isAdmin ? 'enterprise' : (profile?.plan ?? 'free');
   const limits = PLAN_LIMITS[planId];
 
   return {

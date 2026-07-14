@@ -288,14 +288,40 @@ export interface InfoStage extends BaseStage {
   mediaType?: 'image' | 'video' | 'none';
 }
 
+/** One left/right pair for a 'matching' QUIZ question — id binds the pair together. */
+export interface MatchingPair {
+  id: string;
+  left: string;
+  right: string;
+}
+
+/** One item for an 'ordering' QUIZ question — array order is the correct sequence. */
+export interface OrderingItem {
+  id: string;
+  text: string;
+}
+
 export interface QuizStage extends BaseStage {
   type: 'QUIZ';
-  questionType: 'multiple_choice' | 'free_text' | 'estimate_number';
+  questionType: 'multiple_choice' | 'free_text' | 'estimate_number' | 'matching' | 'ordering';
   options?: string[];
   correctAnswer: string | number;
+  matchingPairs?: MatchingPair[];   // for questionType: 'matching'
+  orderingItems?: OrderingItem[];   // for questionType: 'ordering'
   timeLimitSeconds?: number;
   requiredToAdvance?: boolean;  // must answer correctly to proceed
   hintText?: string;
+}
+
+/** A 'matching' answer is correct only once every pair is matched to its own right side. */
+export function isMatchingCorrect(pairs: MatchingPair[], selections: Record<string, string>): boolean {
+  return pairs.length > 0 && pairs.every(p => selections[p.id] === p.right);
+}
+
+/** An 'ordering' answer is correct only once the sequence exactly matches item order. */
+export function isOrderingCorrect(items: OrderingItem[], sequence: string[]): boolean {
+  if (items.length === 0 || sequence.length !== items.length) return false;
+  return items.every((item, i) => sequence[i] === item.id);
 }
 
 export interface MissionStage extends BaseStage {

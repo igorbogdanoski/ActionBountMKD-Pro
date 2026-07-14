@@ -25,7 +25,12 @@ function baseProps() {
     quizAnswer: '',
     quizFeedback: null as 'success' | 'error' | null,
     quizAttempts: 0,
+    matchingSelections: {} as Record<string, string>,
+    matchingRightOptions: [] as string[],
+    orderingSequence: [] as string[],
     onAnswerChange: vi.fn(),
+    onMatchingSelect: vi.fn(),
+    onOrderingMove: vi.fn(),
     onSubmit: vi.fn(),
     onSkip: vi.fn(),
   };
@@ -121,5 +126,98 @@ describe('QuizStagePlayer', () => {
       />
     );
     expect(screen.getByRole('button', { name: 'Потврди' })).not.toBeDisabled();
+  });
+});
+
+describe('QuizStagePlayer — matching questions', () => {
+  const matchingStage = () => makeStage({
+    questionType: 'matching',
+    options: undefined,
+    matchingPairs: [
+      { id: 'p1', left: 'Вода', right: 'H2O' },
+      { id: 'p2', left: 'Сол', right: 'NaCl' },
+    ],
+  });
+
+  it('renders a dropdown per left item with the shuffled right options, and disables submit until all are matched', () => {
+    render(
+      <QuizStagePlayer
+        stage={matchingStage()}
+        {...baseProps()}
+        matchingRightOptions={['NaCl', 'H2O']}
+      />
+    );
+    expect(screen.getByText('Вода')).toBeTruthy();
+    expect(screen.getByText('Сол')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Потврди' })).toBeDisabled();
+  });
+
+  it('calls onMatchingSelect with the pair id and chosen right text', () => {
+    const onMatchingSelect = vi.fn();
+    render(
+      <QuizStagePlayer
+        stage={matchingStage()}
+        {...baseProps()}
+        matchingRightOptions={['NaCl', 'H2O']}
+        onMatchingSelect={onMatchingSelect}
+      />
+    );
+    fireEvent.change(screen.getByLabelText('Поврзи со: Вода'), { target: { value: 'H2O' } });
+    expect(onMatchingSelect).toHaveBeenCalledWith('p1', 'H2O');
+  });
+
+  it('enables submit once every pair has a selection', () => {
+    render(
+      <QuizStagePlayer
+        stage={matchingStage()}
+        {...baseProps()}
+        matchingRightOptions={['NaCl', 'H2O']}
+        matchingSelections={{ p1: 'H2O', p2: 'NaCl' }}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Потврди' })).not.toBeDisabled();
+  });
+});
+
+describe('QuizStagePlayer — ordering questions', () => {
+  const orderingStage = () => makeStage({
+    questionType: 'ordering',
+    options: undefined,
+    orderingItems: [
+      { id: 'i1', text: 'Прво' },
+      { id: 'i2', text: 'Второ' },
+      { id: 'i3', text: 'Трето' },
+    ],
+  });
+
+  it('renders items in the shuffled sequence order passed in', () => {
+    render(<QuizStagePlayer stage={orderingStage()} {...baseProps()} orderingSequence={['i2', 'i1', 'i3']} />);
+    const texts = screen.getAllByText(/Прво|Второ|Трето/).map(el => el.textContent);
+    expect(texts).toEqual(['Второ', 'Прво', 'Трето']);
+  });
+
+  it('calls onOrderingMove with the index and direction when reordered', () => {
+    const onOrderingMove = vi.fn();
+    render(
+      <QuizStagePlayer
+        stage={orderingStage()}
+        {...baseProps()}
+        orderingSequence={['i1', 'i2', 'i3']}
+        onOrderingMove={onOrderingMove}
+      />
+    );
+    fireEvent.click(screen.getByLabelText('Помести надолу 1'));
+    expect(onOrderingMove).toHaveBeenCalledWith(0, 'down');
+  });
+
+  it('enables submit as soon as a sequence exists (always fully populated)', () => {
+    render(<QuizStagePlayer stage={orderingStage()} {...baseProps()} orderingSequence={['i1', 'i2', 'i3']} />);
+    expect(screen.getByRole('button', { name: 'Потврди' })).not.toBeDisabled();
+  });
+
+  it('disables moving the first item up and the last item down', () => {
+    render(<QuizStagePlayer stage={orderingStage()} {...baseProps()} orderingSequence={['i1', 'i2', 'i3']} />);
+    expect(screen.getByLabelText('Помести нагоре 1')).toBeDisabled();
+    expect(screen.getByLabelText('Помести надолу 3')).toBeDisabled();
   });
 });

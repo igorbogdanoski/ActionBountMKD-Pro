@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Lightbulb } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Lightbulb, ChevronUp, ChevronDown } from 'lucide-react';
 import type { QuizStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
 import { StageMedia } from './StageMedia';
@@ -11,18 +11,31 @@ interface Props {
   quizAnswer: string;
   quizFeedback: 'success' | 'error' | null;
   quizAttempts: number;
+  matchingSelections: Record<string, string>;
+  matchingRightOptions: string[];
+  orderingSequence: string[];
   onAnswerChange: (value: string) => void;
+  onMatchingSelect: (pairId: string, rightText: string) => void;
+  onOrderingMove: (index: number, direction: 'up' | 'down') => void;
   onSubmit: () => void;
   onSkip: () => void;
 }
 
 export function QuizStagePlayer({
   stage, isNightMode, timeLeft, quizAnswer, quizFeedback, quizAttempts,
-  onAnswerChange, onSubmit, onSkip,
+  matchingSelections, matchingRightOptions, orderingSequence,
+  onAnswerChange, onMatchingSelect, onOrderingMove, onSubmit, onSkip,
 }: Props) {
   const timeLimitSec = stage.timeLimitSeconds;
   const timerUrgent = timeLeft !== null && timeLeft <= 10;
   const timerPct = timeLimitSec && timeLeft !== null ? Math.max(0, (timeLeft / timeLimitSec) * 100) : 100;
+  const locked = timeLeft === 0 || quizFeedback !== null;
+
+  const hasAnswer = stage.questionType === 'matching'
+    ? (stage.matchingPairs ?? []).length > 0 && (stage.matchingPairs ?? []).every(p => !!matchingSelections[p.id])
+    : stage.questionType === 'ordering'
+      ? orderingSequence.length > 0
+      : !!quizAnswer;
 
   return (
     <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
@@ -58,7 +71,7 @@ export function QuizStagePlayer({
           {stage.options?.map((opt: string) => (
             <button
               key={opt}
-              disabled={timeLeft === 0 || quizFeedback !== null}
+              disabled={locked}
               onClick={() => onAnswerChange(opt)}
               className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
                 quizAnswer === opt
@@ -78,7 +91,7 @@ export function QuizStagePlayer({
           inputMode="decimal"
           value={quizAnswer}
           onChange={e => onAnswerChange(e.target.value)}
-          disabled={timeLeft === 0 || quizFeedback !== null}
+          disabled={locked}
           placeholder="Внеси број..."
           className={`w-full p-4 rounded-xl border-2 mb-6 outline-none transition-colors ${
             isNightMode
@@ -86,12 +99,73 @@ export function QuizStagePlayer({
               : 'border-slate-200 bg-white text-slate-800 focus:border-indigo-400'
           } disabled:opacity-50`}
         />
+      ) : stage.questionType === 'matching' ? (
+        <div className="space-y-3 mb-6">
+          {(stage.matchingPairs ?? []).map(pair => (
+            <div key={pair.id} className="flex items-center gap-3">
+              <span className={`flex-1 p-3 rounded-xl text-sm font-semibold ${isNightMode ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-700'}`}>
+                {pair.left}
+              </span>
+              <select
+                aria-label={`Поврзи со: ${pair.left}`}
+                value={matchingSelections[pair.id] ?? ''}
+                onChange={e => onMatchingSelect(pair.id, e.target.value)}
+                disabled={locked}
+                className={`flex-1 p-3 rounded-xl border-2 outline-none transition-colors text-sm font-semibold ${
+                  isNightMode
+                    ? 'border-slate-700 bg-slate-800 text-slate-200 focus:border-indigo-400'
+                    : 'border-slate-200 bg-white text-slate-800 focus:border-indigo-400'
+                } disabled:opacity-50`}
+              >
+                <option value="">— избери —</option>
+                {matchingRightOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          ))}
+        </div>
+      ) : stage.questionType === 'ordering' ? (
+        <div className="space-y-2 mb-6">
+          {orderingSequence.map((itemId, i) => {
+            const item = stage.orderingItems?.find(it => it.id === itemId);
+            return (
+              <div
+                key={itemId}
+                className={`flex items-center gap-3 p-3 rounded-xl border-2 ${
+                  isNightMode ? 'border-slate-700 bg-slate-800 text-slate-200' : 'border-slate-200 bg-white text-slate-700'
+                }`}
+              >
+                <span className="text-xs font-bold text-slate-500 w-5 shrink-0">{i + 1}.</span>
+                <span className="flex-1 text-sm font-semibold">{item?.text}</span>
+                <button
+                  type="button"
+                  aria-label={`Помести нагоре ${i + 1}`}
+                  disabled={locked || i === 0}
+                  onClick={() => onOrderingMove(i, 'up')}
+                  className="p-1.5 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Помести надолу ${i + 1}`}
+                  disabled={locked || i === orderingSequence.length - 1}
+                  onClick={() => onOrderingMove(i, 'down')}
+                  className="p-1.5 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <textarea
           rows={4}
           value={quizAnswer}
           onChange={e => onAnswerChange(e.target.value)}
-          disabled={timeLeft === 0 || quizFeedback !== null}
+          disabled={locked}
           placeholder="Внеси го твојот одговор..."
           className={`w-full p-4 rounded-xl border-2 mb-6 outline-none transition-colors ${
             isNightMode
@@ -135,7 +209,7 @@ export function QuizStagePlayer({
           <button
             type="button"
             onClick={onSubmit}
-            disabled={!quizAnswer || quizFeedback === 'success'}
+            disabled={!hasAnswer || quizFeedback === 'success'}
             className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
           >
             Потврди

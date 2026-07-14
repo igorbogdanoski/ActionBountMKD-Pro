@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, StageSubmission, QuizAnswerRecord, questMaxScore } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, StageSubmission, QuizAnswerRecord, questMaxScore, isMatchingCorrect, isOrderingCorrect } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -76,6 +76,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [quizAnswer, setQuizAnswer] = useState<string>('');
   const [quizFeedback, setQuizFeedback] = useState<'success' | 'error' | null>(null);
   const [quizAttempts, setQuizAttempts] = useState(0);
+  const [matchingSelections, setMatchingSelections] = useState<Record<string, string>>({});
+  const [matchingRightOptions, setMatchingRightOptions] = useState<string[]>([]);
+  const [orderingSequence, setOrderingSequence] = useState<string[]>([]);
   
   const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
@@ -379,6 +382,20 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     // Reset feedback on stage change
     setQuizFeedback(null);
     setQuizAttempts(0);
+
+    // Matching/ordering QUIZ stages need a shuffled starting layout —
+    // otherwise the right column / item order would trivially match the
+    // teacher's stored (correct) order.
+    if (stage?.type === 'QUIZ') {
+      const quizStage = stage as import('shared').QuizStage;
+      if (quizStage.questionType === 'matching') {
+        const rightOptions = (quizStage.matchingPairs ?? []).map(p => p.right);
+        setMatchingRightOptions([...rightOptions].sort(() => Math.random() - 0.5));
+      } else if (quizStage.questionType === 'ordering') {
+        const itemIds = (quizStage.orderingItems ?? []).map(i => i.id);
+        setOrderingSequence([...itemIds].sort(() => Math.random() - 0.5));
+      }
+    }
   }, [stage]);
 
   useEffect(() => {
@@ -668,6 +685,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setQuizAnswer('');
     setQuizFeedback(null);
     setQuizAttempts(0);
+    setMatchingSelections({});
+    setMatchingRightOptions([]);
+    setOrderingSequence([]);
     setDistanceToTarget(null);
     setScanError(null);
     setQrTaskScanned(false);
@@ -713,15 +733,27 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   };
 
   const submitQuiz = () => {
-    const correct = (stage as any).correctAnswer;
-    // Normalize both to trimmed strings for comparison (handles string + number types)
-    const isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).trim().toLowerCase();
+    const quizStage = stage as import('shared').QuizStage;
+    let isCorrect: boolean;
+    let selectedAnswer: string;
+    if (quizStage.questionType === 'matching') {
+      isCorrect = isMatchingCorrect(quizStage.matchingPairs ?? [], matchingSelections);
+      selectedAnswer = JSON.stringify(matchingSelections);
+    } else if (quizStage.questionType === 'ordering') {
+      isCorrect = isOrderingCorrect(quizStage.orderingItems ?? [], orderingSequence);
+      selectedAnswer = orderingSequence.join(',');
+    } else {
+      // Normalize both to trimmed strings for comparison (handles string + number types)
+      const correct = quizStage.correctAnswer;
+      isCorrect = String(quizAnswer).trim().toLowerCase() === String(correct).trim().toLowerCase();
+      selectedAnswer = String(quizAnswer);
+    }
     // Only the first attempt is recorded — it's the one that reveals a real
     // misconception; retries after that are just "trying again".
     if (quizAttempts === 0) {
       quizAnswerRecordsRef.current = [
         ...quizAnswerRecordsRef.current,
-        { stageId: stage.id, selectedAnswer: String(quizAnswer), correct: isCorrect },
+        { stageId: stage.id, selectedAnswer, correct: isCorrect },
       ];
     }
     if (isCorrect) {
@@ -732,6 +764,20 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       setQuizFeedback('error');
       setQuizAttempts(prev => prev + 1);
     }
+  };
+
+  const handleMatchingSelect = (pairId: string, rightText: string) => {
+    setMatchingSelections(prev => ({ ...prev, [pairId]: rightText }));
+  };
+
+  const handleOrderingMove = (index: number, direction: 'up' | 'down') => {
+    setOrderingSequence(prev => {
+      const next = [...prev];
+      const swapWith = direction === 'up' ? index - 1 : index + 1;
+      if (swapWith < 0 || swapWith >= next.length) return prev;
+      [next[index], next[swapWith]] = [next[swapWith], next[index]];
+      return next;
+    });
   };
 
   const submitQrTask = () => {
@@ -1062,7 +1108,12 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             quizAnswer={quizAnswer}
             quizFeedback={quizFeedback}
             quizAttempts={quizAttempts}
+            matchingSelections={matchingSelections}
+            matchingRightOptions={matchingRightOptions}
+            orderingSequence={orderingSequence}
             onAnswerChange={setQuizAnswer}
+            onMatchingSelect={handleMatchingSelect}
+            onOrderingMove={handleOrderingMove}
             onSubmit={submitQuiz}
             onSkip={() => handleNextStage()}
           />

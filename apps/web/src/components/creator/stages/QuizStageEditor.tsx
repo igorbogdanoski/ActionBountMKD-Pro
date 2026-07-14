@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import type { QuizStage } from 'shared';
+import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import type { QuizStage, MatchingPair, OrderingItem } from 'shared';
 import { Tabs, Field, Toggle, inputCls } from './shared';
 import { MathRichEditor } from '../../editor/MathRichEditor';
+
+function uid() {
+  try { return crypto.randomUUID(); } catch { return Math.random().toString(36).slice(2); }
+}
 
 // textareaCls no longer used directly — MathRichEditor replaces it
 
@@ -66,8 +70,128 @@ export function QuizStageEditor({ stage, onChange }: Props) {
               <option value="free_text">Слободен текст</option>
               <option value="multiple_choice">Повеќекратен избор</option>
               <option value="estimate_number">Проценка на број</option>
+              <option value="matching">Поврзување парови</option>
+              <option value="ordering">Подредување</option>
             </select>
           </Field>
+
+          {stage.questionType === 'matching' && (
+            <Field label="Парови за поврзување" hint="Играчот ги поврзува левата и десната страна">
+              <div className="space-y-2">
+                {(stage.matchingPairs ?? []).map((pair, i) => (
+                  <div key={pair.id} className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder={`Лево ${i + 1}`}
+                      value={pair.left}
+                      onChange={e => {
+                        const next = [...(stage.matchingPairs ?? [])];
+                        next[i] = { ...next[i], left: e.target.value };
+                        onChange({ matchingPairs: next });
+                      }}
+                    />
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder={`Десно ${i + 1}`}
+                      value={pair.right}
+                      onChange={e => {
+                        const next = [...(stage.matchingPairs ?? [])];
+                        next[i] = { ...next[i], right: e.target.value };
+                        onChange({ matchingPairs: next });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Избриши пар ${i + 1}`}
+                      onClick={() => onChange({ matchingPairs: (stage.matchingPairs ?? []).filter((_, j) => j !== i) })}
+                      className="p-2 text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const pair: MatchingPair = { id: uid(), left: '', right: '' };
+                    onChange({ matchingPairs: [...(stage.matchingPairs ?? []), pair] });
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Додај пар
+                </button>
+              </div>
+            </Field>
+          )}
+
+          {stage.questionType === 'ordering' && (
+            <Field label="Ставки по редослед" hint="Играчот мора да ги подреди во истиот редослед">
+              <div className="space-y-2">
+                {(stage.orderingItems ?? []).map((item, i) => (
+                  <div key={item.id} className="flex gap-2 items-center">
+                    <span className="w-6 text-xs font-bold text-slate-500 shrink-0">{i + 1}.</span>
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder={`Ставка ${i + 1}`}
+                      value={item.text}
+                      onChange={e => {
+                        const next = [...(stage.orderingItems ?? [])];
+                        next[i] = { ...next[i], text: e.target.value };
+                        onChange({ orderingItems: next });
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Помести нагоре ${i + 1}`}
+                      disabled={i === 0}
+                      onClick={() => {
+                        const next = [...(stage.orderingItems ?? [])];
+                        [next[i - 1], next[i]] = [next[i], next[i - 1]];
+                        onChange({ orderingItems: next });
+                      }}
+                      className="p-2 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Помести надолу ${i + 1}`}
+                      disabled={i === (stage.orderingItems ?? []).length - 1}
+                      onClick={() => {
+                        const next = [...(stage.orderingItems ?? [])];
+                        [next[i], next[i + 1]] = [next[i + 1], next[i]];
+                        onChange({ orderingItems: next });
+                      }}
+                      className="p-2 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Избриши ставка ${i + 1}`}
+                      onClick={() => onChange({ orderingItems: (stage.orderingItems ?? []).filter((_, j) => j !== i) })}
+                      className="p-2 text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const item: OrderingItem = { id: uid(), text: '' };
+                    onChange({ orderingItems: [...(stage.orderingItems ?? []), item] });
+                  }}
+                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Додај ставка
+                </button>
+              </div>
+            </Field>
+          )}
 
           {stage.questionType === 'multiple_choice' && (
             <Field label="Опции">
@@ -109,19 +233,21 @@ export function QuizStageEditor({ stage, onChange }: Props) {
             </Field>
           )}
 
-          <Field label="Точен одговор">
-            <input
-              type={stage.questionType === 'estimate_number' ? 'number' : 'text'}
-              className={inputCls}
-              placeholder="Точен одговор..."
-              value={String(stage.correctAnswer)}
-              onChange={e => onChange({
-                correctAnswer: stage.questionType === 'estimate_number'
-                  ? Number(e.target.value)
-                  : e.target.value,
-              })}
-            />
-          </Field>
+          {stage.questionType !== 'matching' && stage.questionType !== 'ordering' && (
+            <Field label="Точен одговор">
+              <input
+                type={stage.questionType === 'estimate_number' ? 'number' : 'text'}
+                className={inputCls}
+                placeholder="Точен одговор..."
+                value={String(stage.correctAnswer)}
+                onChange={e => onChange({
+                  correctAnswer: stage.questionType === 'estimate_number'
+                    ? Number(e.target.value)
+                    : e.target.value,
+                })}
+              />
+            </Field>
+          )}
 
           <Field label="Совет (опционално)" hint="Прикажи се ако играчот греши">
             <input

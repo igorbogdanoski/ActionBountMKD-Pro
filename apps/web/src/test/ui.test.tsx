@@ -72,4 +72,43 @@ describe('Modal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Затвори' }));
     expect(onClose).toHaveBeenCalledOnce();
   });
+
+  it('moves focus into the dialog on open', () => {
+    render(<Modal open onClose={() => {}} title="Наслов">тело</Modal>);
+    expect(screen.getByRole('button', { name: 'Затвори' })).toHaveFocus();
+  });
+
+  it('restores focus to the trigger element on close', () => {
+    const trigger = document.createElement('button');
+    trigger.textContent = 'Отвори';
+    document.body.appendChild(trigger);
+    trigger.focus();
+    expect(trigger).toHaveFocus();
+
+    const { rerender } = render(<Modal open onClose={() => {}} title="Наслов">тело</Modal>);
+    expect(trigger).not.toHaveFocus();
+
+    rerender(<Modal open={false} onClose={() => {}} title="Наслов">тело</Modal>);
+    expect(trigger).toHaveFocus();
+
+    document.body.removeChild(trigger);
+  });
+
+  it('traps Tab focus within the dialog, wrapping from last back to first', () => {
+    render(
+      <Modal open onClose={() => {}} title="Наслов" footer={<button>Потврди</button>}>
+        <input placeholder="внес" />
+      </Modal>
+    );
+    const closeBtn = screen.getByRole('button', { name: 'Затвори' });
+    const confirmBtn = screen.getByRole('button', { name: 'Потврди' });
+    expect(closeBtn).toHaveFocus();
+
+    confirmBtn.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeBtn).toHaveFocus();
+
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(confirmBtn).toHaveFocus();
+  });
 });

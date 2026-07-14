@@ -8,7 +8,13 @@
     "scheme": "mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "bundleIdentifier": "com.igorbogdanoski.mobile",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,6 +25,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "net.mismath.avantura",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -47,6 +54,19 @@
     "plugins": [
       "expo-router",
       "@react-native-google-signin/google-signin",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Авантура користи камера за скенирање QR кодови и мисии со фотографии.",
+          "microphonePermission": "Авантура не снима звук — оваа дозвола е побарана само од системот на камерата."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Авантура користи локација за да провери дали си стигнал до GPS-целите во авантурата."
+        }
+      ],
       [
         "expo-notifications",
         {

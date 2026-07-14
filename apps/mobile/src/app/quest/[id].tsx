@@ -11,10 +11,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Quest } from 'shared';
+import { canAccessStage, collectGrantedItem, evaluateSwitchTarget } from 'shared';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../utils/AuthContext';
 import { completedKey, progressKey } from '../../utils/adventureProgress';
 import { cacheQuestLocally, getCachedQuest } from '../../utils/questCache';
+import { getSessionPlayerId, joinSession, updateSessionProgress } from '../../utils/sessionStorage';
+import { saveOfflineResult } from '../../utils/offlineQueue';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -34,7 +37,7 @@ const STAGE_ICONS: Record<string, string> = {
 };
 
 export default function QuestPlayerScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, sessionCode } = useLocalSearchParams<{ id: string; sessionCode?: string }>();
   const router = useRouter();
   const { user } = useAuth();
 
@@ -45,7 +48,9 @@ export default function QuestPlayerScreen() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [points, setPoints] = useState(0);
   const [completedIds, setCompletedIds] = useState<string[]>([]);
+  const [collectedItemIds, setCollectedItemIds] = useState<string[]>([]);
   const [isFinished, setIsFinished] = useState(false);
+  const sessionPlayerIdRef = useRef<string | null>(null);
 
   // Quiz
   const [quizAnswer, setQuizAnswer] = useState('');
@@ -55,6 +60,7 @@ export default function QuestPlayerScreen() {
   // GPS
   const [location, setLocation] = useState<{lat: number, lon: number}|null>(null);
   const [distance, setDistance] = useState<number|null>(null);
+  const [gpsPermissionDenied, setGpsPermissionDenied] = useState(false);
   const locationSub = useRef<Location.LocationSubscription|null>(null);
 
   // QR
@@ -105,6 +111,7 @@ export default function QuestPlayerScreen() {
           setCurrentIdx(p.currentIdx || 0);
           setPoints(p.points || 0);
           setCompletedIds(p.completedIds || []);
+          setCollectedItemIds(p.collectedItemIds || []);
           setHasStarted(true);
           setPlayerName(p.playerName || '');
         }
@@ -130,6 +137,8 @@ export default function QuestPlayerScreen() {
 
   const stages: any[] = (quest?.stages as any[]) || [];
   const stage: any = stages[currentIdx];
+  const stageLocked = stage ? !canAccessStage(stage, collectedItemIds) : false;
+  const missingRequiredItem = (quest?.inventoryItems || []).find((it: any) => it.id === stage?.requiresItemId);
 
   // ─── Timer ───────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -161,27 +170,35 @@ export default function QuestPlayerScreen() {
   }, [timeLeft]);
 
   // ─── GPS for FIND_SPOT ───────────────────────────────────────────────────────
+  const startWatchingLocation = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      setGpsPermissionDenied(true);
+      showToast('GPS пристапот е одбиен');
+      return;
+    }
+    setGpsPermissionDenied(false);
+    locationSub.current = await Location.watchPositionAsync(
+      { accuracy: Location.Accuracy.High, distanceInterval: 5 },
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        setLocation({ lat: latitude, lon: longitude });
+        if (stage?.targetCoordinates) {
+          const d = getDistance(latitude, longitude, stage.targetCoordinates.latitude, stage.targetCoordinates.longitude);
+          setDistance(d);
+        }
+      }
+    );
+  };
+
   useEffect(() => {
     if (!hasStarted || isFinished || stage?.type !== 'FIND_SPOT') {
       locationSub.current?.remove();
       locationSub.current = null;
       return;
     }
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') { showToast('GPS пристапот е одбиен'); return; }
-      locationSub.current = await Location.watchPositionAsync(
-        { accuracy: Location.Accuracy.High, distanceInterval: 5 },
-        pos => {
-          const { latitude, longitude } = pos.coords;
-          setLocation({ lat: latitude, lon: longitude });
-          if (stage?.targetCoordinates) {
-            const d = getDistance(latitude, longitude, stage.targetCoordinates.latitude, stage.targetCoordinates.longitude);
-            setDistance(d);
-          }
-        }
-      );
-    })();
+    setGpsPermissionDenied(false);
+    void startWatchingLocation();
     return () => { locationSub.current?.remove(); locationSub.current = null; };
   }, [hasStarted, isFinished, stage?.id]);
 
@@ -189,15 +206,32 @@ export default function QuestPlayerScreen() {
   useEffect(() => {
     if (!id || !hasStarted || isFinished) return;
     AsyncStorage.setItem(progressKey(id as string), JSON.stringify({
-      currentIdx, points, completedIds, playerName,
+      currentIdx, points, completedIds, collectedItemIds, playerName,
     }));
-  }, [currentIdx, points, completedIds]);
+  }, [currentIdx, points, completedIds, collectedItemIds]);
+
+  // ─── Live session join (join-by-code / QR flow) ──────────────────────────────
+  useEffect(() => {
+    if (!hasStarted || !sessionCode) return;
+    (async () => {
+      try {
+        const playerId = await getSessionPlayerId();
+        sessionPlayerIdRef.current = playerId;
+        await joinSession(sessionCode, playerId, playerName);
+      } catch (e) {
+        console.warn('[quest] session join failed:', e);
+      }
+    })();
+  }, [hasStarted, sessionCode]);
 
   // ─── Navigation ──────────────────────────────────────────────────────────────
   const handleNext = (overrideId?: string) => {
     if (!stage) return;
     const newCompleted = [...completedIds, stage.id];
     setCompletedIds(newCompleted);
+
+    const grantedItemIds = collectGrantedItem(collectedItemIds, stage);
+    if (grantedItemIds !== collectedItemIds) setCollectedItemIds(grantedItemIds);
 
     if (overrideId) {
       const idx = stages.findIndex(s => s.id === overrideId);
@@ -216,18 +250,28 @@ export default function QuestPlayerScreen() {
     setIsFinished(true);
     await AsyncStorage.removeItem(progressKey(id as string));
     await AsyncStorage.setItem(completedKey(id as string), new Date().toISOString());
+    const result = {
+      questId: id as string,
+      playerName,
+      userId: user?.uid || null,
+      points: finalPoints,
+      completedStages: finalCompleted.length,
+      totalStages: stages.length,
+      completedAt: new Date().toISOString(),
+    };
     try {
-      await addDoc(collection(db, 'quest_results'), {
-        questId: id,
-        playerName,
-        userId: user?.uid || null,
-        points: finalPoints,
-        completedStages: finalCompleted.length,
-        totalStages: stages.length,
-        completedAt: new Date().toISOString(),
-      });
+      await addDoc(collection(db, 'quest_results'), result);
     } catch (e) {
-      console.error('Save result error:', e);
+      console.warn('Save result failed, queueing for retry:', e);
+      await saveOfflineResult(result);
+      showToast('📵 Резултатот ќе се синхронизира кога ќе има интернет.');
+    }
+    if (sessionCode && sessionPlayerIdRef.current) {
+      await updateSessionProgress(sessionCode, sessionPlayerIdRef.current, {
+        points: finalPoints,
+        stageIndex: stages.length,
+        finished: true,
+      });
     }
   };
 
@@ -322,6 +366,12 @@ export default function QuestPlayerScreen() {
       return;
     }
     setPoints(p => p + (stage.points || 0));
+    handleNext();
+  };
+
+  const finishTournament = () => {
+    setPoints(p => p + (stage.points || 0));
+    showToast(`🏆 Турнирот заврши! +${stage.points || 0} поени`);
     handleNext();
   };
 
@@ -446,7 +496,15 @@ export default function QuestPlayerScreen() {
             {renderMedia()}
             <Text style={styles.stageDesc}>{stage.description}</Text>
             <View style={styles.gpsCard}>
-              {distance === null ? (
+              {gpsPermissionDenied ? (
+                <View style={styles.gpsDeniedBox}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>📍</Text>
+                  <Text style={[styles.gpsLoadingText, { textAlign: 'center' }]}>GPS пристапот е одбиен.{'\n'}Дозволи локација за да продолжиш.</Text>
+                  <TouchableOpacity style={[styles.btnPrimary, { marginTop: 12 }]} onPress={() => void startWatchingLocation()}>
+                    <Text style={styles.btnPrimaryText}>Дозволи GPS</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : distance === null ? (
                 <View style={styles.gpsLoading}>
                   <ActivityIndicator color="#4f46e5" />
                   <Text style={styles.gpsLoadingText}>Поврзување со GPS...</Text>
@@ -469,11 +527,9 @@ export default function QuestPlayerScreen() {
                 <Text style={styles.btnPrimaryText}>Потврди локација ✅</Text>
               </TouchableOpacity>
             )}
-            {!arrived && distance !== null && (
+            {!arrived && (distance !== null || gpsPermissionDenied) && !stage.requiredToAdvance && (
               <TouchableOpacity style={styles.btnSecondary} onPress={() => handleNext()}>
-                <Text style={styles.btnSecondaryText}>
-                  {stage.requiredToAdvance ? '⚠️ Прескокни (тест)' : 'Прескокни →'}
-                </Text>
+                <Text style={styles.btnSecondaryText}>Прескокни без поени →</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -726,19 +782,10 @@ export default function QuestPlayerScreen() {
         );
 
       // ─── SWITCH ────────────────────────────────────────────────────────────
-      case 'SWITCH':
+      case 'SWITCH': {
         const sw = stage;
-        const evaluate = () => {
-          for (const cond of (sw.conditions || [])) {
-            const ok = (cond.minPoints === undefined || points >= cond.minPoints)
-              && (cond.maxPoints === undefined || points <= cond.maxPoints)
-              && (!cond.requiredStageIds?.length || cond.requiredStageIds.every((sid: string) => completedIds.includes(sid)));
-            if (ok && cond.targetStageId) return cond.targetStageId;
-          }
-          return sw.defaultTargetStageId || null;
-        };
         if (!sw.showPathsToPlayer) {
-          const target = evaluate();
+          const target = evaluateSwitchTarget(sw, points, completedIds, collectedItemIds);
           if (target) handleNext(target);
           else handleNext();
           return null;
@@ -746,12 +793,48 @@ export default function QuestPlayerScreen() {
         return (
           <View>
             <Text style={styles.stageDesc}>{sw.description || 'Избери патека:'}</Text>
-            {(sw.conditions || []).map((cond: any, i: number) => (
-              <TouchableOpacity key={i} style={styles.switchOption} onPress={() => handleNext(cond.targetStageId)}>
-                <Text style={styles.switchOptionText}>{cond.label || `Патека ${i + 1}`}</Text>
-                <Text style={styles.switchArrow}>→</Text>
-              </TouchableOpacity>
-            ))}
+            {(sw.conditions || []).map((cond: any, i: number) => {
+              const itemOk = !cond.requiredItemId || collectedItemIds.includes(cond.requiredItemId);
+              const neededItem = (quest?.inventoryItems || []).find((it: any) => it.id === cond.requiredItemId);
+              return (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.switchOption, !itemOk && styles.switchOptionLocked]}
+                  onPress={() => itemOk && handleNext(cond.targetStageId)}
+                  disabled={!itemOk}
+                >
+                  <View>
+                    <Text style={styles.switchOptionText}>{cond.label || `Патека ${i + 1}`}</Text>
+                    {!itemOk && neededItem && (
+                      <Text style={styles.switchOptionHint}>🔒 Треба {neededItem.icon ? `${neededItem.icon} ` : ''}{neededItem.name}</Text>
+                    )}
+                  </View>
+                  <Text style={styles.switchArrow}>→</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        );
+      }
+
+      // ─── TOURNAMENT ────────────────────────────────────────────────────────
+      case 'TOURNAMENT':
+        return (
+          <View>
+            {renderMedia()}
+            <Text style={styles.stageDesc}>{stage.description}</Text>
+            {stage.taskDescription ? (
+              <View style={styles.gpsCard}>
+                <Text style={styles.surveyQuestion}>Задача за тимовите:</Text>
+                <Text style={styles.stageDesc}>{stage.taskDescription}</Text>
+              </View>
+            ) : null}
+            {stage.teamCount ? (
+              <Text style={styles.switchOptionText}>{stage.teamCount} тима се натпреваруваат</Text>
+            ) : null}
+            <TouchableOpacity style={styles.btnPrimary} onPress={finishTournament}>
+              <Text style={styles.btnPrimaryText}>Турнирот заврши (+{stage.points || 0}) →</Text>
+            </TouchableOpacity>
           </View>
         );
 
@@ -893,7 +976,20 @@ export default function QuestPlayerScreen() {
                 {stage.points > 0 && <Text style={styles.stagePoints}>+{stage.points} поени</Text>}
               </View>
               <Text style={styles.stageTitle}>{stage.title || `Етапа ${currentIdx + 1}`}</Text>
-              {renderStageContent()}
+              {stageLocked ? (
+                <View style={styles.lockedBox}>
+                  <Text style={styles.lockedIcon}>🔒</Text>
+                  <Text style={styles.lockedTitle}>Оваа етапа е заклучена</Text>
+                  <Text style={styles.lockedDesc}>
+                    {missingRequiredItem
+                      ? `За да продолжиш, прво треба да го собереш предметот ${missingRequiredItem.icon ? `${missingRequiredItem.icon} ` : ''}${missingRequiredItem.name}.`
+                      : 'Потребен е предмет за да се отвори оваа етапа.'}
+                  </Text>
+                  <TouchableOpacity style={styles.btnSecondary} onPress={handleExit}>
+                    <Text style={styles.btnSecondaryText}>Излези од авантурата</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : renderStageContent()}
             </>
           )}
         </ScrollView>
@@ -954,6 +1050,10 @@ const styles = StyleSheet.create({
   btnPrimary: { backgroundColor: '#4f46e5', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 12 },
   btnPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   btnSecondary: { backgroundColor: '#f1f5f9', padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 8 },
+  lockedBox: { alignItems: 'center', padding: 24 },
+  lockedIcon: { fontSize: 40, marginBottom: 12 },
+  lockedTitle: { fontSize: 18, fontWeight: '700', color: '#111827', marginBottom: 8 },
+  lockedDesc: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 20, lineHeight: 20 },
   btnSecondaryText: { color: '#374151', fontSize: 15, fontWeight: '600' },
 
   // Quiz options
@@ -972,6 +1072,7 @@ const styles = StyleSheet.create({
   // GPS
   gpsCard: { backgroundColor: '#fff', borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   gpsLoading: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  gpsDeniedBox: { alignItems: 'center', padding: 4 },
   gpsLoadingText: { color: '#6b7280', fontSize: 14 },
   gpsDistance: { fontSize: 48, fontWeight: '800', color: '#4f46e5' },
   gpsLabel: { fontSize: 14, color: '#9ca3af', marginBottom: 12 },
@@ -1008,7 +1109,9 @@ const styles = StyleSheet.create({
 
   // Switch
   switchOption: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderRadius: 14, borderWidth: 1.5, borderColor: '#e2e8f0', marginBottom: 10 },
+  switchOptionLocked: { opacity: 0.5 },
   switchOptionText: { fontSize: 15, fontWeight: '600', color: '#374151' },
+  switchOptionHint: { fontSize: 12, color: '#9ca3af', marginTop: 2 },
   switchArrow: { fontSize: 18, color: '#4f46e5' },
 
   // Start screen

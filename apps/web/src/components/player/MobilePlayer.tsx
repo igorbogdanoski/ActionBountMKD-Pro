@@ -81,7 +81,13 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [scanError, setScanError] = useState<string | null>(null);
   const [qrTaskScanned, setQrTaskScanned] = useState(false);
   
-  const [isNightMode, setIsNightMode] = useState(false);
+  // Seeded from the app's global theme (the same `.dark` class the handful of
+  // `dark:` variants in this file already key off) so the player screen opens
+  // in sync with whatever the user picked in Settings, instead of always
+  // defaulting to light regardless of their saved preference.
+  const [isNightMode, setIsNightMode] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  );
   const [showTournament, setShowTournament] = useState(false);
   const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [showLiveMap, setShowLiveMap] = useState(false);
@@ -1826,7 +1832,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       
       {/* Timer HUD for all stages */}
       {timeLeft !== null && (
-        <div className={`absolute top-20 right-4 font-mono font-bold text-xl ${isNightMode ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-white/95 text-slate-700 border-slate-200'} px-4 py-1.5 rounded-xl border-2 shadow-lg z-50 transition-colors ${timeLeft <= 30 ? 'text-red-500 border-red-500 animate-pulse bg-red-50 dark:bg-red-900/20' : ''}`}>
+        <div className={`absolute top-20 right-4 font-mono font-bold text-xl ${isNightMode ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-white/95 text-slate-700 border-slate-200'} px-4 py-1.5 rounded-xl border-2 shadow-lg z-50 transition-colors ${timeLeft <= 30 ? `text-red-500 border-red-500 animate-pulse ${isNightMode ? 'bg-red-900/20' : 'bg-red-50'}` : ''}`}>
           ⏱ {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
         </div>
       )}

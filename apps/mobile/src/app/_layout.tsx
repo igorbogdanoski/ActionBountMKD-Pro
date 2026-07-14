@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import { useColorScheme, ActivityIndicator, View } from 'react-native';
+import { useColorScheme, ActivityIndicator, View, AppState } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../utils/AuthContext';
@@ -9,6 +9,7 @@ import {
   handleInitialNotificationAsync,
   syncNotificationRegistrationAsync,
 } from '../utils/notifications';
+import { syncOfflineQueue } from '../utils/offlineQueue';
 // import { AnimatedSplashOverlay } from '@/components/animated-icon'; // Disable for now to test simple auth
 
 function RootLayoutNav() {
@@ -29,6 +30,17 @@ function RootLayoutNav() {
         setTimeout(() => router.replace('/'), 0);
     }
   }, [user, loading, segments]);
+
+  useEffect(() => {
+    // Retry any queued offline quest results whenever the app comes back to
+    // the foreground — the cheapest available signal for "connectivity may
+    // have returned" without adding a NetInfo dependency.
+    void syncOfflineQueue().catch(() => {});
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void syncOfflineQueue().catch(() => {});
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     void handleInitialNotificationAsync((url) => router.push(url as never));

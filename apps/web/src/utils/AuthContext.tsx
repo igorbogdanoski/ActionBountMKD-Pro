@@ -141,8 +141,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Source of truth for admin status is the ID token's custom claim
         // (set server-side via scripts/set-admin-claim.mjs), never a
         // client-side UID list — Firestore rules enforce the same claim.
-        const tokenResult = await firebaseUser.getIdTokenResult();
-        setIsAdmin(tokenResult.claims.admin === true);
+        // Never let this block sign-in: a transient failure here must not
+        // leave `loading` stuck true forever.
+        try {
+          const tokenResult = await firebaseUser.getIdTokenResult();
+          setIsAdmin(tokenResult.claims.admin === true);
+        } catch (err) {
+          console.error('[Auth] getIdTokenResult failed', err);
+          setIsAdmin(false);
+        }
       } else {
         setProfile(null);
         setIsAdmin(false);

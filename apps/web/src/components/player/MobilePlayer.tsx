@@ -25,6 +25,8 @@ import { MissionStagePlayer } from './stages/MissionStagePlayer';
 import { FindSpotStagePlayer } from './stages/FindSpotStagePlayer';
 import { ScanCodeStagePlayer } from './stages/ScanCodeStagePlayer';
 import { QrTaskStagePlayer } from './stages/QrTaskStagePlayer';
+import { InfoStagePlayer } from './stages/InfoStagePlayer';
+import { StageMedia } from './stages/StageMedia';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
@@ -421,49 +423,6 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     clearCollectedItemIds(questId, actorId);
   }, [questId, sessionPlayerId, playerName, isFinished]);
 
-  // YouTube Helper
-  const getYouTubeId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-  };
-
-  const renderMedia = () => {
-    const mediaUrl = (stage as any).mediaUrl as string | undefined;
-    if (!mediaUrl) return null;
-
-    const audioUrl = (stage as any).audioUrl as string | undefined;
-    const ytId = getYouTubeId(mediaUrl);
-
-    const mediaContainer = (ytId || mediaUrl || audioUrl) ? (
-      <div className="w-full mb-6 flex flex-col gap-4">
-        {ytId ? (
-          <div className="aspect-video rounded-xl overflow-hidden shadow-sm">
-            <iframe 
-              width="100%" 
-              height="100%" 
-              src={`https://www.youtube-nocookie.com/embed/${ytId}?rel=0`} 
-              title="YouTube video player" 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-              allowFullScreen
-            ></iframe>
-          </div>
-        ) : mediaUrl ? (
-          <img src={mediaUrl} alt="Мултимедија" className="w-full h-auto rounded-xl shadow-sm object-cover max-h-48" />
-        ) : null}
-        
-        {audioUrl && (
-          <audio controls className="w-full rounded-xl">
-            <source src={audioUrl} type="audio/mpeg" />
-            Вашиот прелистувач не поддржува аудио.
-          </audio>
-        )}
-      </div>
-    ) : null;
-    
-    return mediaContainer;
-  };
   // Only watch GPS position on FIND_SPOT stages to save battery
   useEffect(() => {
     if (!hasStarted || isFinished || stage?.type !== 'FIND_SPOT') return;
@@ -1076,46 +1035,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     );
   }
 
-  const renderRubric = () => {
-    const rubric = (stage as any).rubric as import('shared').Rubric | undefined;
-    if (!rubric?.criteria?.length) return null;
-    return (
-      <div className={`w-full max-w-sm mx-auto mb-6 rounded-2xl border p-4 text-left ${isNightMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
-        <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>📋 Како се оценува</p>
-        <div className="space-y-3">
-          {rubric.criteria.map(c => (
-            <div key={c.id}>
-              <p className={`text-sm font-semibold ${isNightMode ? 'text-slate-200' : 'text-slate-700'}`}>{c.title || 'Критериум'}</p>
-              <div className="flex flex-wrap gap-1.5 mt-1">
-                {c.levels.map(l => (
-                  <span key={l.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-200 text-slate-600'}`}>
-                    {l.label || 'Ниво'} <span className="font-bold text-indigo-400">{l.points}</span>
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
   const renderStageContent = () => {
     switch (stage.type) {
       case 'INFO':
         return (
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col">
-            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-4`}>{stage.title}</h2>
-            {renderMedia()}
-            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-600'} p-6 rounded-2xl shadow-sm border mb-6 transition-colors`}>
-              <MathRenderer text={stage.description} className="leading-relaxed" />
-            </div>
-            <div className="mt-auto">
-              <button onClick={() => handleNextStage()} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
-                Разбрав, понатаму
-              </button>
-            </div>
-          </div>
+          <InfoStagePlayer stage={stage as import('shared').InfoStage} isNightMode={isNightMode} onContinue={() => handleNextStage()} />
         );
       
       case 'QUIZ': {
@@ -1148,7 +1072,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               </div>
             )}
             <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
-            {renderMedia()}
+            <StageMedia mediaUrl={(stage as any).mediaUrl} audioUrl={(stage as any).audioUrl} />
             <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
 
             <div className="space-y-3 mb-6">

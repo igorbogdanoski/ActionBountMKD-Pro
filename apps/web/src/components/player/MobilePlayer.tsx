@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, StageSubmission, QuizAnswerRecord, questMaxScore, isMatchingCorrect, isOrderingCorrect } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../utils/firebase';
 import { MapPin, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
-import { getQuestById, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
+import { getQuestById, getQuestResults, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
   cacheQuestLocally,
@@ -140,6 +140,10 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Feedback — must be at top, never after early returns
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  // Rubric grade lookup — must be at top, never after early returns
+  const [gradeCheckStatus, setGradeCheckStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
+  const [myGrades, setMyGrades] = useState<RubricGrade[]>([]);
 
   // Certificate generation
   const [generatingCert, setGeneratingCert] = useState(false);
@@ -975,6 +979,18 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setFeedbackSubmitted(true);
   };
 
+  const handleCheckGrade = async () => {
+    setGradeCheckStatus('loading');
+    try {
+      const results = await getQuestResults(questId);
+      const best = bestResultForName(results, playerName);
+      setMyGrades(best?.grades ?? []);
+      setGradeCheckStatus('done');
+    } catch {
+      setGradeCheckStatus('error');
+    }
+  };
+
   const handleDownloadCertificate = async () => {
     if (generatingCert) return;
     setGeneratingCert(true);
@@ -997,6 +1013,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   };
 
   if (isFinished) {
+    const rubricStages = stages.filter(
+      (s): s is MissionStage | SurveyStage =>
+        (s.type === 'MISSION' || s.type === 'SURVEY') && !!s.rubric && s.rubric.criteria.length > 0
+    );
+
     return (
       <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-800'} font-sans shadow-2xl transition-colors overflow-y-auto`}>
         <div className="flex-1 flex flex-col justify-center p-6 text-center shrink-0">
@@ -1047,6 +1068,52 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                   </span>
                 ))}
               </div>
+            </div>
+          )}
+
+          {rubricStages.length > 0 && (
+            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>
+              <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-3`}>Оценка од наставникот</p>
+
+              {gradeCheckStatus === 'idle' && (
+                <button
+                  onClick={handleCheckGrade}
+                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${isNightMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                >
+                  Провери ја мојата оценка
+                </button>
+              )}
+
+              {gradeCheckStatus === 'loading' && (
+                <p className={`text-sm ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>Се вчитува…</p>
+              )}
+
+              {gradeCheckStatus === 'error' && (
+                <p className="text-sm text-red-500">Не успеавме да ја вчитаме оценката. Обиди се повторно.</p>
+              )}
+
+              {gradeCheckStatus === 'done' && (
+                <div className="space-y-3">
+                  {rubricStages.map(rs => {
+                    const grade = myGrades.find(g => g.stageId === rs.id);
+                    return (
+                      <div key={rs.id} className={`p-3 rounded-xl border ${isNightMode ? 'border-slate-700' : 'border-slate-200'}`}>
+                        <p className={`text-sm font-bold ${isNightMode ? 'text-slate-100' : 'text-slate-800'}`}>{rs.title}</p>
+                        {grade ? (
+                          <>
+                            <p className="text-sm font-semibold text-emerald-500 mt-1">{grade.totalPoints} поени</p>
+                            {grade.feedback && (
+                              <p className={`text-sm mt-1.5 whitespace-pre-wrap ${isNightMode ? 'text-slate-300' : 'text-slate-600'}`}>{grade.feedback}</p>
+                            )}
+                          </>
+                        ) : (
+                          <p className={`text-sm mt-1 italic ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>Сè уште не е оценето.</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

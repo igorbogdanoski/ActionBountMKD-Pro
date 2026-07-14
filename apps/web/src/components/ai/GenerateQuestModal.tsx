@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
 import { generateQuest } from '../../utils/aiService';
-import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES } from '../../lib/aiQuest';
-import type { TemplateSubject } from 'shared';
+import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES, type TemplateSubject } from 'shared';
 
 interface GenerateQuestModalProps {
   open: boolean;

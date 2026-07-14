@@ -8,8 +8,8 @@ import {
   MAX_STAGES,
   DEFAULT_STAGE_POINTS,
   type AiQuestRequest,
-} from '../lib/aiQuest';
-import type { QuizStage } from 'shared';
+  type QuizStage,
+} from 'shared';
 
 // deterministic id factory for stable assertions
 function seqIds() {

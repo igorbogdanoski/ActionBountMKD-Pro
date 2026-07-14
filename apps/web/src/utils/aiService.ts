@@ -1,4 +1,4 @@
-import { AiQuestError, type AiQuestRequest, type GeneratedQuest } from '../lib/aiQuest';
+import { AiQuestError, type AiQuestRequest, type GeneratedQuest } from 'shared';
 import { auth } from './firebase';
 
 /** AI generation always runs server-side now — the client never sees a Gemini key. */
@@ -10,7 +10,7 @@ export function isAiConfigured(): boolean {
  * Generate a quest via the `/api/generate-quest` server endpoint. The prompt
  * build, Gemini call, parsing and sanitization all happen server-side so the
  * Gemini API key is never exposed to the browser and usage is rate-limited
- * per user. See apps/web/api/generate-quest.ts.
+ * per user. See api/generate-quest.ts.
  */
 export async function generateQuest(req: AiQuestRequest): Promise<GeneratedQuest> {
   const user = auth.currentUser;

@@ -2,7 +2,14 @@ import Stripe from 'stripe';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Lazy — constructing Stripe with a missing/invalid key throws immediately,
+// which would crash the whole module (and every request to this function)
+// at import time if STRIPE_SECRET_KEY isn't configured.
+let stripe;
+function getStripe() {
+  if (!stripe) stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe;
+}
 
 function adminDb() {
   if (!getApps().length) {
@@ -59,11 +66,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.STRIPE_WEBHOOK_SECRET) {
+    res.status(503).end();
+    return;
+  }
+
   let event;
   try {
     const rawBody = await getRawBody(req);
     const sig = req.headers['stripe-signature'];
-    event = stripe.webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    event = getStripe().webhooks.constructEvent(rawBody, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
     console.error('Webhook signature error:', err.message);
     res.status(400).send(`Webhook Error: ${err.message}`);

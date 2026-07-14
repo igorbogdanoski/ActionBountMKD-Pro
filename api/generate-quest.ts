@@ -3,7 +3,7 @@ import { GoogleGenAI } from '@google/genai';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { buildQuestPrompt, parseAiQuest, AiQuestError, type AiQuestRequest } from '../apps/web/src/lib/aiQuest';
+import { buildQuestPrompt, parseAiQuest, AiQuestError, type AiQuestRequest } from 'shared';
 
 const MODEL = 'gemini-2.0-flash';
 const DAILY_LIMIT = 20;

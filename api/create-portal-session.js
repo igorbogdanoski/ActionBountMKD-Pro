@@ -2,7 +2,14 @@ import Stripe from 'stripe';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Lazy — constructing Stripe with a missing/invalid key throws immediately,
+// which would crash the whole module (and every request to this function)
+// at import time if STRIPE_SECRET_KEY isn't configured.
+let stripe;
+function getStripe() {
+  if (!stripe) stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe;
+}
 
 function adminDb() {
   if (!getApps().length) {
@@ -14,6 +21,11 @@ function adminDb() {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    res.status(503).json({ error: 'Плаќањето преку картичка не е конфигурирано.' });
     return;
   }
 
@@ -32,12 +44,12 @@ export default async function handler(req, res) {
       return;
     }
 
-    const subscription = await stripe.subscriptions.retrieve(profile.subscriptionId);
+    const subscription = await getStripe().subscriptions.retrieve(profile.subscriptionId);
     const customerId = typeof subscription.customer === 'string'
       ? subscription.customer
       : subscription.customer.id;
 
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const portalSession = await getStripe().billingPortal.sessions.create({
       customer:   customerId,
       return_url: `${process.env.APP_URL}/dashboard`,
     });

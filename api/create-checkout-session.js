@@ -1,6 +1,13 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+// Lazy — constructing Stripe with a missing/invalid key throws immediately,
+// which would crash the whole module (and every request to this function)
+// at import time if STRIPE_SECRET_KEY isn't configured.
+let stripe;
+function getStripe() {
+  if (!stripe) stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+  return stripe;
+}
 
 const PRICE_MAP = {
   starter: process.env.STRIPE_PRICE_STARTER,
@@ -10,6 +17,11 @@ const PRICE_MAP = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  if (!process.env.STRIPE_SECRET_KEY) {
+    res.status(503).json({ error: 'Плаќањето преку картичка не е конфигурирано.' });
     return;
   }
 
@@ -27,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],

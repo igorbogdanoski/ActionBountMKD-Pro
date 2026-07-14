@@ -10,7 +10,7 @@ const { getIdTokenMock, mockAuth } = vi.hoisted(() => {
 vi.mock('../utils/firebase', () => ({ auth: mockAuth }));
 
 import { generateQuest, isAiConfigured } from '../utils/aiService';
-import { AiQuestError } from '../lib/aiQuest';
+import { AiQuestError } from 'shared';
 
 const SAMPLE_QUEST = {
   title: 'AI авантура',

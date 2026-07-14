@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { stripHtml, type Stage, type InfoStage, type QuizStage } from 'shared';
+import { stripHtml } from './sanitize.ts';
+import type { Stage, InfoStage, QuizStage } from './types.ts';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -32,14 +33,17 @@ export interface GeneratedQuest {
 export type AiQuestErrorCode = 'no-key' | 'empty' | 'parse' | 'invalid';
 
 export class AiQuestError extends Error {
-  constructor(public code: AiQuestErrorCode, message: string) {
+  code: AiQuestErrorCode;
+
+  constructor(code: AiQuestErrorCode, message: string) {
     super(message);
+    this.code = code;
     this.name = 'AiQuestError';
   }
 }
 
 // ─── Sanitization ───────────────────────────────────────────────────────────────
-// Uses the canonical stripHtml from `shared` — see packages/shared/sanitize.ts.
+// Uses the canonical stripHtml from ./sanitize.
 
 function sanitizeText(value: unknown, max: number, fallback = ''): string {
   if (typeof value !== 'string') return fallback;
@@ -224,4 +228,3 @@ export function parseAiQuest(raw: unknown, opts: ParseOptions = {}): GeneratedQu
 
   return { title, description, stages };
 }
-

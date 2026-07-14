@@ -4,5 +4,7 @@
   "private": true,
   "main": "./index.ts",
   "type": "module",
-  "dependencies": {}
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
 }

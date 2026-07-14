@@ -24,6 +24,7 @@
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "firebase": "^12.14.0",
+    "firebase-admin": "^13.5.0",
     "html5-qrcode": "^2.3.8",
     "i18next": "^26.3.0",
     "jspdf": "^4.2.1",
@@ -42,6 +43,7 @@
     "react-router-dom": "^7.16.0",
     "recharts": "^3.8.1",
     "shared": "*",
+    "stripe": "^17.5.0",
     "vite": "^6.2.3",
     "zod": "^4.4.3"
   },

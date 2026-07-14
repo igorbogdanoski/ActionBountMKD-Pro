@@ -1,79 +1,72 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Hoisted mock fn shared with the module factory.
-const { generateContentMock } = vi.hoisted(() => ({ generateContentMock: vi.fn() }));
+const { getIdTokenMock, mockAuth } = vi.hoisted(() => {
+  const getIdTokenMock = vi.fn().mockResolvedValue('fake-id-token');
+  return {
+    getIdTokenMock,
+    mockAuth: { currentUser: { getIdToken: getIdTokenMock } as { getIdToken: typeof getIdTokenMock } | null },
+  };
+});
+vi.mock('../utils/firebase', () => ({ auth: mockAuth }));
 
-vi.mock('@google/genai', () => ({
-  GoogleGenAI: class {
-    models = { generateContent: generateContentMock };
-  },
-}));
-
-import { generateQuest, isAiConfigured, getGeminiApiKey } from '../utils/aiService';
+import { generateQuest, isAiConfigured } from '../utils/aiService';
 import { AiQuestError } from '../lib/aiQuest';
 
-const SAMPLE = JSON.stringify({
+const SAMPLE_QUEST = {
   title: 'AI авантура',
   description: 'опис',
   stages: [
-    { type: 'INFO', title: 'Вовед', description: 'текст' },
-    { type: 'QUIZ', title: 'Q', description: 'прашање?', questionType: 'multiple_choice', options: ['A', 'B'], correctAnswer: 'A' },
+    { id: 'a', order: 0, type: 'INFO', title: 'Вовед', description: 'текст', points: 50, mediaType: 'none' },
   ],
-});
+};
 
-describe('aiService config helpers', () => {
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('reports unconfigured when key is missing', () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', '');
-    expect(isAiConfigured()).toBe(false);
-    expect(getGeminiApiKey()).toBeUndefined();
-  });
-
-  it('reports configured and trims the key when present', () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', '  my-key  ');
+describe('isAiConfigured', () => {
+  it('is always true — generation runs server-side now', () => {
     expect(isAiConfigured()).toBe(true);
-    expect(getGeminiApiKey()).toBe('my-key');
   });
 });
 
 describe('generateQuest', () => {
-  beforeEach(() => generateContentMock.mockReset());
-  afterEach(() => vi.unstubAllEnvs());
-
-  it('throws AiQuestError(no-key) when key is missing', async () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', '');
-    await expect(generateQuest({ topic: 't', subject: 's', grade: 'g', stageCount: 3 }))
-      .rejects.toMatchObject({ code: 'no-key' });
-    expect(generateContentMock).not.toHaveBeenCalled();
+  beforeEach(() => {
+    getIdTokenMock.mockClear();
+    mockAuth.currentUser = { getIdToken: getIdTokenMock };
+    vi.stubGlobal('fetch', vi.fn());
   });
 
-  it('calls Gemini and parses the response into a quest', async () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
-    generateContentMock.mockResolvedValue({ text: SAMPLE });
+  it('throws AiQuestError(no-key) when no user is signed in', async () => {
+    mockAuth.currentUser = null;
+    await expect(generateQuest({ topic: 't', subject: 's', grade: 'g', stageCount: 3 }))
+      .rejects.toMatchObject({ code: 'no-key' });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('sends the Firebase ID token and request body to the server endpoint', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ quest: SAMPLE_QUEST }),
+    });
 
     const quest = await generateQuest({ topic: 'Сончев систем', subject: 'Природни науки', grade: '4-6 одд.', stageCount: 4 });
 
-    expect(generateContentMock).toHaveBeenCalledOnce();
-    const arg = generateContentMock.mock.calls[0][0];
-    expect(arg.model).toBe('gemini-2.0-flash');
-    expect(typeof arg.contents).toBe('string');
-    expect(arg.config.responseMimeType).toBe('application/json');
-
+    expect(fetch).toHaveBeenCalledWith('/api/generate-quest', expect.objectContaining({
+      method: 'POST',
+      headers: expect.objectContaining({ Authorization: 'Bearer fake-id-token' }),
+    }));
     expect(quest.title).toBe('AI авантура');
-    expect(quest.stages).toHaveLength(2);
   });
 
-  it('throws AiQuestError(empty) when the model returns no text', async () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
-    generateContentMock.mockResolvedValue({ text: undefined });
+  it('propagates the server error code and message on failure', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: false,
+      json: async () => ({ code: 'invalid', error: 'Го достигна дневниот лимит.' }),
+    });
+
     await expect(generateQuest({ topic: 't', subject: 's', grade: 'g', stageCount: 3 }))
-      .rejects.toMatchObject({ code: 'empty' });
+      .rejects.toMatchObject({ code: 'invalid', message: 'Го достигна дневниот лимит.' });
   });
 
-  it('propagates AiQuestError(parse) on malformed JSON', async () => {
-    vi.stubEnv('VITE_GEMINI_API_KEY', 'test-key');
-    generateContentMock.mockResolvedValue({ text: 'not json' });
+  it('throws AiQuestError(empty) when the server returns no quest', async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: true, json: async () => ({}) });
     await expect(generateQuest({ topic: 't', subject: 's', grade: 'g', stageCount: 3 }))
       .rejects.toBeInstanceOf(AiQuestError);
   });

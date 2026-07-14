@@ -1,44 +1,38 @@
-import {
-  buildQuestPrompt,
-  parseAiQuest,
-  AiQuestError,
-  type AiQuestRequest,
-  type GeneratedQuest,
-} from '../lib/aiQuest';
+import { AiQuestError, type AiQuestRequest, type GeneratedQuest } from '../lib/aiQuest';
+import { auth } from './firebase';
 
-const MODEL = 'gemini-2.0-flash';
-
-export function getGeminiApiKey(): string | undefined {
-  const key = import.meta.env.VITE_GEMINI_API_KEY;
-  return typeof key === 'string' && key.trim().length > 0 ? key.trim() : undefined;
-}
-
+/** AI generation always runs server-side now — the client never sees a Gemini key. */
 export function isAiConfigured(): boolean {
-  return getGeminiApiKey() !== undefined;
+  return true;
 }
 
 /**
- * Generate a quest via Gemini. Network/SDK I/O only — all parsing,
- * validation and sanitization live in the pure `lib/aiQuest` module.
+ * Generate a quest via the `/api/generate-quest` server endpoint. The prompt
+ * build, Gemini call, parsing and sanitization all happen server-side so the
+ * Gemini API key is never exposed to the browser and usage is rate-limited
+ * per user. See apps/web/api/generate-quest.ts.
  */
 export async function generateQuest(req: AiQuestRequest): Promise<GeneratedQuest> {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    throw new AiQuestError('no-key', 'AI генераторот не е конфигуриран (недостасува VITE_GEMINI_API_KEY).');
+  const user = auth.currentUser;
+  if (!user) {
+    throw new AiQuestError('no-key', 'Мора да си најавен за да генерираш авантура со AI.');
   }
 
-  const { GoogleGenAI } = await import('@google/genai');
-  const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: MODEL,
-    contents: buildQuestPrompt(req),
-    config: { responseMimeType: 'application/json', temperature: 0.9 },
+  const idToken = await user.getIdToken();
+  const res = await fetch('/api/generate-quest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken}` },
+    body: JSON.stringify(req),
   });
 
-  const text = response.text;
-  if (!text) {
+  const body = await res.json().catch(() => ({}) as { code?: string; error?: string; quest?: GeneratedQuest });
+
+  if (!res.ok) {
+    const code = (body.code as AiQuestError['code']) ?? 'empty';
+    throw new AiQuestError(code, body.error ?? 'Грешка при генерирање. Обиди се повторно.');
+  }
+  if (!body.quest) {
     throw new AiQuestError('empty', 'AI не врати содржина. Обиди се повторно.');
   }
-
-  return parseAiQuest(text);
+  return body.quest;
 }

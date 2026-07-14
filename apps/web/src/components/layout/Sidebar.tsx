@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
-import { PAYMENT_CONFIG } from '../../config/payment';
 
 export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 'groups' | 'settings';
 
@@ -21,7 +20,7 @@ const NAV_ICONS: Record<string, React.ElementType> = {
 };
 
 export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleTheme }: SidebarProps) {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const { planId, limits } = usePlan();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
@@ -29,7 +28,6 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
   const switchLang = (code: SupportedLang) => i18n.changeLanguage(code);
   const maxQuests = limits.maxQuests === -1 ? '∞' : limits.maxQuests;
   const isEnterprise = planId === 'enterprise';
-  const isAdmin = user ? (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid) : false;
 
   return (
     <aside className="w-64 bg-indigo-950 flex flex-col shrink-0 h-full">

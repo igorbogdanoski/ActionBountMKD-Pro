@@ -1,16 +1,5 @@
 import { z } from 'zod';
-
-// ─── Sanitization helper ──────────────────────────────────────────────────────
-// Remove dangerous tag blocks (script/style/iframe) INCLUDING their content,
-// then strip any remaining HTML tags to prevent XSS in Firestore text fields.
-function stripHtml(str: string): string {
-  return str
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .trim();
-}
+import { stripHtml } from 'shared';
 
 const safeString = (max: number) =>
   z.string()
@@ -100,7 +89,7 @@ export const QuestResultSchema = z.object({
 export const FeedbackSchema = z.object({
   comment: z
     .string()
-    .transform(s => s.trim().replace(/<[^>]*>/g, ''))
+    .transform(stripHtml)
     .pipe(z.string().min(1, 'Коментарот е задолжителен').max(1000, 'Коментарот е предолг')),
 });
 

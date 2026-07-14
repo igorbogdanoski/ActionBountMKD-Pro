@@ -30,31 +30,48 @@ export function offlineQueueSize(): number {
   return getOfflineQueue().length;
 }
 
+// Guards against overlapping syncs: a flaky connection firing multiple
+// `online` events before the first pass finishes would otherwise let two
+// calls read the same queue snapshot and both re-save the same results,
+// producing duplicate quest_results docs. Concurrent callers await the same
+// in-flight pass instead of starting their own.
+let syncInFlight: Promise<number> | null = null;
+
 export async function syncOfflineQueue(): Promise<number> {
-  const queue = getOfflineQueue();
-  if (!queue.length) return 0;
+  if (syncInFlight) return syncInFlight;
 
-  // Dynamically import to avoid circular dependency
-  const { saveQuestResult } = await import('./storage');
-  let synced = 0;
-  const failed: PendingResult[] = [];
+  syncInFlight = (async () => {
+    const queue = getOfflineQueue();
+    if (!queue.length) return 0;
 
-  for (const result of queue) {
-    try {
-      await saveQuestResult(result);
-      synced++;
-    } catch {
-      failed.push(result);
+    // Dynamically import to avoid circular dependency
+    const { saveQuestResult } = await import('./storage');
+    let synced = 0;
+    const failed: PendingResult[] = [];
+
+    for (const result of queue) {
+      try {
+        await saveQuestResult(result);
+        synced++;
+      } catch {
+        failed.push(result);
+      }
     }
-  }
 
-  if (failed.length === 0) {
-    clearOfflineQueue();
-  } else {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(failed));
-  }
+    if (failed.length === 0) {
+      clearOfflineQueue();
+    } else {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(failed));
+    }
 
-  return synced;
+    return synced;
+  })();
+
+  try {
+    return await syncInFlight;
+  } finally {
+    syncInFlight = null;
+  }
 }
 
 // ─── Quest localStorage Cache ────────────────────────────────────────────────

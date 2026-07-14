@@ -104,6 +104,30 @@ describe('syncOfflineQueue', () => {
     expect(remaining).toHaveLength(1);
     expect(remaining[0].points).toBe(20);
   });
+
+  it('does not double-save when two syncs overlap (flaky online/offline toggling)', async () => {
+    let resolveFirstSave: (v: string) => void = () => {};
+    saveQuestResultMock.mockImplementation(
+      () => new Promise<string>(resolve => { resolveFirstSave = resolve; }),
+    );
+    saveOfflineResult(makeResult(10));
+
+    // Two overlapping calls, e.g. from two rapid `online` events.
+    const first = syncOfflineQueue();
+    const second = syncOfflineQueue();
+
+    // Let the (mocked) dynamic import + the in-flight pass actually reach
+    // its saveQuestResult() call before resolving it.
+    await vi.waitFor(() => expect(saveQuestResultMock).toHaveBeenCalled());
+    resolveFirstSave('ok');
+    const [firstSynced, secondSynced] = await Promise.all([first, second]);
+
+    // The single queued result must only be saved once — both concurrent
+    // callers share the same in-flight pass and its result.
+    expect(saveQuestResultMock).toHaveBeenCalledTimes(1);
+    expect(firstSynced).toBe(1);
+    expect(secondSynced).toBe(1);
+  });
 });
 
 // ─── Quest localStorage cache ─────────────────────────────────────────────────

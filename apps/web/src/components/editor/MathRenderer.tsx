@@ -7,15 +7,38 @@ interface MathRendererProps {
   className?: string;
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const HTML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+};
+
+function unescapeHtml(text: string): string {
+  return text.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => HTML_ENTITIES[entity]);
+}
+
 function renderContent(text: string): string {
   if (!text) return '';
 
-  return text
-    // Block math $$...$$ first
+  return escapeHtml(text)
+    // Block math $$...$$ first — formula was HTML-escaped above, so decode
+    // it back to raw LaTeX before handing it to KaTeX; the renderer's own
+    // output is safe (default `trust: false` blocks \href/\includegraphics etc).
     .replace(/\$\$([^$]+)\$\$/g, (_, formula) => {
       try {
         return `<div class="katex-block my-3 text-center overflow-x-auto">${
-          katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false })
+          katex.renderToString(unescapeHtml(formula).trim(), { displayMode: true, throwOnError: false, trust: false })
         }</div>`;
       } catch {
         return `<span class="text-red-400 text-xs font-mono">[math error]</span>`;
@@ -24,7 +47,7 @@ function renderContent(text: string): string {
     // Inline math $...$
     .replace(/\$([^$\n]+)\$/g, (_, formula) => {
       try {
-        return katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false });
+        return katex.renderToString(unescapeHtml(formula).trim(), { displayMode: false, throwOnError: false, trust: false });
       } catch {
         return `<span class="text-red-400 text-xs font-mono">[math error]</span>`;
       }

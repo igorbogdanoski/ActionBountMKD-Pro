@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, questMaxScore } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, SessionPlayer, questMaxScore } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Camera, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Mic, Square, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
@@ -11,7 +11,6 @@ import {
   getCachedQuest,
   isCachedLocally,
   saveOfflineResult,
-  syncOfflineQueue,
   offlineQueueSize,
 } from '../../utils/offlineQueue';
 import { Html5QrcodeScanner } from 'html5-qrcode';
@@ -69,6 +68,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [currentLocation, setCurrentLocation] = useState<Coordinates | null>(null);
   const [distanceToTarget, setDistanceToTarget] = useState<number | null>(null);
   const [pathHistory, setPathHistory] = useState<[number, number][]>([]);
+  const [gpsError, setGpsError] = useState<'denied' | 'unavailable' | null>(null);
+  const [gpsRetryToken, setGpsRetryToken] = useState(0);
 
   // Sequence state
   const [completedStageIds, setCompletedStageIds] = useState<string[]>([]);
@@ -81,6 +82,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   
   const [isNightMode, setIsNightMode] = useState(false);
   const [showTournament, setShowTournament] = useState(false);
+  const [sessionPlayers, setSessionPlayers] = useState<SessionPlayer[]>([]);
   const [showLiveMap, setShowLiveMap] = useState(false);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [sendingSos, setSendingSos] = useState(false);
@@ -99,6 +101,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
   const prevPointsRef = useRef(0);
   const prevCompletedRef = useRef(0);
+  const unlockedAchievementIdsRef = useRef<Set<string>>(new Set());
   const lastSessionLocationSentAtRef = useRef(0);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -148,6 +151,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       .then(({ subscribeSession }) => {
         unsub = subscribeSession(sessionCode, sess => {
           setIsSessionActive(sess?.status === 'active');
+          setSessionPlayers(sess?.players ?? []);
           if (sess && sess.mode === 'broadcast' && sess.status === 'active') {
             setCurrentStageIndex(prev =>
               prev === sess.currentStageIndex ? prev : sess.currentStageIndex,
@@ -207,13 +211,26 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       const gained = points - prevPointsRef.current;
       setToasts(prev => [...prev, {id, text: `Освоени +${gained} поени!` }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
-      
-      if (Math.random() > 0.8) {
-         const id2 = Math.random().toString();
-         setTimeout(() => {
-           setToasts(prev => [...prev, {id: id2, text: "🏆 Отклучено достигнување!" }]);
-           setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id2)), 3000);
-         }, 800);
+
+      // Real achievement check (same computeAchievements used on the finish
+      // screen) instead of a decorative random toast — only fires once per
+      // badge, the first time it's actually earned.
+      const earned = computeAchievements({
+        points,
+        maxPoints: questMaxScore(quest),
+        completedStages: completedStageIds.length,
+        totalStages: stages.length,
+        collectedItems: collectedItemIds.length,
+        totalItems: inventoryItems.length,
+      });
+      const newlyUnlocked = earned.filter(a => !unlockedAchievementIdsRef.current.has(a.id));
+      newlyUnlocked.forEach(a => unlockedAchievementIdsRef.current.add(a.id));
+      if (newlyUnlocked.length > 0) {
+        const id2 = Math.random().toString();
+        setTimeout(() => {
+          setToasts(prev => [...prev, { id: id2, text: `🏆 ${newlyUnlocked[0].title}` }]);
+          setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id2)), 3000);
+        }, 800);
       }
     }
     prevPointsRef.current = points;
@@ -423,20 +440,25 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Only watch GPS position on FIND_SPOT stages to save battery
   useEffect(() => {
     if (!hasStarted || isFinished || stage?.type !== 'FIND_SPOT') return;
+    setGpsError(null);
 
     const watchId = navigator.geolocation.watchPosition(
       (position) => {
+        setGpsError(null);
         const newLoc = { latitude: position.coords.latitude, longitude: position.coords.longitude };
         setCurrentLocation(newLoc);
         setPathHistory(prev => [...prev, [newLoc.latitude, newLoc.longitude]]);
         const dist = getDistance(newLoc, (stage as any).targetCoordinates);
         setDistanceToTarget(dist);
       },
-      (error) => console.warn('[GPS]', error.message),
+      (error) => {
+        console.warn('[GPS]', error.message);
+        setGpsError(error.code === error.PERMISSION_DENIED ? 'denied' : 'unavailable');
+      },
       { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
-  }, [hasStarted, isFinished, stage?.id]);
+  }, [hasStarted, isFinished, stage?.id, gpsRetryToken]);
 
   // Handle QR code scanner initialization
   useEffect(() => {
@@ -1163,10 +1185,26 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                     <MapPin className="w-5 h-5 text-indigo-500" />
                     <span className="font-semibold text-sm">Растојание:</span>
                   </div>
-                  <span className={`font-bold text-lg ${isCloseEnough || isStageCompleted ? 'text-emerald-500' : (isNightMode ? 'text-slate-300' : 'text-slate-700')}`}>
-                    {isStageCompleted ? 'Решено' : distanceToTarget !== null ? `${Math.round(distanceToTarget)} метри` : 'Се пресметува...'}
+                  <span className={`font-bold text-lg ${isCloseEnough || isStageCompleted ? 'text-emerald-500' : gpsError ? 'text-red-500' : (isNightMode ? 'text-slate-300' : 'text-slate-700')}`}>
+                    {isStageCompleted
+                      ? 'Решено'
+                      : gpsError === 'denied'
+                        ? 'Локацијата е одбиена'
+                        : gpsError === 'unavailable'
+                          ? 'Нема GPS сигнал'
+                          : distanceToTarget !== null ? `${Math.round(distanceToTarget)} метри` : 'Се пресметува...'}
                   </span>
                 </div>
+                {gpsError && (
+                  <div className={`mt-3 flex items-start gap-2 p-3 rounded-xl text-sm ${isNightMode ? 'bg-red-500/10 text-red-300' : 'bg-red-50 text-red-700'}`}>
+                    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      {gpsError === 'denied'
+                        ? 'Дозволи пристап до локацијата во поставките на прелистувачот, потоа обиди се повторно.'
+                        : 'Не можеме да добиеме GPS сигнал. Провери дали локацијата е вклучена и обиди се повторно.'}
+                    </span>
+                  </div>
+                )}
                 <a 
                   href={`https://www.google.com/maps/dir/?api=1&destination=${target.latitude},${target.longitude}`}
                   target="_blank"
@@ -1187,14 +1225,34 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                 <button onClick={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }} className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-emerald-600 animate-pulse active:scale-95 transition-all">
                   Ја најдов! (+{stage.points})
                 </button>
-              ) : (
-                <button 
-                  /* ONLY FOR DEMO PURPOSES: Allow skipping */
-                  onClick={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }} 
-                  className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-slate-900 active:scale-95 transition-all"
+              ) : gpsError ? (
+                <div className="space-y-2">
+                  <button
+                    onClick={() => { setGpsError(null); setGpsRetryToken(t => t + 1); }}
+                    className="w-full py-4 bg-indigo-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" /> Обиди се повторно
+                  </button>
+                  {!(stage as any).requiredToAdvance && (
+                    <button
+                      onClick={() => handleNextStage()}
+                      className={`w-full py-2.5 rounded-xl text-sm font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                      Прескокни без поени
+                    </button>
+                  )}
+                </div>
+              ) : !(stage as any).requiredToAdvance ? (
+                <button
+                  onClick={() => handleNextStage()}
+                  className={`w-full py-4 rounded-xl text-sm font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
                 >
-                  Скип (За Демо)
+                  Прескокни без поени
                 </button>
+              ) : (
+                <div className={`w-full py-4 text-center rounded-xl text-sm font-semibold ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
+                  Мора физички да пристигнеш до локацијата
+                </div>
               )}
             </div>
           </div>
@@ -1217,13 +1275,10 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                <div id="reader" className="w-full bg-black min-h-[280px] rounded-2xl overflow-hidden [&_video]:object-cover" />
                <div className="absolute inset-0 border-[6px] border-emerald-500/0 pointer-events-none rounded-3xl z-10 transition-colors"></div>
             </div>
-            
-            <button 
-              onClick={() => { setPoints(p => p + (stage.points || 0)); handleNextStage(); }} 
-              className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-emerald-600 active:scale-95 transition-all mt-auto"
-            >
-              Скип Скен (За Демо) (+{stage.points})
-            </button>
+
+            <p className={`text-xs mt-auto ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+              Насочи ја камерата кон QR кодот — поените се доделуваат автоматски по скенирање.
+            </p>
           </div>
         );
 
@@ -1250,12 +1305,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                  <div id="reader" className="w-full bg-black min-h-[280px] rounded-2xl overflow-hidden [&_video]:object-cover" />
               </div>
 
-              <button
-                onClick={() => { setScanError(null); setQrTaskScanned(true); }}
-                className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-slate-900 active:scale-95 transition-all mt-auto"
-              >
-                Скип Скен (За Демо)
-              </button>
+              <p className={`text-xs mt-auto ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                Насочи ја камерата кон QR кодот за да ја откриеш задачата.
+              </p>
             </div>
           );
         }
@@ -1708,20 +1760,33 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               <button type="button" aria-label="Затвори турнир" onClick={() => setShowTournament(false)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800' : 'bg-slate-200'}`}><X className="w-5 h-5" /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-               {[
-                 {name: playerName, pts: points, self: true},
-                 {name: 'Алекс Т.', pts: Math.max(0, points - 15), self: false},
-                 {name: 'Елена М.', pts: Math.max(0, points + 10), self: false},
-                 {name: 'Марко И.', pts: Math.max(0, points - 50), self: false}
-               ].sort((a,b) => b.pts - a.pts).map((t, idx) => (
-                 <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border ${t.self ? (isNightMode ? 'bg-indigo-900/40 border-indigo-500' : 'bg-indigo-50 border-indigo-300') : (isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')}`}>
+               {sessionCode && sessionPlayers.length > 0 ? (
+                 sessionPlayers
+                   .map(p => ({ name: p.name, pts: p.points, self: p.uid === sessionPlayerId }))
+                   .sort((a, b) => b.pts - a.pts)
+                   .map((t, idx) => (
+                     <div key={idx} className={`flex items-center justify-between p-4 rounded-xl border ${t.self ? (isNightMode ? 'bg-indigo-900/40 border-indigo-500' : 'bg-indigo-50 border-indigo-300') : (isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200')}`}>
+                       <div className="flex items-center gap-4">
+                         <span className={`font-bold text-lg ${idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-amber-700' : 'text-slate-500'}`}>#{idx+1}</span>
+                         <span className={`font-bold ${t.self ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>{t.name} {t.self && '(Ти)'}</span>
+                       </div>
+                       <span className="font-mono font-bold bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded text-sm">{t.pts}</span>
+                     </div>
+                   ))
+               ) : (
+                 <div className={`flex items-center justify-between p-4 rounded-xl border ${isNightMode ? 'bg-indigo-900/40 border-indigo-500' : 'bg-indigo-50 border-indigo-300'}`}>
                    <div className="flex items-center gap-4">
-                     <span className={`font-bold text-lg ${idx === 0 ? 'text-amber-500' : idx === 1 ? 'text-slate-400' : idx === 2 ? 'text-amber-700' : 'text-slate-500'}`}>#{idx+1}</span>
-                     <span className={`font-bold ${t.self ? 'text-indigo-600 dark:text-indigo-400' : ''}`}>{t.name} {t.self && '(Ти)'}</span>
+                     <span className="font-bold text-lg text-amber-500">#1</span>
+                     <span className="font-bold text-indigo-600 dark:text-indigo-400">{playerName} (Ти)</span>
                    </div>
-                   <span className="font-mono font-bold bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded text-sm">{t.pts}</span>
+                   <span className="font-mono font-bold bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded text-sm">{points}</span>
                  </div>
-               ))}
+               )}
+               {!(sessionCode && sessionPlayers.length > 0) && (
+                 <p className={`text-xs text-center ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>
+                   Нема активна жива сесија со други играчи во моментов.
+                 </p>
+               )}
             </div>
           </motion.div>
         )}

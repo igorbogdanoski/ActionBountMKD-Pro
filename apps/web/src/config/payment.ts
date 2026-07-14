@@ -14,8 +14,9 @@ export const PAYMENT_CONFIG = {
     pro:     { mkd: 1490, eur: '24.20' },
   },
 
-  // Firebase UID — земи го од Firebase Console → Authentication → Users
-  adminUids: ['YZyJNIyBeHVpuNaomr4tSVaDNY93'],
+  // Admin status is granted via the Firebase Auth `admin` custom claim
+  // (see apps/web/scripts/set-admin-claim.mjs + firestore.rules `isAdmin()`),
+  // not a UID list here — this file has no bearing on access control anymore.
 
   contactEmail: 'igor.bogdanoski@mismath.net',
 } as const;

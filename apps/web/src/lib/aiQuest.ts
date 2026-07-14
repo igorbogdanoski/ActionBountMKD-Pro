@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Stage, InfoStage, QuizStage } from 'shared';
+import { stripHtml, type Stage, type InfoStage, type QuizStage } from 'shared';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -39,16 +39,7 @@ export class AiQuestError extends Error {
 }
 
 // ─── Sanitization ───────────────────────────────────────────────────────────────
-// Mirrors lib/validation.ts: strip dangerous blocks + all tags to prevent XSS.
-
-function stripHtml(str: string): string {
-  return str
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<[^>]+>/g, '')
-    .trim();
-}
+// Uses the canonical stripHtml from `shared` — see packages/shared/sanitize.ts.
 
 function sanitizeText(value: unknown, max: number, fallback = ''): string {
   if (typeof value !== 'string') return fallback;

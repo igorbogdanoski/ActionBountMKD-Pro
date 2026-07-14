@@ -1,4 +1,4 @@
-import { collection, doc, addDoc, getDocs, updateDoc, query, where } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, updateDoc, query, where, runTransaction } from 'firebase/firestore';
 import { db } from './firebase';
 import type { PlanId } from 'shared';
 
@@ -43,14 +43,28 @@ export async function getPaymentRequests(status?: PaymentStatus): Promise<Paymen
   return results;
 }
 
+/**
+ * Approve a payment request and upgrade the user's plan atomically — either
+ * both writes land or neither does, so a network drop mid-approval can never
+ * leave a request marked "approved" with the user still on their old plan
+ * (or vice versa). The transaction also re-checks `status` server-side so a
+ * double-click or retried request can't be processed twice.
+ */
 export async function approvePaymentRequest(requestId: string, userId: string, planId: PlanId): Promise<void> {
-  await updateDoc(doc(db, COL, requestId), {
-    status: 'approved',
-    processedAt: new Date().toISOString(),
-  });
-  await updateDoc(doc(db, 'user_profiles', userId), {
-    plan: planId,
-    updatedAt: new Date().toISOString(),
+  await runTransaction(db, async (tx) => {
+    const reqRef = doc(db, COL, requestId);
+    const reqSnap = await tx.get(reqRef);
+    if (!reqSnap.exists() || (reqSnap.data() as PaymentRequest).status !== 'pending') {
+      throw new Error('Барањето веќе е обработено или не постои.');
+    }
+    tx.update(reqRef, {
+      status: 'approved',
+      processedAt: new Date().toISOString(),
+    });
+    tx.update(doc(db, 'user_profiles', userId), {
+      plan: planId,
+      updatedAt: new Date().toISOString(),
+    });
   });
 }
 

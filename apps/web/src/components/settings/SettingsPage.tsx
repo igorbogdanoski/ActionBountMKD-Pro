@@ -10,7 +10,6 @@ import { sendTestPushNotification } from '../../utils/pushNotifications';
 import { readOutdoorPref, outdoorPrefValue, OUTDOOR_STORAGE_KEY, OUTDOOR_CLASS } from '../../utils/displayPrefs';
 import { Toggle } from '../ui';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
-import { PAYMENT_CONFIG } from '../../config/payment';
 import type { PlanId } from 'shared';
 
 const PLAN_LABELS: Record<PlanId, string> = {
@@ -52,7 +51,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 }
 
 export function SettingsPage() {
-  const { user, profile, logout } = useAuth();
+  const { user, profile, isAdmin, logout } = useAuth();
   const { planId, limits } = usePlan();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -68,8 +67,6 @@ export function SettingsPage() {
   const [pushPermission, setPushPermission] = useState<string>('undetermined');
   const [pushError, setPushError] = useState<string | null>(null);
   const [sendingPush, setSendingPush] = useState(false);
-
-  const isAdmin = user ? (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid) : false;
 
   useEffect(() => {
     if (user) {

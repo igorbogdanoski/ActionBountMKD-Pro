@@ -27,8 +27,14 @@ const USER_PROFILES = 'user_profiles';
 const TEMPLATES = 'templates';
 const CLASS_GROUPS = 'class_groups';
 
+// Enterprise plans have no maxQuests cap (see PLAN_LIMITS), so this query is
+// otherwise unbounded — a hard ceiling keeps one large account's dashboard
+// load from growing latency/cost without limit, same pattern already used
+// below for templates (getPublicTemplates/getPendingTemplates).
+const MAX_OWN_QUESTS = 500;
+
 export async function getQuests(creatorId: string): Promise<Quest[]> {
-  const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId));
+  const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId), limit(MAX_OWN_QUESTS));
   const snap = await getDocs(q);
   return snap.docs.map(d => d.data() as Quest);
 }
@@ -195,8 +201,10 @@ export async function upsertUserProfile(profile: UserProfile): Promise<void> {
 
 // ─── CLASS GROUPS (Phase 7D-3) ────────────────────────────────────────────────
 
+const MAX_OWN_GROUPS = 300;
+
 export async function getGroups(ownerId: string): Promise<ClassGroup[]> {
-  const q = query(collection(db, CLASS_GROUPS), where('ownerId', '==', ownerId));
+  const q = query(collection(db, CLASS_GROUPS), where('ownerId', '==', ownerId), limit(MAX_OWN_GROUPS));
   const snap = await getDocs(q);
   const groups = snap.docs.map(d => d.data() as ClassGroup);
   groups.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());

@@ -33,9 +33,12 @@ service cloud.firestore {
           || resource.data.isPublic == true;
     }
 
-    // Hardcoded admin UIDs — update in src/config/payment.ts AND here
+    // Admin status comes from the `admin` custom claim on the user's ID
+    // token (set via scripts/set-admin-claim.mjs), not a hardcoded UID list —
+    // granting/revoking admin no longer requires editing and redeploying
+    // this file plus a client config file in lockstep.
     function isAdmin() {
-      return isAuth() && request.auth.uid in ['YZyJNIyBeHVpuNaomr4tSVaDNY93'];
+      return isAuth() && request.auth.token.admin == true;
     }
 
     function isValidQuest(data) {
@@ -82,13 +85,20 @@ service cloud.firestore {
       allow delete: if isOwner(resource);
     }
 
+    // Does the given quest belong to the current user? Used to scope results/
+    // feedback reads to the quest's own creator instead of any authed user.
+    function ownsQuest(questId) {
+      return isAuth() &&
+        get(/databases/$(database)/documents/quests/$(questId)).data.creatorId == request.auth.uid;
+    }
+
     // ─── QUEST RESULTS ────────────────────────────────────────────────────────
     match /quest_results/{resultId} {
       // Players submit results without auth (mobile player flow)
       allow create: if isValidResult(request.resource.data);
 
-      // Authenticated users can read results (for analytics dashboard)
-      allow read: if isAuth();
+      // Only the quest's own creator can read its results (analytics dashboard)
+      allow read: if ownsQuest(resource.data.questId);
 
       // No updates or deletes from the client
       allow update, delete: if false;
@@ -98,7 +108,7 @@ service cloud.firestore {
     match /quest_feedback/{feedbackId} {
       allow create: if request.resource.data.keys().hasAll(['questId', 'playerName', 'comment', 'createdAt'])
                     && request.resource.data.comment.size() <= 1000;
-      allow read: if isAuth();
+      allow read: if ownsQuest(resource.data.questId);
       allow update, delete: if false;
     }
 
@@ -120,9 +130,28 @@ service cloud.firestore {
     }
 
     // ─── PAYMENT REQUESTS ─────────────────────────────────────────────────────
+    function isValidPaymentRequest(data) {
+      return data.keys().hasOnly(['userId', 'userEmail', 'displayName', 'planId', 'method', 'amountMkd', 'transactionRef', 'note', 'status', 'createdAt'])
+        && data.keys().hasAll(['userId', 'userEmail', 'displayName', 'planId', 'method', 'amountMkd', 'transactionRef', 'status', 'createdAt'])
+        && data.planId in ['starter', 'pro', 'enterprise']
+        && data.method in ['paypal', 'bank']
+        && data.amountMkd is number
+        && data.amountMkd > 0
+        && data.amountMkd <= 100000
+        && data.transactionRef is string
+        && data.transactionRef.size() <= 200
+        && data.userEmail is string
+        && data.displayName is string
+        && data.displayName.size() <= 200
+        // Every request must start pending — only isAdmin() can flip status via update.
+        && data.status == 'pending';
+    }
+
     match /payment_requests/{reqId} {
       // Authenticated user can submit their own payment request
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow create: if isAuth()
+                    && request.resource.data.userId == request.auth.uid
+                    && isValidPaymentRequest(request.resource.data);
       // Only admin can read and update (approve/reject)
       allow read, update: if isAdmin();
       allow delete: if false;
@@ -179,8 +208,11 @@ service cloud.firestore {
     }
 
     match /game_sessions/{code} {
-      // Anyone can read a session (players join without auth, like the player flow)
-      allow read: if true;
+      // Players join without auth by fetching a single session by its known
+      // code (get) — but the collection must never be enumerable (list),
+      // since that would expose every session's roster of student names.
+      allow get: if true;
+      allow list: if false;
 
       // Only an authenticated host can create their own session
       allow create: if isAuth()

@@ -5,7 +5,6 @@ import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
 import { getPendingTemplates, saveTemplate } from '../../utils/storage';
 import { runSeedTemplates, cleanupDuplicateTemplates } from '../../utils/seedTemplates';
-import { PAYMENT_CONFIG } from '../../config/payment';
 import { SEO } from '../SEO';
 import type { PlanId, Template } from 'shared';
 
@@ -219,15 +218,13 @@ function TemplatesTab() {
 }
 
 export function AdminPanel() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState<string | null>(null);
   const [filter, setFilter]     = useState<PaymentRequest['status'] | 'all'>('pending');
   const [activeTab, setActiveTab] = useState<'payments' | 'templates'>('payments');
-
-  const isAdmin = user && (PAYMENT_CONFIG.adminUids as readonly string[]).includes(user.uid);
 
   const load = async () => {
     setLoading(true);

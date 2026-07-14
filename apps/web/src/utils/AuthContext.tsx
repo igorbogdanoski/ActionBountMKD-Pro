@@ -4,6 +4,7 @@ import {
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  getAdditionalUserInfo,
   signOut,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -18,6 +19,10 @@ import type { UserProfile } from 'shared';
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
+  /** True when the signed-in user's ID token carries the `admin` custom
+   * claim. Set server-side only (see scripts/set-admin-claim.mjs +
+   * firestore.rules `isAdmin()`) — never trust a client-side UID list. */
+  isAdmin: boolean;
   loading: boolean;
   authError: string | null;
   clearAuthError: () => void;
@@ -31,6 +36,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   profile: null,
+  isAdmin: false,
   loading: true,
   authError: null,
   clearAuthError: () => {},
@@ -75,10 +81,9 @@ function describeAuthError(code?: string): string {
   }
 }
 
-async function ensureProfile(firebaseUser: User): Promise<{ profile: UserProfile | null; isNew: boolean }> {
+async function ensureProfile(firebaseUser: User): Promise<{ profile: UserProfile | null }> {
   try {
     let p = await getUserProfile(firebaseUser.uid);
-    let isNew = false;
     if (!p) {
       p = {
         uid: firebaseUser.uid,
@@ -90,32 +95,42 @@ async function ensureProfile(firebaseUser: User): Promise<{ profile: UserProfile
         updatedAt: new Date().toISOString(),
       };
       await upsertUserProfile(p);
-      isNew = true;
     }
-    return { profile: p, isNew };
+    return { profile: p };
   } catch {
-    return { profile: null, isNew: false };
+    return { profile: null };
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser]       = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Handle redirect result (fires after signInWithRedirect returns).
-    // Surface a helpful message if the redirect sign-in failed.
-    getRedirectResult(auth).catch((err) => {
-      const code = (err as { code?: string }).code;
-      if (code) setAuthError(describeAuthError(code));
-    });
+    // Handle redirect result (fires after signInWithRedirect returns, i.e.
+    // after the mobile Google OAuth flow navigates back and the SPA
+    // remounts). This is the one reliable place to attribute a brand-new
+    // account to 'google' via redirect — Firebase's own isNewUser flag,
+    // not our Firestore profile-existence check, so it can never race with
+    // (or duplicate) the tracking done at each sign-in call site below.
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && getAdditionalUserInfo(result)?.isNewUser) {
+          trackEvent('signup', { method: 'google', plan: 'free' });
+        }
+      })
+      .catch((err) => {
+        const code = (err as { code?: string }).code;
+        if (code) setAuthError(describeAuthError(code));
+      });
 
     const unsubscribe = auth.onAuthStateChanged(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
-        const { profile: nextProfile, isNew } = await ensureProfile(firebaseUser);
+        const { profile: nextProfile } = await ensureProfile(firebaseUser);
         setProfile(nextProfile);
         if (nextProfile) {
           identifyAnalyticsUser(firebaseUser.uid, {
@@ -123,14 +138,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             has_photo: Boolean(nextProfile.photoURL),
           });
         }
-        if (isNew) {
-          trackEvent('signup', {
-            method: 'google',
-            plan: nextProfile?.plan ?? 'free',
-          });
-        }
+        // Source of truth for admin status is the ID token's custom claim
+        // (set server-side via scripts/set-admin-claim.mjs), never a
+        // client-side UID list — Firestore rules enforce the same claim.
+        const tokenResult = await firebaseUser.getIdTokenResult();
+        setIsAdmin(tokenResult.claims.admin === true);
       } else {
         setProfile(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -155,7 +170,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // Desktop: try popup first — fastest UX
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      if (getAdditionalUserInfo(result)?.isNewUser) {
+        trackEvent('signup', { method: 'google', plan: 'free' });
+      }
     } catch (err) {
       const code = (err as { code?: string }).code;
 
@@ -223,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{
-      user, profile, loading, authError,
+      user, profile, isAdmin, loading, authError,
       clearAuthError: () => setAuthError(null),
       signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, logout,
     }}>

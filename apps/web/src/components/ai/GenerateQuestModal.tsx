@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, X, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
-import { generateQuest, isAiConfigured } from '../../utils/aiService';
+import { generateQuest } from '../../utils/aiService';
 import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES } from '../../lib/aiQuest';
 import type { TemplateSubject } from 'shared';
 
@@ -27,8 +27,6 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
   const [error, setError]           = useState<string | null>(null);
 
   if (!open) return null;
-
-  const configured = isAiConfigured();
 
   const handleGenerate = async () => {
     const t = topic.trim();
@@ -90,13 +88,6 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
 
         {/* Body */}
         <div className="p-5 space-y-4">
-          {!configured && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-500/30 text-sm text-amber-800 dark:text-amber-300">
-              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-              <span>AI генераторот не е конфигуриран. Постави <code className="font-mono">VITE_GEMINI_API_KEY</code>.</span>
-            </div>
-          )}
-
           <div>
             <label htmlFor="ai-topic" className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               Тема
@@ -176,7 +167,7 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={loading || !configured || topic.trim().length < 3}
+            disabled={loading || topic.trim().length < 3}
             className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:from-fuchsia-400 hover:to-indigo-500 shadow-lg shadow-indigo-600/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading

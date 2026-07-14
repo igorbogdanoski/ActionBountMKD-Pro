@@ -15,7 +15,7 @@ import {
   saveOfflineResult,
   offlineQueueSize,
 } from '../../utils/offlineQueue';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import type { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
 import { SEO, LearningResourceSchema } from '../SEO';
@@ -447,25 +447,34 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     return () => navigator.geolocation.clearWatch(watchId);
   }, [hasStarted, isFinished, stage?.id, gpsRetryToken]);
 
-  // Handle QR code scanner initialization
+  // Handle QR code scanner initialization — html5-qrcode is a fairly heavy
+  // decoder library, dynamically imported so quests with no SCAN_CODE/QR_TASK
+  // stages never pay for it.
   useEffect(() => {
     const isScanStage = stage?.type === 'SCAN_CODE' || stage?.type === 'QR_TASK';
     // For QR_TASK the scanner is only active until the code is matched
     const scannerActive = isScanStage && hasStarted && !isFinished &&
       !(stage?.type === 'QR_TASK' && qrTaskScanned);
 
-    if (scannerActive) {
+    if (!scannerActive) return;
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
+      if (cancelled) return;
       // Need a bit of delay to ensure the DOM element is rendered
-      const timer = setTimeout(() => {
+      timer = setTimeout(() => {
+        if (cancelled) return;
         try {
           if (!scannerRef.current) {
-             scannerRef.current = new Html5QrcodeScanner("reader", { 
-               fps: 10, 
+             scannerRef.current = new Html5QrcodeScanner("reader", {
+               fps: 10,
                qrbox: { width: 250, height: 250 },
-               aspectRatio: 1.0, 
-               showTorchButtonIfSupported: true 
+               aspectRatio: 1.0,
+               showTorchButtonIfSupported: true
              }, false);
-             
+
              scannerRef.current.render((decodedText) => {
                  if (decodedText === (stage as any).targetQrPayload) {
                      scannerRef.current?.clear().catch(console.error);
@@ -490,15 +499,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           console.error("Scanner init error:", e);
         }
       }, 500);
-      
-      return () => {
-        clearTimeout(timer);
-        if (scannerRef.current) {
-          scannerRef.current.clear().catch(console.error);
-          scannerRef.current = null;
-        }
-      };
-    }
+    }).catch(e => console.error('Scanner load error:', e));
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (scannerRef.current) {
+        scannerRef.current.clear().catch(console.error);
+        scannerRef.current = null;
+      }
+    };
   }, [stage, hasStarted, isFinished, qrTaskScanned]);
 
   const [isQuestCached, setIsQuestCached] = useState(false);

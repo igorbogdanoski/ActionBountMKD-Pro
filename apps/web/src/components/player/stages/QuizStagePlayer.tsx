@@ -53,24 +53,53 @@ export function QuizStagePlayer({
       <StageMedia mediaUrl={(stage as any).mediaUrl} audioUrl={stage.audioUrl} />
       <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`} />
 
-      <div className="space-y-3 mb-6">
-        {stage.options?.map((opt: string) => (
-          <button
-            key={opt}
-            disabled={timeLeft === 0 || quizFeedback !== null}
-            onClick={() => onAnswerChange(opt)}
-            className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
-              quizAnswer === opt
-                ? 'border-indigo-500 bg-indigo-500/10 text-indigo-500 shadow-sm'
-                : isNightMode
-                  ? 'border-slate-700 bg-slate-800 text-slate-300 hover:border-indigo-400'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
+      {stage.questionType === 'multiple_choice' ? (
+        <div className="space-y-3 mb-6">
+          {stage.options?.map((opt: string) => (
+            <button
+              key={opt}
+              disabled={timeLeft === 0 || quizFeedback !== null}
+              onClick={() => onAnswerChange(opt)}
+              className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
+                quizAnswer === opt
+                  ? 'border-indigo-500 bg-indigo-500/10 text-indigo-500 shadow-sm'
+                  : isNightMode
+                    ? 'border-slate-700 bg-slate-800 text-slate-300 hover:border-indigo-400'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      ) : stage.questionType === 'estimate_number' ? (
+        <input
+          type="number"
+          inputMode="decimal"
+          value={quizAnswer}
+          onChange={e => onAnswerChange(e.target.value)}
+          disabled={timeLeft === 0 || quizFeedback !== null}
+          placeholder="Внеси број..."
+          className={`w-full p-4 rounded-xl border-2 mb-6 outline-none transition-colors ${
+            isNightMode
+              ? 'border-slate-700 bg-slate-800 text-slate-200 focus:border-indigo-400'
+              : 'border-slate-200 bg-white text-slate-800 focus:border-indigo-400'
+          } disabled:opacity-50`}
+        />
+      ) : (
+        <textarea
+          rows={4}
+          value={quizAnswer}
+          onChange={e => onAnswerChange(e.target.value)}
+          disabled={timeLeft === 0 || quizFeedback !== null}
+          placeholder="Внеси го твојот одговор..."
+          className={`w-full p-4 rounded-xl border-2 mb-6 outline-none transition-colors ${
+            isNightMode
+              ? 'border-slate-700 bg-slate-800 text-slate-200 focus:border-indigo-400'
+              : 'border-slate-200 bg-white text-slate-800 focus:border-indigo-400'
+          } disabled:opacity-50`}
+        />
+      )}
 
       {quizFeedback === 'error' && (
         <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">

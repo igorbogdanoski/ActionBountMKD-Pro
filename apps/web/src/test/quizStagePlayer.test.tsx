@@ -81,4 +81,45 @@ describe('QuizStagePlayer', () => {
     render(<QuizStagePlayer stage={makeStage({ hintText: 'Помисли повторно' })} {...baseProps()} quizAttempts={0} />);
     expect(screen.queryByText(/Помисли повторно/)).toBeNull();
   });
+
+  it('renders a textarea (not options) for free_text questions', () => {
+    const onAnswerChange = vi.fn();
+    render(
+      <QuizStagePlayer
+        stage={makeStage({ questionType: 'free_text', options: undefined, correctAnswer: 'скенер' })}
+        {...baseProps()}
+        onAnswerChange={onAnswerChange}
+      />
+    );
+    const input = screen.getByPlaceholderText('Внеси го твојот одговор...');
+    fireEvent.change(input, { target: { value: 'скенер' } });
+    expect(onAnswerChange).toHaveBeenCalledWith('скенер');
+    expect(screen.queryByRole('button', { name: 'А' })).toBeNull();
+  });
+
+  it('renders a number input for estimate_number questions', () => {
+    const onAnswerChange = vi.fn();
+    render(
+      <QuizStagePlayer
+        stage={makeStage({ questionType: 'estimate_number', options: undefined, correctAnswer: 42 })}
+        {...baseProps()}
+        onAnswerChange={onAnswerChange}
+      />
+    );
+    const input = screen.getByPlaceholderText('Внеси број...') as HTMLInputElement;
+    expect(input.type).toBe('number');
+    fireEvent.change(input, { target: { value: '42' } });
+    expect(onAnswerChange).toHaveBeenCalledWith('42');
+  });
+
+  it('lets a free_text answer enable the submit button', () => {
+    render(
+      <QuizStagePlayer
+        stage={makeStage({ questionType: 'free_text', options: undefined })}
+        {...baseProps()}
+        quizAnswer="мојот одговор"
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Потврди' })).not.toBeDisabled();
+  });
 });

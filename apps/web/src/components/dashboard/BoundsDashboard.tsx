@@ -8,6 +8,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { PlanUsageWidget } from './PlanUsageWidget';
 import { OnboardingBanner } from './OnboardingBanner';
 import { GenerateQuestModal } from '../ai/GenerateQuestModal';
+import { Modal } from '../ui/Modal';
 import { EDUCATION_SUBJECTS, EDUCATION_GRADES, questMatchesPedagogy } from 'shared';
 import type { Quest, EducationSubject, EducationGrade } from 'shared';
 
@@ -32,6 +33,7 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
   const [filterGrade, setFilterGrade]     = useState<EducationGrade | ''>('');
   const [favorites, setFavorites]         = useState<Set<string>>(new Set());
   const [downloaded, setDownloaded]       = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget]   = useState<Quest | null>(null);
 
   // Load persisted favourites/downloads from localStorage
   useEffect(() => {
@@ -94,8 +96,10 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm(t('dashboard.deleteConfirm'))) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
     await deleteQuest(id);
     setQuests(prev => prev.filter(q => q.id !== id));
   };
@@ -352,7 +356,7 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
                 <button
                   type="button"
                   aria-label="Избриши авантура"
-                  onClick={() => handleDelete(quest.id)}
+                  onClick={() => setDeleteTarget(quest)}
                   className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -362,6 +366,37 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
           ))}
         </div>
       )}
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title={t('dashboard.deleteConfirm')}
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-colors"
+            >
+              {t('dashboard.deleteAction')}
+            </button>
+          </>
+        }
+      >
+        {deleteTarget && (
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            „<span className="font-semibold text-slate-800 dark:text-white">{deleteTarget.title}</span>"
+          </p>
+        )}
+      </Modal>
 
     </div>
   );

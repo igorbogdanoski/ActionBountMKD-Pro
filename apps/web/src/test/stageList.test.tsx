@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { StageList } from '../components/creator/StageList';
 import type { InfoStage } from 'shared';
 
@@ -15,10 +15,10 @@ function makeStage(overrides: Partial<InfoStage> = {}): InfoStage {
   } as InfoStage;
 }
 
-function renderList(onDelete = vi.fn()) {
+function renderList(onDelete = vi.fn(), stages = [makeStage()]) {
   render(
     <StageList
-      stages={[makeStage()]}
+      stages={stages}
       selectedId={null}
       onSelect={vi.fn()}
       onAdd={vi.fn()}
@@ -30,47 +30,51 @@ function renderList(onDelete = vi.fn()) {
   return onDelete;
 }
 
-describe('StageList delete confirmation', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('asks for confirmation and deletes when confirmed', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
+describe('StageList delete confirmation (Modal-based)', () => {
+  it('opens a confirmation Modal instead of deleting immediately', () => {
     const onDelete = renderList();
 
     fireEvent.click(screen.getByTitle('Избриши'));
 
-    expect(window.confirm).toHaveBeenCalledOnce();
-    expect(onDelete).toHaveBeenCalledWith('s1');
-  });
-
-  it('does not delete when the confirmation is dismissed', () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
-    const onDelete = renderList();
-
-    fireEvent.click(screen.getByTitle('Избриши'));
-
-    expect(window.confirm).toHaveBeenCalledOnce();
+    expect(screen.getByRole('dialog')).toBeTruthy();
     expect(onDelete).not.toHaveBeenCalled();
   });
 
+  it('deletes when the Modal delete button is confirmed', () => {
+    const onDelete = renderList();
+
+    fireEvent.click(screen.getByTitle('Избриши'));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Избриши' }));
+
+    expect(onDelete).toHaveBeenCalledWith('s1');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('does not delete when the Modal is cancelled', () => {
+    const onDelete = renderList();
+
+    fireEvent.click(screen.getByTitle('Избриши'));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Откажи' }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('closes on Escape without deleting (gained from the shared Modal)', () => {
+    const onDelete = renderList();
+
+    fireEvent.click(screen.getByTitle('Избриши'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('includes the stage title in the confirmation message', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
-    render(
-      <StageList
-        stages={[makeStage({ title: 'Финална загатка' })]}
-        selectedId={null}
-        onSelect={vi.fn()}
-        onAdd={vi.fn()}
-        onDuplicate={vi.fn()}
-        onDelete={vi.fn()}
-        onReorder={vi.fn()}
-      />
-    );
+    renderList(vi.fn(), [makeStage({ title: 'Финална загатка' })]);
 
     fireEvent.click(screen.getByTitle('Избриши'));
 
-    expect(confirmSpy.mock.calls[0][0]).toContain('Финална загатка');
+    expect(within(screen.getByRole('dialog')).getByText(/Финална загатка/)).toBeTruthy();
   });
 });

@@ -62,6 +62,7 @@
     "play": "Играј",
     "quickEdit": "Уреди",
     "deleteConfirm": "Дали сте сигурни дека сакате да ја избришете оваа авантура?",
+    "deleteAction": "Избриши",
     "public": "Јавна",
     "private": "Приватна",
     "editModal": {

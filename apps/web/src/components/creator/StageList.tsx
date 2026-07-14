@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Plus, GripVertical, Copy, Trash2, MapPin, HelpCircle, Camera, QrCode, ScanLine, ListTodo, AlignLeft, Trophy, GitBranch } from 'lucide-react';
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor,
@@ -9,6 +10,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { Stage, StageType } from 'shared';
+import { Modal } from '../ui/Modal';
 
 // ─── Stage type config ────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ interface StageCardProps {
   isSelected: boolean;
   onSelect: () => void;
   onDuplicate: () => void;
-  onDelete: () => void;
+  onRequestDelete: () => void;
 }
 
 /** The image a stage actually shows to players, if any — used as the card thumbnail. */
@@ -74,7 +76,7 @@ function getStageThumbnail(stage: Stage): string | undefined {
   return undefined;
 }
 
-function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, onDelete }: StageCardProps) {
+function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, onRequestDelete }: StageCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: stage.id });
 
@@ -137,10 +139,7 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
           <button
             type="button"
             title="Избриши"
-            onClick={() => {
-              const label = stage.title.trim() || `Етапа ${index + 1}`;
-              if (window.confirm(`Дали сакаш да ја избришеш „${label}"? Ова не може да се врати.`)) onDelete();
-            }}
+            onClick={onRequestDelete}
             className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-red-400 hover:bg-slate-900 transition-colors"
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -183,6 +182,7 @@ export function StageList({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; label: string } | null>(null);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -190,6 +190,11 @@ export function StageList({
     const oldIndex = stages.findIndex(s => s.id === active.id);
     const newIndex = stages.findIndex(s => s.id === over.id);
     if (oldIndex !== -1 && newIndex !== -1) onReorder(oldIndex, newIndex);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) onDelete(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   return (
@@ -235,7 +240,7 @@ export function StageList({
                   isSelected={selectedId === stage.id}
                   onSelect={() => onSelect(stage.id)}
                   onDuplicate={() => onDuplicate(stage.id)}
-                  onDelete={() => onDelete(stage.id)}
+                  onRequestDelete={() => setDeleteTarget({ id: stage.id, label: stage.title.trim() || `Етапа ${idx + 1}` })}
                 />
                 {/* Insert after each stage */}
                 <InsertButton onInsert={type => onAdd(type, idx)} />
@@ -244,6 +249,35 @@ export function StageList({
           </div>
         </SortableContext>
       </DndContext>
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Избриши етапа?"
+        size="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(null)}
+              className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              Откажи
+            </button>
+            <button
+              type="button"
+              onClick={confirmDelete}
+              className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-colors"
+            >
+              Избриши
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Дали сакаш да ја избришеш „{deleteTarget?.label}"? Ова не може да се врати.
+        </p>
+      </Modal>
     </div>
   );
 }

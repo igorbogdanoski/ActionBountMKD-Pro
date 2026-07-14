@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { stripHtml } from './sanitize.ts';
-import type { Stage, InfoStage, QuizStage } from './types.ts';
+import { stripHtml } from './sanitize.js';
+import type { Stage, InfoStage, QuizStage } from './types.js';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

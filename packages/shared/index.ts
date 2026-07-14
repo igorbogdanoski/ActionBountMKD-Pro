@@ -1,3 +1,3 @@
-export * from './types.ts';
-export * from './sanitize.ts';
-export * from './aiQuest.ts';
+export * from './types.js';
+export * from './sanitize.js';
+export * from './aiQuest.js';

@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { MathRenderer } from '../editor/MathRenderer';
 import { SEO, LearningResourceSchema } from '../SEO';
 import { TournamentStagePlayer } from './stages/TournamentStagePlayer';
+import { SurveyStagePlayer } from './stages/SurveyStagePlayer';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, normalizeCollectedItemIds } from '../../lib/inventory';
 import { trackEvent } from '../../utils/analytics';
 import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } from '../../utils/playerInventoryState';
@@ -1608,55 +1609,18 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       }
 
       case 'SURVEY': {
-        const surveyQuestions: string[] = (stage as any).surveyQuestions || [];
-        const surveyHasRubric = !!(stage as any).rubric?.criteria?.length;
-        const surveyComplete = surveyQuestions.length > 0
-          && surveyQuestions.every((_, i) => (surveyAnswers[i] || '').trim().length >= 3);
-
-        const finishSurvey = () => {
-          if (!surveyComplete) return;
-          const submission: StageSubmission = {
-            stageId: stage.id,
-            type: 'survey',
-            surveyAnswers: surveyQuestions.map((_, i) => surveyAnswers[i] || ''),
-          };
-          if (!surveyHasRubric) setPoints(p => p + (stage.points || 0));
-          handleNextStage(undefined, submission);
-        };
-
+        const surveyStage = stage as import('shared').SurveyStage;
         return (
-          <div className="flex-1 overflow-y-auto p-6 flex flex-col">
-            <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2 text-center`}>{stage.title}</h2>
-            <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8 text-center`} />
-
-            {renderRubric()}
-
-            <div className="mb-8 space-y-5">
-              {surveyQuestions.map((q, i) => (
-                <div key={i}>
-                  <label className={`block text-base font-bold mb-2 ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`}>{q}</label>
-                  <textarea
-                    value={surveyAnswers[i] || ''}
-                    onChange={e => setSurveyAnswers(prev => ({ ...prev, [i]: e.target.value }))}
-                    className={`w-full rounded-2xl p-4 min-h-[100px] resize-none outline-none border-2 transition-colors ${
-                      isNightMode
-                        ? 'bg-slate-800 border-slate-700 text-slate-200 focus:border-indigo-500'
-                        : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-500'
-                    }`}
-                    placeholder="Вашето мислење овде..."
-                  />
-                </div>
-              ))}
-            </div>
-
-            <button
-              onClick={finishSurvey}
-              disabled={!surveyComplete}
-              className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
-            >
-              {surveyHasRubric ? 'Испрати за оценување' : 'Поднеси анкета'}
-            </button>
-          </div>
+          <SurveyStagePlayer
+            stage={surveyStage}
+            isNightMode={isNightMode}
+            answers={surveyAnswers}
+            onAnswerChange={(i, v) => setSurveyAnswers(prev => ({ ...prev, [i]: v }))}
+            onSubmit={submission => {
+              if (!surveyStage.rubric?.criteria?.length) setPoints(p => p + (stage.points || 0));
+              handleNextStage(undefined, submission);
+            }}
+          />
         );
       }
 

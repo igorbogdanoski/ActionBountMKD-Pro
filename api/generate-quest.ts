@@ -3,15 +3,34 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
-import { buildQuestPrompt, parseAiQuest, AiQuestError, type AiQuestRequest } from 'shared';
+import { buildQuestPrompt, parseAiQuest, clampStageCount, AiQuestError, type AiQuestRequest, type PromptQuality } from 'shared';
 
-// gemini-2.0-flash was retired by Google (HTTP 404 "no longer available").
-// Verified directly against the Gemini API (2026-07-14) that this model id
-// is live and supports JSON mode; re-verify against
-// https://generativelanguage.googleapis.com/v1beta/models before changing.
-const MODEL = 'gemini-3.5-flash';
 const DAILY_LIMIT = 20;
 const AI_PLANS = new Set(['starter', 'pro', 'enterprise']);
+
+// Model + reasoning budget scale with plan — Starter gets a fast, cheap
+// model with no thinking; Pro/Enterprise get progressively more "thinking"
+// budget (Gemini's native chain-of-thought mechanism: the model reasons
+// privately before answering) paired with richer prompt scaffolding
+// (buildQuestPrompt's 'advanced' quality). Admins always get the top tier.
+//
+// Use "-latest" aliases, not pinned versions: gemini-2.0-flash was retired
+// by Google mid-project (HTTP 404 "no longer available") and broke this
+// endpoint in production. Aliases always resolve to a currently-supported
+// model, so this class of bug shouldn't recur. Verified directly against
+// the live API (2026-07-14): gemini-flash-latest -> gemini-3.5-flash,
+// gemini-pro-latest -> gemini-3.1-pro-preview.
+interface TierConfig {
+  model: string;
+  thinkingBudget: number;
+  promptQuality: PromptQuality;
+}
+
+const TIER_CONFIG: Record<'starter' | 'pro' | 'enterprise', TierConfig> = {
+  starter:    { model: 'gemini-flash-latest', thinkingBudget: 0,    promptQuality: 'basic' },
+  pro:        { model: 'gemini-flash-latest', thinkingBudget: 2048, promptQuality: 'advanced' },
+  enterprise: { model: 'gemini-pro-latest',   thinkingBudget: 8192, promptQuality: 'advanced' },
+};
 
 function adminApp() {
   if (!getApps().length) {
@@ -20,32 +39,41 @@ function adminApp() {
 }
 
 // Constrains the model's output at the decoding level instead of just
-// asking nicely in the prompt — without this, ~50% of responses at
-// temperature 0.9 came back as malformed JSON (verified empirically against
-// the live API) and had to be discarded with a generic "try again" error.
-const QUEST_RESPONSE_SCHEMA = {
-  type: Type.OBJECT,
-  properties: {
-    title: { type: Type.STRING },
-    description: { type: Type.STRING },
-    stages: {
-      type: Type.ARRAY,
-      items: {
-        type: Type.OBJECT,
-        properties: {
-          type: { type: Type.STRING, enum: ['INFO', 'QUIZ'] },
-          title: { type: Type.STRING },
-          description: { type: Type.STRING },
-          questionType: { type: Type.STRING, enum: ['multiple_choice'] },
-          options: { type: Type.ARRAY, items: { type: Type.STRING } },
-          correctAnswer: { type: Type.STRING },
+// asking nicely in the prompt:
+// - responseSchema (JSON mode) — without it, ~50% of responses at
+//   temperature 0.9 came back as malformed JSON (verified empirically
+//   against the live API) and had to be discarded with a generic error.
+// - minItems/maxItems on `stages` — without it, models (especially
+//   Pro-tier with heavy reasoning) sometimes ignored the prompt's "EXACTLY
+//   N stages" instruction and returned fewer; the array-length constraint
+//   makes the count a hard guarantee instead of a suggestion.
+function buildQuestSchema(stageCount: number) {
+  return {
+    type: Type.OBJECT,
+    properties: {
+      title: { type: Type.STRING },
+      description: { type: Type.STRING },
+      stages: {
+        type: Type.ARRAY,
+        minItems: stageCount,
+        maxItems: stageCount,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            type: { type: Type.STRING, enum: ['INFO', 'QUIZ'] },
+            title: { type: Type.STRING },
+            description: { type: Type.STRING },
+            questionType: { type: Type.STRING, enum: ['multiple_choice'] },
+            options: { type: Type.ARRAY, items: { type: Type.STRING } },
+            correctAnswer: { type: Type.STRING },
+          },
+          required: ['type', 'title', 'description'],
         },
-        required: ['type', 'title', 'description'],
       },
     },
-  },
-  required: ['title', 'description', 'stages'],
-};
+    required: ['title', 'description', 'stages'],
+  };
+}
 
 function todayKey(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
@@ -99,7 +127,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isAdmin = decoded.admin === true;
 
     // The platform admin isn't a customer — skip the plan gate and the
-    // per-user quota entirely instead of trusting a Firestore plan field.
+    // per-user quota entirely, and get the top tier regardless of what
+    // user_profiles.plan happens to hold.
+    let tierKey: keyof typeof TIER_CONFIG = 'enterprise';
     if (!isAdmin) {
       const profileSnap = await getFirestore().collection('user_profiles').doc(uid).get();
       const plan = (profileSnap.data()?.plan as string | undefined) ?? 'free';
@@ -107,6 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(403).json({ code: 'invalid', error: 'AI генераторот е достапен на Starter план и повисоко.' });
         return;
       }
+      tierKey = plan as keyof typeof TIER_CONFIG;
 
       const withinQuota = await checkAndConsumeQuota(uid);
       if (!withinQuota) {
@@ -114,6 +145,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return;
       }
     }
+    const tier = TIER_CONFIG[tierKey];
 
     const body = (req.body ?? {}) as Partial<AiQuestRequest>;
     const aiReq: AiQuestRequest = {
@@ -127,19 +159,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(400).json({ code: 'invalid', error: 'Темата е премногу кратка.' });
       return;
     }
+    const stageCount = clampStageCount(aiReq.stageCount);
 
     const ai = new GoogleGenAI({ apiKey });
     const response = await ai.models.generateContent({
-      model: MODEL,
-      contents: buildQuestPrompt(aiReq),
+      model: tier.model,
+      contents: buildQuestPrompt(aiReq, tier.promptQuality),
       config: {
         responseMimeType: 'application/json',
-        responseSchema: QUEST_RESPONSE_SCHEMA,
+        responseSchema: buildQuestSchema(stageCount),
         temperature: 0.9,
-        // This is a straightforward structured-output task — thinking mode
-        // adds latency/cost with no benefit here (verified: ~9x more tokens
-        // per response with thinking left on its default budget).
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingBudget: tier.thinkingBudget },
       },
     });
 

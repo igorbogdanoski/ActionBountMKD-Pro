@@ -54,10 +54,20 @@ function sanitizeText(value: unknown, max: number, fallback = ''): string {
 // ─── Prompt builder ──────────────────────────────────────────────────────────────
 
 /**
- * Build a deterministic instruction prompt for the model. Always asks for a
- * strict JSON object (no prose) limited to INFO and QUIZ stages.
+ * 'basic' pairs with a fast model and no thinking budget (Starter). 'advanced'
+ * pairs with a model that reasons before answering (Pro/Enterprise) — the
+ * extra pedagogical scaffolding here is what that reasoning budget is spent
+ * on, instead of the model re-deriving "what makes a good quiz" from scratch.
  */
-export function buildQuestPrompt(req: AiQuestRequest): string {
+export type PromptQuality = 'basic' | 'advanced';
+
+/**
+ * Build a deterministic instruction prompt for the model. Always asks for a
+ * strict JSON object (no prose) limited to INFO and QUIZ stages. The exact
+ * stage count is additionally enforced via minItems/maxItems on the caller's
+ * responseSchema — this instruction alone isn't reliable enough on its own.
+ */
+export function buildQuestPrompt(req: AiQuestRequest, quality: PromptQuality = 'basic'): string {
   const stageCount = clampStageCount(req.stageCount);
   const topic = req.topic.trim();
   const subject = req.subject.trim();
@@ -78,6 +88,14 @@ export function buildQuestPrompt(req: AiQuestRequest): string {
     isMath
       ? '- Бидејќи е математика, пишувај формули во KaTeX синтакса меѓу знаци за долар, на пр. $x^2 + 1$.'
       : '- Содржината нека е фактички точна и прилагодена на возраста.',
+    ...(quality === 'advanced' ? [
+      '',
+      'Пред да одговориш, размисли чекор по чекор (не го пишувај ова размислување во одговорот):',
+      '1. Кои се 2-3 клучни концепти за темата што овие ученици навистина треба да ги совладаат?',
+      '2. Како етапите да прогресираат од основно разбирање кон подлабока примена, наместо да бидат случаен редослед?',
+      '3. За секое QUIZ прашање: дали навистина тестира разбирање на концептот, или само бара да се запомни изолиран факт? Претпочитај го првото.',
+      '4. Дали погрешните опции (distractor-и) во QUIZ прашањата се веродостојни — засновани на чести грешки во размислувањето на учениците — наместо очигледно погрешни?',
+    ] : []),
     '',
     'Врати ИСКЛУЧИВО валиден JSON објект (без markdown, без објаснувања) со следната структура:',
     '{',

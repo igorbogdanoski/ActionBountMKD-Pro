@@ -72,6 +72,17 @@ describe('buildQuestPrompt', () => {
     const prompt = buildQuestPrompt({ ...baseReq, subject: 'Математика', topic: 'Дропки' });
     expect(prompt).toContain('KaTeX');
   });
+
+  it('defaults to the basic prompt with no chain-of-thought scaffolding', () => {
+    const prompt = buildQuestPrompt(baseReq);
+    expect(prompt).not.toContain('чекор по чекор');
+  });
+
+  it('adds chain-of-thought pedagogical scaffolding for the advanced tier', () => {
+    const prompt = buildQuestPrompt(baseReq, 'advanced');
+    expect(prompt).toContain('чекор по чекор');
+    expect(prompt).toContain('distractor');
+  });
 });
 
 // ─── parseAiQuest: happy path ─────────────────────────────────────────────────────

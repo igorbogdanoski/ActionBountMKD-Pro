@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -87,13 +88,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     <Modal open={isOpen} onClose={onClose} showHeader={false}>
       <div className="relative overflow-hidden rounded-2xl">
         {/* Close button */}
-        <button
+        <Button
+          type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+          size="icon"
+          variant="ghost"
+          className="absolute top-4 right-4 !p-1.5 text-slate-400 hover:text-slate-600 hover:!bg-slate-100"
           aria-label="Close"
         >
           <X size={18} />
-        </button>
+        </Button>
 
         {/* Header */}
         <div className="bg-[#2a2522] px-6 py-5">
@@ -109,17 +113,19 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         {/* Tab switcher */}
         <div className="flex border-b border-slate-200">
           {(['google', 'email'] as Tab[]).map((t_) => (
-            <button
+            <Button
               key={t_}
+              type="button"
               onClick={() => { setTab(t_); clearAuthError(); }}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                tab === t_
-                  ? 'border-b-2 border-brand-500 text-brand-600'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
+              variant="ghost"
+              aria-pressed={tab === t_}
+              colorClassName={tab === t_
+                ? 'border-brand-500 text-brand-600 focus-visible:ring-brand-500'
+                : 'border-transparent text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400'}
+              className="flex-1 !rounded-none !py-3 !font-medium border-b-2"
             >
               {t_ === 'google' ? t('auth.modal.tabGoogle') : t('auth.modal.tabEmail')}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -139,10 +145,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   ? 'Продолжи со твојот Google профил — без лозинка.'
                   : 'Continue with your Google profile.'}
               </p>
-              <button
+              <Button
+                type="button"
                 onClick={handleGoogleSignIn}
                 disabled={busy || loading}
-                className="w-full flex items-center justify-center gap-3 border-2 border-slate-200 rounded-xl py-3 px-4 font-medium text-slate-700 hover:border-brand-400 hover:bg-brand-50 transition-all disabled:opacity-50"
+                fullWidth
+                colorClassName="border-2 border-slate-200 text-slate-700 hover:border-brand-400 hover:bg-brand-50 focus-visible:ring-brand-400"
+                className="!py-3 !gap-3 !font-medium"
               >
                 {/* Google G logo */}
                 <svg width="20" height="20" viewBox="0 0 24 24">
@@ -152,7 +161,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 {busy ? t('auth.modal.btnLoading') : t('auth.signInWithGoogle')}
-              </button>
+              </Button>
             </div>
           )}
 
@@ -170,12 +179,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <div className="text-center py-4">
                   <div className="text-3xl mb-3">📧</div>
                   <p className="text-green-700 font-medium">{t('auth.modal.resetSent')}</p>
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => switchMode('login')}
-                    className="mt-4 text-sm text-brand-600 hover:underline"
+                    variant="ghost"
+                    colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500"
+                    className="mt-4 !p-0 !font-medium"
                   >
                     {t('auth.modal.backToLogin')}
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <form onSubmit={handleEmailSubmit} className="space-y-4">
@@ -239,10 +251,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   )}
 
                   {/* Submit */}
-                  <button
+                  <Button
                     type="submit"
                     disabled={busy || loading}
-                    className="w-full bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white font-semibold rounded-xl py-3 transition-colors"
+                    variant="primary"
+                    fullWidth
+                    className="!py-3 !font-semibold"
                   >
                     {busy
                       ? t('auth.modal.btnLoading')
@@ -251,7 +265,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                         : mode === 'register'
                           ? t('auth.modal.btnRegister')
                           : t('auth.modal.btnSendReset')}
-                  </button>
+                  </Button>
                 </form>
               )}
 
@@ -260,23 +274,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <div className="mt-4 flex flex-col items-center gap-1.5 text-sm">
                   {mode === 'login' && (
                     <>
-                      <button onClick={() => switchMode('register')} className="text-brand-600 hover:underline">
+                      <Button type="button" variant="ghost" colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('register')}>
                         {t('auth.modal.switchToRegister')}
-                      </button>
-                      <button onClick={() => switchMode('reset')} className="text-slate-400 hover:text-slate-600 text-xs">
+                      </Button>
+                      <Button type="button" variant="ghost" colorClassName="text-slate-400 hover:text-slate-600 focus-visible:ring-slate-400" className="!p-0 !text-xs !font-medium" onClick={() => switchMode('reset')}>
                         {t('auth.modal.forgotPassword')}
-                      </button>
+                      </Button>
                     </>
                   )}
                   {mode === 'register' && (
-                    <button onClick={() => switchMode('login')} className="text-brand-600 hover:underline">
+                    <Button type="button" variant="ghost" colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('login')}>
                       {t('auth.modal.switchToLogin')}
-                    </button>
+                    </Button>
                   )}
                   {mode === 'reset' && (
-                    <button onClick={() => switchMode('login')} className="text-slate-500 hover:text-slate-700 text-xs">
+                    <Button type="button" variant="ghost" colorClassName="text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400" className="!p-0 !text-xs !font-medium" onClick={() => switchMode('login')}>
                       {t('auth.modal.backToLogin')}
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}

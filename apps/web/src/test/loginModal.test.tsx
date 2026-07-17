@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { act, render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '../i18n';
 
 const authState = vi.hoisted(() => ({
@@ -39,6 +39,10 @@ describe('LoginModal', () => {
     render(<LoginModal isOpen onClose={vi.fn()} />);
     fireEvent.click(screen.getByText('Е-маил'));
     expect(screen.getByPlaceholderText('vase@email.com')).toBeTruthy();
+    const tabs = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'));
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0]).toHaveAttribute('aria-pressed', 'false');
+    expect(tabs[1]).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('calls signInWithGoogle when the Google button is clicked', async () => {
@@ -61,5 +65,23 @@ describe('LoginModal', () => {
     render(<LoginModal isOpen onClose={onClose} />);
     fireEvent.click(screen.getByLabelText('Close'));
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it('keeps only the email action as a submit control and submits credentials', async () => {
+    const { container } = render(<LoginModal isOpen onClose={vi.fn()} />);
+    fireEvent.click(screen.getByText('Е-маил'));
+
+    const email = container.querySelector('input[type="email"]')!;
+    const password = container.querySelector('input[type="password"]')!;
+    fireEvent.change(email, { target: { value: 'teacher@example.test' } });
+    fireEvent.change(password, { target: { value: 'secret12' } });
+
+    const buttons = screen.getAllByRole('button');
+    const submit = buttons.find(button => button.getAttribute('type') === 'submit');
+    expect(submit).toBeDefined();
+    buttons.filter(button => button !== submit).forEach(button => expect(button).toHaveAttribute('type', 'button'));
+    fireEvent.click(submit!);
+
+    await waitFor(() => expect(authState.signInWithEmail).toHaveBeenCalledWith('teacher@example.test', 'secret12'));
   });
 });

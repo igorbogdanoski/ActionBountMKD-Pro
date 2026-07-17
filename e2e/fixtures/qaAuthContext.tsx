@@ -5,6 +5,7 @@ import type { PlanId, UserProfile } from 'shared';
 const query = new URLSearchParams(window.location.search);
 const plan = (query.get('qaPlan') || 'pro') as PlanId;
 const isAdmin = query.get('qaAdmin') === '1';
+const isGuest = query.get('qaGuest') === '1';
 
 const user = {
   uid: 'qa-teacher-001',
@@ -23,8 +24,8 @@ const profile: UserProfile = {
 };
 
 const value = {
-  user,
-  profile,
+  user: isGuest ? null : user,
+  profile: isGuest ? null : profile,
   isAdmin,
   loading: false,
   authError: null,

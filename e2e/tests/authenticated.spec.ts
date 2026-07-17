@@ -38,6 +38,7 @@ test.describe('authenticated QA harness', () => {
   });
 
   test('keeps the onboarding actions visible and routes the primary CTA', async ({ page }) => {
+    await page.addInitScript(() => localStorage.removeItem('ak_onboarding_dismissed'));
     await page.goto('/dashboard?qaPlan=free');
     const onboarding = page.locator('main .from-brand-50');
     await expect(onboarding).toBeVisible();
@@ -45,5 +46,22 @@ test.describe('authenticated QA harness', () => {
     await expect(actions).toHaveCount(3);
     await actions.nth(1).click();
     await expect(page).toHaveURL(/\/creator$/);
+  });
+
+  test('opens the public login modal and preserves tab/form semantics', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'authenticated-desktop', 'desktop landing login control');
+    await page.goto('/?qaGuest=1');
+    await page.locator('header button.hidden').click();
+
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    const tabs = dialog.locator('button[aria-pressed]');
+    await expect(tabs).toHaveCount(2);
+    await expect(tabs.nth(0)).toHaveAttribute('aria-pressed', 'true');
+    await tabs.nth(1).click();
+    await expect(tabs.nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await expect(dialog.locator('button[type="submit"]')).toHaveCount(1);
+    await dialog.getByRole('button', { name: 'Close' }).click();
+    await expect(dialog).toBeHidden();
   });
 });

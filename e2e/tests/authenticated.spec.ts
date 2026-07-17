@@ -120,4 +120,29 @@ test.describe('authenticated QA harness', () => {
     await expect(page.getByRole('button', { name: /QA 7-А/ })).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('persists dashboard quest toggles and confirms deletion without overflow', async ({ page }) => {
+    await page.goto('/dashboard?qaPlan=pro&qaQuest=1', { waitUntil: 'domcontentloaded' });
+    const questCard = page.locator('article').filter({ hasText: 'QA градска авантура' });
+    await expect(questCard).toBeVisible({ timeout: 15_000 });
+
+    const favorite = questCard.getByRole('button', { name: 'Додај во омилени' });
+    await expect(favorite).toHaveAttribute('aria-pressed', 'false');
+    await favorite.click();
+    await expect(questCard.getByRole('button', { name: 'Отстрани од омилени' })).toHaveAttribute('aria-pressed', 'true');
+
+    const offline = questCard.getByRole('button', { name: 'Зачувај офлајн' });
+    await offline.click();
+    await expect(questCard.getByRole('button', { name: 'Офлајн зачувано' })).toHaveAttribute('aria-pressed', 'true');
+
+    await questCard.getByRole('button', { name: 'Избриши авантура' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('QA градска авантура');
+    await dialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(dialog).toBeHidden();
+    await questCard.getByRole('button', { name: 'Избриши авантура' }).click();
+    await dialog.getByRole('button', { name: 'Избриши' }).click();
+    await expect(questCard).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

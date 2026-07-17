@@ -25,7 +25,21 @@ export async function upsertUserProfile(_profile: UserProfile) {}
 // Vite scans every lazy route before serving the selected QA route. Keep the
 // mock module export-compatible with storage.ts while returning inert data for
 // routes that authenticated.spec.ts does not exercise.
-export async function getQuests() { return []; }
+export async function getQuests() {
+  if (!new URLSearchParams(window.location.search).has('qaQuest')) return [];
+  return [{
+    id: 'qa-quest-1',
+    creatorId: 'qa-teacher',
+    title: 'QA градска авантура',
+    description: 'Browser verification quest',
+    visibility: 'secret',
+    playMode: 'singleplayer',
+    sequenceType: 'fixed',
+    stages: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  }];
+}
 export async function getPublicQuests() { return []; }
 export async function getQuestById() { return null; }
 export async function saveQuest() {}

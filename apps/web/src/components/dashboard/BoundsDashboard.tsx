@@ -9,6 +9,7 @@ import { PlanUsageWidget } from './PlanUsageWidget';
 import { OnboardingBanner } from './OnboardingBanner';
 import { GenerateQuestModal } from '../ai/GenerateQuestModal';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 import { EDUCATION_SUBJECTS, EDUCATION_GRADES, questMatchesPedagogy } from 'shared';
 import type { Quest, EducationSubject, EducationGrade } from 'shared';
 
@@ -124,25 +125,26 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
             type="button"
             onClick={() => can('canUseAI') ? setAiOpen(true) : navigate('/pricing')}
             title={can('canUseAI') ? 'Генерирај авантура со AI' : 'Достапно на Starter+ план'}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-fuchsia-500 to-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-indigo-600/20 hover:from-fuchsia-400 hover:to-indigo-500 transition-colors"
+            colorClassName="bg-gradient-to-r from-fuchsia-500 to-indigo-600 text-white shadow-md shadow-indigo-600/20 hover:from-fuchsia-400 hover:to-indigo-500 focus-visible:ring-indigo-500"
           >
             <Sparkles className="h-5 w-5" />
             AI Генерирај
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={onCreateNew}
             disabled={atLimit}
             title={atLimit ? 'Го достигнавте лимитот на вашиот план' : undefined}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            variant="success"
+            className="!px-5 shadow-md shadow-emerald-600/20"
           >
             <Plus className="h-5 w-5" />
             {t('dashboard.newAdventure')}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -212,14 +214,16 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
               <p className="text-slate-500 dark:text-slate-400 max-w-sm mb-8">
                 {t('dashboard.emptyDesc')}
               </p>
-              <button
+              <Button
                 type="button"
                 onClick={onCreateNew}
-                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-600/20"
+                variant="app-primary"
+                size="lg"
+                className="shadow-lg shadow-indigo-600/20"
               >
                 <Plus className="h-5 w-5" />
                 {t('dashboard.createFirst')}
-              </button>
+              </Button>
             </>
           ) : (
             <>
@@ -271,30 +275,32 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
 
                 {/* Action buttons top-right */}
                 <div className="absolute top-3 right-3 flex gap-1.5">
-                  <button
+                  <Button
                     type="button"
                     aria-label={downloaded.has(quest.id) ? 'Офлајн зачувано' : 'Зачувај офлајн'}
+                    aria-pressed={downloaded.has(quest.id)}
                     onClick={e => toggleDownload(quest, e)}
-                    className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${
-                      downloaded.has(quest.id)
-                        ? 'bg-emerald-500/80 text-white'
-                        : 'bg-black/30 text-white/70 hover:text-white'
-                    }`}
+                    size="icon"
+                    colorClassName={downloaded.has(quest.id)
+                      ? 'bg-emerald-500/80 text-white focus-visible:ring-emerald-400'
+                      : 'bg-black/30 text-white/70 hover:text-white focus-visible:ring-white'}
+                    className="!p-1.5 !rounded-full backdrop-blur-sm"
                   >
                     {downloaded.has(quest.id) ? <Cloud className="w-3.5 h-3.5" /> : <CloudOff className="w-3.5 h-3.5" />}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     aria-label={favorites.has(quest.id) ? 'Отстрани од омилени' : 'Додај во омилени'}
+                    aria-pressed={favorites.has(quest.id)}
                     onClick={e => toggleFavorite(quest.id, e)}
-                    className={`p-1.5 rounded-full backdrop-blur-sm transition-colors ${
-                      favorites.has(quest.id)
-                        ? 'bg-rose-500/80 text-white'
-                        : 'bg-black/30 text-white/70 hover:text-white'
-                    }`}
+                    size="icon"
+                    colorClassName={favorites.has(quest.id)
+                      ? 'bg-rose-500/80 text-white focus-visible:ring-rose-400'
+                      : 'bg-black/30 text-white/70 hover:text-white focus-visible:ring-white'}
+                    className="!p-1.5 !rounded-full backdrop-blur-sm"
                   >
                     <Heart className={`w-3.5 h-3.5 ${favorites.has(quest.id) ? 'fill-current' : ''}`} />
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Title overlay */}
@@ -330,37 +336,42 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
 
               {/* Actions */}
               <div className="px-4 py-3 flex gap-2">
-                <button
+                <Button
                   type="button"
-                  onClick={() => window.open(`/play/${quest.id}`, '_blank')}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-sm font-semibold transition-colors"
+                  onClick={() => window.open(`/play/${quest.id}`, '_blank', 'noopener,noreferrer')}
+                  colorClassName="bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 focus-visible:ring-emerald-500"
+                  className="flex-1 !py-2 !rounded-lg !font-semibold"
                 >
                   <Play className="h-4 w-4" /> {t('dashboard.play')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   aria-label="Игра во живо"
                   title={isPro ? 'Започни игра во живо' : 'Достапно на Pro план'}
                   onClick={() => navigate(isPro ? `/host/${quest.id}` : '/pricing')}
-                  className="inline-flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-sm font-semibold transition-colors"
+                  size="icon"
+                  colorClassName="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 focus-visible:ring-indigo-500"
+                  className="!py-2 !px-3"
                 >
                   <Radio className="h-4 w-4" />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => navigate(`/creator/${quest.id}`)}
-                  className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-sm font-semibold transition-colors"
+                  colorClassName="bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 focus-visible:ring-slate-500"
+                  className="flex-1 !py-2 !rounded-lg !font-semibold"
                 >
                   <Edit2 className="h-4 w-4" /> {t('dashboard.quickEdit')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   aria-label="Избриши авантура"
                   onClick={() => setDeleteTarget(quest)}
-                  className="p-2 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-colors"
+                  size="icon"
+                  colorClassName="bg-slate-50 dark:bg-slate-700/50 text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-500 focus-visible:ring-rose-500"
                 >
                   <Trash2 className="h-4 w-4" />
-                </button>
+                </Button>
               </div>
             </article>
           ))}
@@ -374,20 +385,22 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
         size="sm"
         footer={
           <>
-            <button
+            <Button
               type="button"
               onClick={() => setDeleteTarget(null)}
-              className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              variant="ghost"
+              className="!rounded-lg !py-2 !font-semibold"
             >
               {t('common.cancel')}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
               onClick={confirmDelete}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-colors"
+              variant="danger"
+              className="!rounded-lg !py-2"
             >
               {t('dashboard.deleteAction')}
-            </button>
+            </Button>
           </>
         }
       >
@@ -401,4 +414,3 @@ export function BoundsDashboard({ onCreateNew }: BoundsDashboardProps) {
     </div>
   );
 }
-

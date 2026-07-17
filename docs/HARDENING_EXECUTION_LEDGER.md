@@ -75,7 +75,7 @@ Batch-от е затворен само кога:
 ### H2 — Button Tier 2: среден ризик
 
 - [x] `PricingPage` + `PaymentModal`.
-- [ ] `SettingsPage`.
+- [x] `SettingsPage`.
 - [ ] `JoinSession`.
 - [ ] Form submission, loading, pending state и theme verification.
 
@@ -148,6 +148,7 @@ Batch-от е затворен само кога:
 | R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update | Closed |
 | R11 | AutoSave failure-path tests испишуваат очекуван `console.error` noise | Spy, suppress и assert на expected logging contract | Closed |
 | R12 | Fixed `InstallPrompt` може да прекрие pricing content/CTA, особено на mobile | Route-aware suppression на `/pricing`; deferred event се чува за следна eligible SPA route | Closed |
+| R13 | Local dummy Firebase не овозможува authenticated browser QA за Settings/H3 | Воспостави безбеден test-auth/browser harness пред H3 | Open |
 
 ## Извршена евиденција
 
@@ -158,7 +159,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | Test warning cleanup R9–R11 | `04f1581` | PASS | 479/479 PASS, clean stderr | n/a | Recharts sizing, React async act и expected AutoSave logging се покриени без шум. |
 | 2026-07-17 | H2a PricingPage + PaymentModal | `ac9e218` | PASS | 483/483 PASS, clean stderr | PASS | 4 plan CTAs + 7 payment controls; evaluator PASS; desktop/mobile light/dark; R12 overlap follow-up е одделно евидентиран. |
 | 2026-07-17 | R12 InstallPrompt pricing collision | `db242e3` | PASS | 485/485 PASS, clean stderr | PASS | Pricing suppression + deferred prompt reappearance after SPA navigation; evaluator round 2 PASS. |
+| 2026-07-17 | H2b SettingsPage | pending | PASS | 492/492 PASS, clean stderr | Not run (R13) | All Settings controls; 7 focused state/contract tests; evaluator round 2 PASS. |
 
 ## Следна акција
 
-Commit-ирај го `R12` fix-от, потоа започни `H2b / SettingsPage`.
+Commit-ирај `H2b`, потоа започни `H2c / JoinSession`; `R13` мора да се затвори пред H3.

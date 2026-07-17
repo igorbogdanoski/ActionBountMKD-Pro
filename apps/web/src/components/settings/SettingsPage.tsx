@@ -8,7 +8,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { upsertUserProfile, getUserTheme, getUserSettings, saveUserTheme } from '../../utils/storage';
 import { sendTestPushNotification } from '../../utils/pushNotifications';
 import { readOutdoorPref, outdoorPrefValue, OUTDOOR_STORAGE_KEY, OUTDOOR_CLASS } from '../../utils/displayPrefs';
-import { Toggle } from '../ui';
+import { Button, Toggle } from '../ui';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import type { PlanId } from 'shared';
 
@@ -146,19 +146,20 @@ export function SettingsPage() {
       {/* Tab nav */}
       <div className="flex gap-1 border-b border-slate-700">
         {TABS.map(({ id, label, icon: Icon }) => (
-          <button
+          <Button
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px ${
-              tab === id
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            aria-pressed={tab === id}
+            variant="ghost"
+            colorClassName={tab === id
+              ? 'border-indigo-500 text-indigo-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200'}
+            className="!gap-2 !px-4 !py-2.5 !rounded-none !font-semibold border-b-2 -mb-px"
           >
             <Icon className="w-4 h-4" />
             {label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -199,14 +200,15 @@ export function SettingsPage() {
                     placeholder="Твое iмe"
                     className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors"
                   />
-                  <button
+                  <Button
                     type="button"
                     onClick={saveDisplayName}
                     disabled={saving || !displayName.trim() || displayName === user?.displayName}
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold transition-colors flex items-center gap-1.5 justify-center"
+                    variant="app-primary"
+                    className="w-full sm:w-auto !py-2 !gap-1.5 hover:!bg-indigo-700 disabled:opacity-40"
                   >
                     {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <><Check className="w-4 h-4" /> Зачувано</> : 'Зачувај'}
-                  </button>
+                  </Button>
                 </div>
                 {saveError && (
                   <p className="flex items-center gap-1.5 text-xs text-red-400">
@@ -224,10 +226,12 @@ export function SettingsPage() {
           </SectionCard>
 
           {isAdmin && (
-            <button
+            <Button
               type="button"
               onClick={() => navigate('/admin')}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 transition-colors"
+              fullWidth
+              colorClassName="border border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 focus-visible:ring-indigo-500"
+              className="!justify-between !px-5 !py-4 !rounded-2xl"
             >
               <div className="flex items-center gap-3">
                 <Shield className="w-5 h-5 text-indigo-400" />
@@ -237,7 +241,7 @@ export function SettingsPage() {
                 </div>
               </div>
               <ChevronRight className="w-4 h-4 text-slate-500" />
-            </button>
+            </Button>
           )}
         </div>
       )}
@@ -247,18 +251,15 @@ export function SettingsPage() {
         <div className="space-y-4">
           <SectionCard>
             <Row label="Тема" hint="Темна или светла позадина">
-              <button
+              <Button
                 type="button"
                 onClick={toggleTheme}
-                className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all ${
-                  isDark
-                    ? 'bg-slate-700 text-slate-200'
-                    : 'bg-amber-100 text-amber-800'
-                }`}
+                colorClassName={isDark ? 'bg-slate-700 text-slate-200' : 'bg-amber-100 text-amber-800'}
+                className="relative !gap-1.5 !px-3 !py-1.5 !font-semibold transition-all"
               >
                 {isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
                 {isDark ? 'Темна' : 'Светла'}
-              </button>
+              </Button>
             </Row>
             <Row label="Режим за надвор" hint="Висок контраст за читливост на сонце">
               <Toggle checked={outdoor} onChange={toggleOutdoor} label="Режим за надвор" />
@@ -266,20 +267,20 @@ export function SettingsPage() {
             <Row label="Јазик" hint="Јазик на интерфејсот">
               <div className="flex flex-wrap gap-1.5">
                 {LANGUAGES.map(lang => (
-                  <button
+                  <Button
                     key={lang.code}
                     type="button"
                     onClick={() => switchLang(lang.code)}
                     title={lang.label}
-                    className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs font-bold transition-colors ${
-                      i18n.language === lang.code
-                        ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                    }`}
+                    aria-pressed={i18n.language === lang.code}
+                    colorClassName={i18n.language === lang.code
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}
+                    className="!gap-1 sm:!gap-1.5 !px-2 sm:!px-3 !py-1 sm:!py-1.5 !text-xs"
                   >
                     <Globe className="w-3.5 h-3.5" />
                     {lang.flag} {lang.code.toUpperCase()}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </Row>
@@ -297,13 +298,15 @@ export function SettingsPage() {
                   {PLAN_LABELS[planId]}
                 </span>
                 {(planId === 'free' || planId === 'starter') && (
-                  <button
+                  <Button
                     type="button"
                     onClick={() => navigate('/pricing')}
-                    className="text-xs font-bold text-indigo-400 hover:text-indigo-300 transition-colors"
+                    variant="ghost"
+                    colorClassName="text-indigo-400 hover:text-indigo-300"
+                    className="!p-0 !text-xs"
                   >
                     Надгради →
-                  </button>
+                  </Button>
                 )}
               </div>
             </Row>
@@ -354,15 +357,17 @@ export function SettingsPage() {
                 <p className="text-xs text-slate-500">
                   Тестот праќа push кон тековниот мобилен уред и отвора `/settings` при tap.
                 </p>
-                <button
+                <Button
                   type="button"
                   onClick={sendPushTest}
-                  disabled={!pushToken || sendingPush}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={!pushToken}
+                  loading={sendingPush}
+                  variant="app-primary"
+                  leftIcon={<BellRing className="w-4 h-4" />}
+                  className="!py-2 !font-semibold disabled:opacity-40"
                 >
-                  {sendingPush ? <Loader2 className="w-4 h-4 animate-spin" /> : <BellRing className="w-4 h-4" />}
                   Испрати тест push
-                </button>
+                </Button>
               </div>
               {pushError && <p className="text-xs text-rose-400">{pushError}</p>}
             </div>
@@ -370,14 +375,16 @@ export function SettingsPage() {
 
           <SectionCard>
             <div className="px-5 py-4">
-              <button
+              <Button
                 type="button"
                 onClick={logout}
-                className="flex items-center gap-2.5 text-sm font-semibold text-red-400 hover:text-red-300 transition-colors"
+                variant="ghost"
+                leftIcon={<LogOut className="w-4 h-4" />}
+                colorClassName="text-red-400 hover:text-red-300"
+                className="!p-0 !gap-2.5 !font-semibold"
               >
-                <LogOut className="w-4 h-4" />
                 Одјави се
-              </button>
+              </Button>
             </div>
           </SectionCard>
         </div>
@@ -385,4 +392,3 @@ export function SettingsPage() {
     </div>
   );
 }
-

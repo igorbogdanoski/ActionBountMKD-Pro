@@ -12,6 +12,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { InstallPrompt } from '../components/InstallPrompt';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -49,6 +50,24 @@ function stubMatchMedia(matches: boolean) {
   });
 }
 
+function renderPrompt(initialEntry = '/') {
+  return render(
+    <MemoryRouter initialEntries={[initialEntry]}>
+      <InstallPrompt />
+    </MemoryRouter>
+  );
+}
+
+function NavigationHarness() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <button type="button" onClick={() => navigate('/explore')}>Go to explore</button>
+      <InstallPrompt />
+    </>
+  );
+}
+
 // ─── Setup ───────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
@@ -69,12 +88,12 @@ afterEach(() => {
 
 describe('InstallPrompt', () => {
   it('renders nothing before any install event', () => {
-    const { container } = render(<InstallPrompt />);
+    const { container } = renderPrompt();
     expect(container.firstChild).toBeNull();
   });
 
   it('remains hidden until 3 s after the install event', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
 
     // Still hidden right after the event
@@ -86,7 +105,7 @@ describe('InstallPrompt', () => {
   });
 
   it('appears after 3 s delay once the install event fires', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
 
     act(() => { vi.advanceTimersByTime(3000); });
@@ -94,7 +113,7 @@ describe('InstallPrompt', () => {
   });
 
   it('shows the "Инсталирај" button and descriptive text', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -103,7 +122,7 @@ describe('InstallPrompt', () => {
   });
 
   it('calls prompt() when "Инсталирај" is clicked', async () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     const { promptFn } = fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -115,7 +134,7 @@ describe('InstallPrompt', () => {
   });
 
   it('disables the install action and shows loading content while prompt() is pending', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent('accepted', new Promise<void>(() => {}));
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -127,7 +146,7 @@ describe('InstallPrompt', () => {
   });
 
   it('hides the banner after install is accepted', async () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent('accepted');
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -139,7 +158,7 @@ describe('InstallPrompt', () => {
   });
 
   it('stores a dismiss timestamp in localStorage on X click', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -151,7 +170,7 @@ describe('InstallPrompt', () => {
   });
 
   it('hides after X is clicked', () => {
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -164,7 +183,7 @@ describe('InstallPrompt', () => {
     // Dismissed 1 day ago
     localStorage.setItem(DISMISS_KEY, String(Date.now() - 1 * 24 * 60 * 60 * 1000));
 
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -175,7 +194,7 @@ describe('InstallPrompt', () => {
     // Dismissed 8 days ago
     localStorage.setItem(DISMISS_KEY, String(Date.now() - 8 * 24 * 60 * 60 * 1000));
 
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -185,7 +204,7 @@ describe('InstallPrompt', () => {
   it('never shows when running in standalone (PWA already installed)', () => {
     stubMatchMedia(true); // (display-mode: standalone) matches
 
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
@@ -193,12 +212,34 @@ describe('InstallPrompt', () => {
   });
 
   it('never shows on iOS when navigator.standalone is true', () => {
-    Object.defineProperty(navigator, 'standalone', { value: true, writable: true });
+    Object.defineProperty(navigator, 'standalone', { value: true, writable: true, configurable: true });
 
-    render(<InstallPrompt />);
+    renderPrompt();
     fireInstallEvent();
     act(() => { vi.advanceTimersByTime(3000); });
 
     expect(screen.queryByRole('banner')).toBeNull();
+  });
+
+  it('suppresses the banner on pricing, including query and hash variants', () => {
+    renderPrompt('/pricing?plan=starter#compare');
+    fireInstallEvent();
+    act(() => { vi.advanceTimersByTime(3000); });
+
+    expect(screen.queryByRole('banner')).toBeNull();
+  });
+
+  it('shows the captured prompt after navigating away from pricing without a second install event', () => {
+    render(
+      <MemoryRouter initialEntries={['/pricing']}>
+        <NavigationHarness />
+      </MemoryRouter>
+    );
+    fireInstallEvent();
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(screen.queryByRole('banner')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go to explore' }));
+    expect(screen.getByRole('banner')).toBeInTheDocument();
   });
 });

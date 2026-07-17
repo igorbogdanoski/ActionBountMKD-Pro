@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { Button } from './ui/Button';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -11,6 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISS_KEY = 'av_install_prompt_dismissed';
 
 export function InstallPrompt() {
+  const { pathname } = useLocation();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -58,7 +60,7 @@ export function InstallPrompt() {
     localStorage.setItem(DISMISS_KEY, String(Date.now()));
   };
 
-  if (!visible || !deferredPrompt) return null;
+  if (pathname === '/pricing' || !visible || !deferredPrompt) return null;
 
   return (
     <div

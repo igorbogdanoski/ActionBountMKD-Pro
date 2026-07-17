@@ -88,7 +88,7 @@ Batch-от е затворен само кога:
 - [ ] H3b Dashboard и review surfaces.
   - [x] H3b-1 PlanUsageWidget + SubmissionReviewModal.
   - [x] H3b-2 TemplatesLibrary.
-  - [ ] H3b-3 ClassGroups.
+  - [x] H3b-3 ClassGroups.
   - [ ] H3b-4 BoundsDashboard.
   - [ ] H3b-5 ResultsDashboard.
 - [ ] H3c Creator shell и modals.
@@ -180,7 +180,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H3a-3 DashboardLayout + Sidebar controls | `dfceebe` | PASS | 507/507 PASS; 6 focused Sidebar contracts | PASS | Active-page/language ARIA, theme, upgrade, admin, explore, logout и mobile drawer; browser matrix 7 PASS со 3 намерни viewport skips; H3a complete. |
 | 2026-07-17 | H3b-1 plan usage + submission review controls | `b9e004c` | PASS | 510/510 PASS; 3 focused contracts | PASS | Upgrade routing, enterprise suppression и целосен rubric grading lifecycle; browser matrix 9 PASS со 3 намерни viewport skips; production build PASS. |
 | 2026-07-17 | H3b-2 TemplatesLibrary controls | `122d0a8` | PASS | 513/513 PASS; 3 focused contracts | PASS | Free/Pro gating, template payload, favorite persistence, filtering и accessible toggle state; desktop/mobile submission panel и zero overflow; browser matrix 11 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-17 | H3b-3 ClassGroups controls + safe delete | `370cefc` | PASS | 516/516 PASS; 3 focused contracts | PASS | Сите 8 control patterns мигрирани; group/assignment pressed semantics, create/student persistence и native confirm заменет со Modal. Desktop/mobile create-cancel-delete lifecycle и zero overflow; browser matrix 13 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3b-3 ClassGroups; BoundsDashboard и ResultsDashboard остануваат одделни high-density batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3b-4 BoundsDashboard; ResultsDashboard останува одделен high-density H3b-5 batch. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

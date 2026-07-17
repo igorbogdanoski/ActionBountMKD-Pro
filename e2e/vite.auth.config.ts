@@ -8,8 +8,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(here, '../apps/web');
 const authModule = path.resolve(webRoot, 'src/utils/AuthContext.tsx');
 const storageModule = path.resolve(webRoot, 'src/utils/storage.ts');
+const firebaseModule = path.resolve(webRoot, 'src/utils/firebase.ts');
 const authMock = path.resolve(here, 'fixtures/qaAuthContext.tsx');
 const storageMock = path.resolve(here, 'fixtures/qaStorage.ts');
+const firebaseMock = path.resolve(here, 'fixtures/qaFirebase.ts');
 
 function normalize(id: string) {
   return path.normalize(id.split('?')[0]);
@@ -31,6 +33,7 @@ function authenticatedQaMocks(): Plugin {
       const id = normalize(resolved.id);
       if (id === normalize(authModule)) return authMock;
       if (id === normalize(storageModule)) return storageMock;
+      if (id === normalize(firebaseModule)) return firebaseMock;
       return null;
     },
   };

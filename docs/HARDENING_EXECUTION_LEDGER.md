@@ -76,8 +76,8 @@ Batch-от е затворен само кога:
 
 - [x] `PricingPage` + `PaymentModal`.
 - [x] `SettingsPage`.
-- [ ] `JoinSession`.
-- [ ] Form submission, loading, pending state и theme verification.
+- [x] `JoinSession`.
+- [x] Form submission, loading, pending state и theme verification за H2a/H2c; Settings state verification е test/evaluator-backed, browser gap е R13.
 
 ### H3 — Button Tier 3: висок ризик, мали подфази
 
@@ -149,6 +149,7 @@ Batch-от е затворен само кога:
 | R11 | AutoSave failure-path tests испишуваат очекуван `console.error` noise | Spy, suppress и assert на expected logging contract | Closed |
 | R12 | Fixed `InstallPrompt` може да прекрие pricing content/CTA, особено на mobile | Route-aware suppression на `/pricing`; deferred event се чува за следна eligible SPA route | Closed |
 | R13 | Local dummy Firebase не овозможува authenticated browser QA за Settings/H3 | Воспостави безбеден test-auth/browser harness пред H3 | Open |
+| R14 | Join inputs немаа explicit labels/error ARIA, Back target е под 44px | Stable labels, field-specific invalid/describedby, `role=alert`, `min-h-11` | Closed |
 
 ## Извршена евиденција
 
@@ -160,7 +161,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H2a PricingPage + PaymentModal | `ac9e218` | PASS | 483/483 PASS, clean stderr | PASS | 4 plan CTAs + 7 payment controls; evaluator PASS; desktop/mobile light/dark; R12 overlap follow-up е одделно евидентиран. |
 | 2026-07-17 | R12 InstallPrompt pricing collision | `db242e3` | PASS | 485/485 PASS, clean stderr | PASS | Pricing suppression + deferred prompt reappearance after SPA navigation; evaluator round 2 PASS. |
 | 2026-07-17 | H2b SettingsPage | `7242c6c` | PASS | 492/492 PASS, clean stderr | Not run (R13) | All Settings controls; 7 focused state/contract tests; evaluator round 2 PASS. |
+| 2026-07-17 | H2c JoinSession + R14 accessibility | pending | PASS | 499/499 PASS, clean stderr | PASS | Desktop/mobile, light/dark, validation, zero console errors; evaluator round 2 PASS. |
 
 ## Следна акција
 
-Commit-ирај `H2b`, потоа започни `H2c / JoinSession`; `R13` мора да се затвори пред H3.
+Commit-ирај `H2c`; потоа затвори го `R13` authenticated browser harness пред H3.

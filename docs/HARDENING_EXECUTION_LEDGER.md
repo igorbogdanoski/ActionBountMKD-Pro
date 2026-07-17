@@ -82,6 +82,9 @@ Batch-от е затворен само кога:
 ### H3 — Button Tier 3: висок ризик, мали подфази
 
 - [ ] H3a Layout/auth/consent/onboarding.
+  - [x] H3a-1 Analytics consent + onboarding controls.
+  - [ ] H3a-2 LoginModal auth controls.
+  - [ ] H3a-3 DashboardLayout + Sidebar controls.
 - [ ] H3b Dashboard и review surfaces.
 - [ ] H3c Creator shell и modals.
 - [ ] H3d Creator stage editors.
@@ -167,7 +170,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | R13 authenticated browser QA harness | `9a354ac` | PASS | 499/499 PASS, clean stderr | PASS | Settings на Desktop Chrome + Pixel 7: tabs, Free gating, push state, mobile drawer, overflow и zero console errors; QA config е целосно одделен од production build. |
 | 2026-07-17 | R15 non-breaking dependency security updates | `b436c18` | PASS web + mobile | 499/499 PASS; production build PASS; Expo dependencies compatible | PASS | Audit 35 → 19 moderate; critical/high/low = 0. Vite 6.4.3, websocket-driver 0.7.5 и други safe updates; преостанатото бара upstream/major review. |
 | 2026-07-17 | R16 offline sync bundle boundary | `7e81390` | PASS | 499/499 PASS; focused offline/player 14/14; warning-free production build | PASS | Circular `storage`/`offlineQueue` dependency е отстранет; retry queue, partial failure и concurrent-sync deduplication се зачувани. |
+| 2026-07-17 | H3a-1 consent + onboarding controls | `66ec5f0` | PASS | 503/503 PASS; 4 focused contracts | PASS | Desktop/mobile onboarding CTA и navigation; consent accept/sync/dismiss contracts; QA Firebase isolation проширен во `ed8ec9c`. |
 
 ## Следна акција
 
-Продолжи со H3a Layout/auth/consent/onboarding во мал, browser-проверен обем. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3a-2 LoginModal auth controls, потоа H3a-3 DashboardLayout + Sidebar. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

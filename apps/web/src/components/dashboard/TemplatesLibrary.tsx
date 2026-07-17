@@ -5,6 +5,7 @@ import { usePlan } from '../../hooks/usePlan';
 import { getPublicTemplates, incrementTemplateUsage, saveTemplate } from '../../utils/storage';
 import { trackEvent } from '../../utils/analytics';
 import type { Template, TemplateSubject, Quest } from 'shared';
+import { Button } from '../ui/Button';
 
 const SUBJECTS: TemplateSubject[] = [
   'Математика', 'Природни науки', 'Јазици', 'Историја', 'Физичко', 'Уметност', 'Останато',
@@ -65,14 +66,17 @@ function TemplateCard({
               </span>
             )}
           </div>
-          <button
+          <Button
             type="button"
             onClick={onFavorite}
             aria-label={isFavorite ? 'Отстрани од омилени' : 'Додај во омилени'}
-            className={`shrink-0 transition-colors ${isFavorite ? 'text-rose-400' : 'text-slate-600 hover:text-rose-400'}`}
+            size="icon"
+            aria-pressed={isFavorite}
+            colorClassName={isFavorite ? 'text-rose-400 focus-visible:ring-rose-400' : 'text-slate-600 hover:text-rose-400 focus-visible:ring-rose-400'}
+            className="shrink-0 !p-1"
           >
             <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
-          </button>
+          </Button>
         </div>
 
         <h3 className="font-bold text-slate-100 leading-snug">{template.title}</h3>
@@ -98,20 +102,20 @@ function TemplateCard({
           {template.usageCount > 0 && <span className="ml-2">{template.usageCount} употреби</span>}
         </div>
 
-        <button
+        <Button
           type="button"
           onClick={onUse}
           disabled={!canUse}
           title={!canUse ? 'Потребен Pro план' : undefined}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95 ${
-            canUse
-              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20'
-              : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-          }`}
+          size="sm"
+          colorClassName={canUse
+            ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-md shadow-emerald-500/20 focus-visible:ring-emerald-500'
+            : 'bg-slate-700 text-slate-500 focus-visible:ring-slate-500'}
+          className="active:scale-95"
         >
           {canUse ? <Play className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
           Користи
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -236,14 +240,16 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
         </div>
 
         {(planId === 'pro' || planId === 'enterprise') && (
-          <button
+          <Button
             type="button"
             onClick={() => setSubmitMode(v => !v)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors shrink-0"
+            variant="app-primary"
+            aria-expanded={submitMode}
+            className="!py-2 !font-semibold hover:!bg-indigo-700 shrink-0"
           >
             <Upload className="w-4 h-4" />
             Предложи шаблон
-          </button>
+          </Button>
         )}
       </div>
 
@@ -326,15 +332,16 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
               <p className="text-xs text-slate-500">
                 Потребен е квест од твојот профил — пасте го ID-то или изберете директно (функционалност наскоро).
               </p>
-              <button
+              <Button
                 type="button"
                 onClick={handleSubmitTemplate}
                 disabled={submitting || !submitForm.grade}
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center gap-2"
+                variant="app-primary"
+                loading={submitting}
+                className="!px-5 !font-semibold hover:!bg-indigo-700"
               >
-                {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
                 Поднеси за одобрување
-              </button>
+              </Button>
             </>
           )}
         </div>
@@ -356,18 +363,19 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
       {/* Category tabs */}
       <div className="flex flex-wrap gap-2">
         {['Сите', 'Омилени', ...SUBJECTS].map(cat => (
-          <button
+          <Button
             key={cat}
             type="button"
             onClick={() => setSelectedSubject(cat)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-              selectedSubject === cat
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
-            }`}
+            size="sm"
+            aria-pressed={selectedSubject === cat}
+            colorClassName={selectedSubject === cat
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 focus-visible:ring-indigo-500'
+              : 'bg-slate-800 text-slate-400 hover:text-slate-200 border-slate-700 focus-visible:ring-slate-500'}
+            className={`!font-semibold ${selectedSubject === cat ? '' : 'border'}`}
           >
             {cat}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -406,4 +414,3 @@ export function TemplatesLibrary({ onUseTemplate }: Props) {
     </div>
   );
 }
-

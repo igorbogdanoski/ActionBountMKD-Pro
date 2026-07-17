@@ -88,4 +88,17 @@ test.describe('authenticated QA harness', () => {
     await upgrade.click();
     await expect(page).toHaveURL(/\/pricing$/);
   });
+
+  test('opens and closes the Pro template submission panel without overflow', async ({ page }) => {
+    await page.goto('/templates?qaPlan=pro', { waitUntil: 'domcontentloaded' });
+    const submitToggle = page.getByRole('button', { name: 'Предложи шаблон' });
+    await expect(submitToggle).toBeVisible({ timeout: 15_000 });
+    await expect(submitToggle).toHaveAttribute('aria-expanded', 'false');
+    await submitToggle.click();
+    await expect(submitToggle).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.getByText('Предложи свој шаблон')).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+    await submitToggle.click();
+    await expect(page.getByText('Предложи свој шаблон')).toBeHidden();
+  });
 });

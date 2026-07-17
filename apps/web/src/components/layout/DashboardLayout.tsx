@@ -3,6 +3,7 @@ import { Menu, X } from 'lucide-react';
 import { Sidebar, CurrentView } from './Sidebar';
 import { getUserTheme, saveUserTheme } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
+import { Button } from '../ui/Button';
 
 interface DashboardLayoutProps {
   currentView: CurrentView;
@@ -65,14 +66,17 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
       <main className="flex-1 flex flex-col relative w-full h-full overflow-y-auto min-w-0">
         {/* Mobile top bar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-800 md:hidden shrink-0">
-          <button
+          <Button
             type="button"
             onClick={() => setSidebarOpen(true)}
-            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+            size="icon"
+            variant="ghost"
+            colorClassName="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:ring-slate-400"
+            className="!p-1.5"
             aria-label="Отвори мени"
           >
             <Menu className="w-5 h-5" />
-          </button>
+          </Button>
           <span className="font-bold text-base tracking-tight">АВАНТУРА</span>
         </div>
         {children}

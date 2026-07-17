@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
+import { Button } from '../ui/Button';
 
 export type CurrentView = 'dashboard' | 'creator' | 'results' | 'templates' | 'groups' | 'settings';
 
@@ -51,19 +52,20 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
             const Icon = NAV_ICONS[id];
             const active = currentView === id;
             return (
-              <button
+              <Button
                 key={id}
                 type="button"
                 onClick={() => onNavigate(id as Parameters<typeof onNavigate>[0])}
-                className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
-                  active
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                    : 'text-indigo-200 hover:bg-indigo-900/60 hover:text-white'
-                }`}
+                fullWidth
+                aria-current={active ? 'page' : undefined}
+                colorClassName={active
+                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30 focus-visible:ring-indigo-400'
+                  : 'text-indigo-200 hover:bg-indigo-900/60 hover:text-white focus-visible:ring-indigo-400'}
+                className="!justify-start !gap-3 !rounded-lg !px-3 !py-2.5 !font-medium duration-150"
               >
                 <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
                 {t(`nav.${id}` as Parameters<typeof t>[0])}
-              </button>
+              </Button>
             );
           })}
         </nav>
@@ -75,30 +77,33 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
         {/* Language switcher + theme toggle */}
         <div className="flex gap-1.5">
           {LANGUAGES.map(lang => (
-            <button
+            <Button
               key={lang.code}
               type="button"
               onClick={() => switchLang(lang.code)}
               title={lang.label}
-              className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                i18n.language === lang.code
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/70 hover:text-white'
-              }`}
+              aria-pressed={i18n.language === lang.code}
+              size="sm"
+              colorClassName={i18n.language === lang.code
+                ? 'bg-indigo-600 text-white focus-visible:ring-indigo-400'
+                : 'bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/70 hover:text-white focus-visible:ring-indigo-400'}
+              className="flex-1 !px-1 !py-1.5"
             >
               {lang.flag} {lang.code.toUpperCase()}
-            </button>
+            </Button>
           ))}
           {onToggleTheme && (
-            <button
+            <Button
               type="button"
               onClick={onToggleTheme}
               title="Смени тема"
               aria-label="Смени тема"
-              className="px-2.5 py-1.5 rounded-lg bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/70 hover:text-white transition-colors shrink-0"
+              size="icon"
+              colorClassName="bg-indigo-900/40 text-indigo-300 hover:bg-indigo-900/70 hover:text-white focus-visible:ring-indigo-400"
+              className="!px-2.5 !py-1.5 shrink-0"
             >
               {isDarkTheme ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+            </Button>
           )}
         </div>
 
@@ -110,13 +115,15 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
               <span className="text-xs font-semibold text-white">{t(`plan.${planId}` as Parameters<typeof t>[0])}</span>
             </div>
             {planId === 'free' && (
-              <button
+              <Button
                 type="button"
                 onClick={() => navigate('/pricing')}
-                className="text-[10px] font-bold text-indigo-300 hover:text-white flex items-center gap-1 transition-colors"
+                variant="ghost"
+                colorClassName="text-indigo-300 hover:text-white focus-visible:ring-indigo-400"
+                className="!p-0 !gap-1 !text-[10px]"
               >
                 <Zap className="w-3 h-3" /> {t('plan.upgrade')}
-              </button>
+              </Button>
             )}
           </div>
           {!isEnterprise && (
@@ -138,26 +145,30 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
 
         {/* Admin link — only for admin users */}
         {isAdmin && (
-          <button
+          <Button
             type="button"
             onClick={() => navigate('/admin')}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-300 hover:bg-indigo-900/60 hover:text-white transition-colors"
+            fullWidth
+            colorClassName="text-indigo-300 hover:bg-indigo-900/60 hover:text-white focus-visible:ring-indigo-400"
+            className="!justify-start !gap-3 !rounded-lg !px-3 !py-2 !font-medium"
           >
             <Shield className="h-4 w-4 shrink-0 text-indigo-400" />
             Admin панел
-          </button>
+          </Button>
         )}
 
         {/* Help & Logout */}
         <div className="space-y-1">
-          <button
+          <Button
             type="button"
             onClick={() => navigate('/explore')}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"
+            fullWidth
+            colorClassName="text-indigo-200 hover:bg-indigo-900/60 hover:text-white focus-visible:ring-indigo-400"
+            className="!justify-start !gap-3 !rounded-lg !px-3 !py-2 !font-medium"
           >
             <Compass className="h-4 w-4 shrink-0" />
             {t('nav.explore')}
-          </button>
+          </Button>
           <a
             href="mailto:igor.bogdanoski@mismath.net"
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"
@@ -165,14 +176,16 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
             <HelpCircle className="h-4 w-4 shrink-0" />
             {t('nav.help')}
           </a>
-          <button
+          <Button
             type="button"
             onClick={logout}
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+            fullWidth
+            colorClassName="text-red-400 hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-red-400"
+            className="!justify-start !gap-3 !rounded-lg !px-3 !py-2 !font-medium"
           >
             <LogOut className="h-4 w-4 shrink-0" />
             {t('nav.logout')}
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

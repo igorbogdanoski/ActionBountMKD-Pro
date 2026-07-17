@@ -151,7 +151,7 @@ Batch-от е затворен само кога:
 | R13 | Local dummy Firebase не овозможува authenticated browser QA за Settings/H3 | Одделен QA-only Vite config со mock AuthContext/storage; нема production auth bypass | Closed |
 | R14 | Join inputs немаа explicit labels/error ARIA, Back target е под 44px | Stable labels, field-specific invalid/describedby, `role=alert`, `min-h-11` | Closed |
 | R15 | `npm audit` пријави 35 dependency наоди (1 critical, 2 high, 31 moderate, 1 low), вклучувајќи Vite и транзитивен `websocket-driver` | Non-force updates ги отстранија сите critical/high/low; остануваат 19 moderate во Expo/Firebase Admin graph без non-breaking fix. Следи upstream/major-upgrade review; без downgrade или `audit fix --force` | Controlled |
-| R16 | Production build предупредува дека dynamic imports на `offlineQueue.ts`/`storage.ts` не создаваат посебни chunks поради static imports | Bundle-graph audit; отстрани бескорисни dynamic imports или редизајнирај boundary со мерење на chunk size и offline semantics | Open |
+| R16 | Production build предупредува дека dynamic imports на `offlineQueue.ts`/`storage.ts` не создаваат посебни chunks поради static imports | Sync orchestration е издвоен во `offlineSync.ts`; circular storage import и лажниот MobilePlayer lazy import се отстранети, со зачуван in-flight deduplication | Closed |
 
 ## Извршена евиденција
 
@@ -166,7 +166,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H2c JoinSession + R14 accessibility | `e3bbcb0` | PASS | 499/499 PASS, clean stderr | PASS | Desktop/mobile, light/dark, validation, zero console errors; evaluator round 2 PASS. |
 | 2026-07-17 | R13 authenticated browser QA harness | `9a354ac` | PASS | 499/499 PASS, clean stderr | PASS | Settings на Desktop Chrome + Pixel 7: tabs, Free gating, push state, mobile drawer, overflow и zero console errors; QA config е целосно одделен од production build. |
 | 2026-07-17 | R15 non-breaking dependency security updates | `b436c18` | PASS web + mobile | 499/499 PASS; production build PASS; Expo dependencies compatible | PASS | Audit 35 → 19 moderate; critical/high/low = 0. Vite 6.4.3, websocket-driver 0.7.5 и други safe updates; преостанатото бара upstream/major review. |
+| 2026-07-17 | R16 offline sync bundle boundary | `7e81390` | PASS | 499/499 PASS; focused offline/player 14/14; warning-free production build | PASS | Circular `storage`/`offlineQueue` dependency е отстранет; retry queue, partial failure и concurrent-sync deduplication се зачувани. |
 
 ## Следна акција
 
-Затвори го R16 bundle-graph warning batch; потоа продолжи со H3a Layout/auth/consent/onboarding во мал, browser-проверен обем. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3a Layout/auth/consent/onboarding во мал, browser-проверен обем. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

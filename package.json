@@ -9,10 +9,15 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
+    "dev:qa": "vite --config e2e/vite.auth.config.ts",
     "build": "npm run build --workspaces --if-present",
-    "test:e2e": "playwright test --config e2e/playwright.config.ts"
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "test:e2e:auth": "playwright test --config e2e/playwright.auth.config.ts"
   },
   "dependencies": {
     "is-arrayish": "^0.3.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
   }
 }

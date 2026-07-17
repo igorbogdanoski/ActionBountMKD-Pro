@@ -92,6 +92,11 @@ Batch-от е затворен само кога:
   - [x] H3b-4 BoundsDashboard.
   - [x] H3b-5 ResultsDashboard.
 - [ ] H3c Creator shell и modals.
+  - [x] H3c-1 BoundCreator header/shell.
+  - [ ] H3c-2 ShareModal.
+  - [ ] H3c-3 StageList.
+  - [ ] H3c-4 QuestSettingsPanel.
+  - [ ] H3c-5 FindSpotPlannerPanel.
 - [ ] H3d Creator stage editors.
 - [ ] H3e Session/Admin.
 - [ ] H3f MobilePlayer shell и stage players, последни.
@@ -183,7 +188,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H3b-3 ClassGroups controls + safe delete | `370cefc` | PASS | 516/516 PASS; 3 focused contracts | PASS | Сите 8 control patterns мигрирани; group/assignment pressed semantics, create/student persistence и native confirm заменет со Modal. Desktop/mobile create-cancel-delete lifecycle и zero overflow; browser matrix 13 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-17 | H3b-4 BoundsDashboard quest controls | `2601175` | PASS | 519/519 PASS; 6 focused contracts | PASS | Сите 11 raw controls мигрирани; favorite/offline pressed persistence, AI/live/quest-limit gates, exact play/edit routes и noopener player tab. Desktop/mobile quest toggles + cancel/confirm delete и zero overflow; browser matrix 15 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-17 | H3b-5 ResultsDashboard controls + exports | `d1878f4` | PASS | 522/522 PASS; 6 focused contracts | PASS | Сите 6 control patterns мигрирани; semantic tablist, Pro fetch gate, weak-spot navigation, rubric review, disabled empty exports и CSV object-URL cleanup. Desktop/mobile tab/export state и zero overflow; browser matrix 17 PASS со 3 намерни skips; production build PASS; H3b complete. |
+| 2026-07-17 | H3c-1 BoundCreator shell controls | `a3eca51` | PASS | 526/526 PASS; 9 focused BoundCreator contracts | PASS | Сите 6 shell controls мигрирани; dashboard route, settings pressed state, Share modal, manual save и auto-save retry wiring. Desktop/mobile creator shell, save lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3c Creator shell и modals во мали, независни batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3c-2 ShareModal, потоа H3c-3 StageList, во мали и независни batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

@@ -52,6 +52,30 @@ beforeEach(() => {
 });
 
 describe('BoundCreator', () => {
+  it('routes back to the dashboard from the labelled shell action', () => {
+    render(<BoundCreator />);
+    fireEvent.click(screen.getByRole('button', { name: 'Назад кон Dashboard' }));
+    expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
+  });
+
+  it('exposes quest settings as a pressed toggle', () => {
+    render(<BoundCreator />);
+    const settings = screen.getByRole('button', { name: 'Поставки на квестот' });
+    expect(settings).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(settings);
+    expect(settings).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(settings);
+    expect(settings).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('opens and closes the Share modal from the creator shell', () => {
+    render(<BoundCreator />);
+    fireEvent.click(screen.getByRole('button', { name: 'Сподели квест' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
   it('starts a new quest with an empty title and Save disabled', () => {
     render(<BoundCreator />);
     expect(screen.getByPlaceholderText('Наслов на авантурата...')).toHaveValue('');
@@ -111,4 +135,19 @@ describe('BoundCreator', () => {
 
     expect(screen.getByText('Етапи (0)')).toBeTruthy();
   });
+
+  it('wires the visible auto-save error action to retry', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    saveQuest.mockRejectedValue(new Error('offline'));
+    render(<BoundCreator />);
+    fireEvent.change(screen.getByPlaceholderText('Наслов на авантурата...'), {
+      target: { value: 'Retry quest' },
+    });
+
+    const retry = await screen.findByRole('button', { name: /Грешка при зачувување/ }, { timeout: 3_500 });
+    expect(saveQuest).toHaveBeenCalledOnce();
+    fireEvent.click(retry);
+    await waitFor(() => expect(saveQuest).toHaveBeenCalledTimes(2));
+    consoleError.mockRestore();
+  }, 5_000);
 });

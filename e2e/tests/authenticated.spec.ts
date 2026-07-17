@@ -162,4 +162,31 @@ test.describe('authenticated QA harness', () => {
     await expect(weakspots).toHaveAttribute('aria-selected', 'true');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('operates creator shell settings, sharing and manual save without overflow', async ({ page }) => {
+    await page.goto('/creator?qaPlan=pro', { waitUntil: 'domcontentloaded' });
+    const title = page.getByPlaceholder('Наслов на авантурата...');
+    await expect(title).toBeVisible({ timeout: 15_000 });
+    const save = page.getByRole('button', { name: 'Зачувај' });
+    await expect(save).toBeDisabled();
+
+    const settings = page.getByRole('button', { name: 'Поставки на квестот' });
+    await expect(settings).toHaveAttribute('aria-pressed', 'false');
+    await settings.click();
+    await expect(settings).toHaveAttribute('aria-pressed', 'true');
+    await settings.click();
+    await expect(settings).toHaveAttribute('aria-pressed', 'false');
+
+    await page.getByRole('button', { name: 'Сподели квест' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toBeHidden();
+
+    await title.fill('QA creator quest');
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect(save).toBeDisabled();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

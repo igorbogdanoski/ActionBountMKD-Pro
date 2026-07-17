@@ -11,6 +11,7 @@ import { StageEditor }    from './StageEditor';
 import { QuestSettingsPanel } from './QuestSettingsPanel';
 import { FindSpotPlannerPanel } from './FindSpotPlannerPanel';
 import { ShareModal }     from './ShareModal';
+import { Button } from '../ui/Button';
 import type { Coordinates, Quest, StageType } from 'shared';
 
 // ─── Default empty quest ──────────────────────────────────────────────────────
@@ -146,10 +147,12 @@ export function BoundCreator() {
     <div className="flex flex-col h-full bg-slate-950 text-slate-200">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-slate-900 shrink-0">
-        <button type="button" aria-label="Назад кон Dashboard" onClick={() => navigate('/dashboard')}
-          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors">
+        <Button type="button" aria-label="Назад кон Dashboard" onClick={() => navigate('/dashboard')}
+          size="icon"
+          colorClassName="text-slate-400 hover:text-white hover:bg-slate-800 focus-visible:ring-slate-400"
+          className="!p-1.5">
           <ChevronLeft className="w-5 h-5" />
-        </button>
+        </Button>
 
         {/* Title inline edit */}
         <input
@@ -165,10 +168,12 @@ export function BoundCreator() {
         <div className="flex items-center gap-1.5 text-xs text-slate-500 shrink-0">
           {saving && <><Loader2 className="w-3 h-3 animate-spin" /> Зачувување...</>}
           {!saving && saveError && (
-            <button type="button" onClick={() => retrySave()} title={saveError}
-              className="flex items-center gap-1 text-red-400 hover:text-red-300 transition-colors">
+            <Button type="button" onClick={() => retrySave()} title={saveError}
+              size="sm"
+              colorClassName="text-rose-400 hover:text-rose-300 focus-visible:ring-rose-400"
+              className="!p-0 !rounded-sm !font-medium">
               <AlertTriangle className="w-3 h-3" /> Грешка при зачувување — обиди се
-            </button>
+            </Button>
           )}
           {!saving && !saveError && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
           {!saving && !saveError && !lastSaved && isDirty && <span className="text-amber-400">● Незачувано</span>}
@@ -176,20 +181,27 @@ export function BoundCreator() {
 
         {/* Actions */}
         <div className="flex items-center gap-2 shrink-0">
-          <button type="button" onClick={() => setRightPanel(p => p === 'settings' ? 'stage' : 'settings')}
+          <Button type="button" onClick={() => setRightPanel(p => p === 'settings' ? 'stage' : 'settings')}
             title="Поставки на квестот"
-            className={`p-2 rounded-lg transition-colors ${rightPanel === 'settings' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'}`}>
+            aria-label="Поставки на квестот"
+            aria-pressed={rightPanel === 'settings'}
+            size="icon"
+            colorClassName={rightPanel === 'settings'
+              ? 'bg-indigo-600 text-white focus-visible:ring-indigo-500'
+              : 'text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:ring-slate-400'}>
             <Settings2 className="w-4.5 h-4.5" />
-          </button>
-          <button type="button" aria-label="Сподели квест" onClick={() => setShareOpen(true)}
-            className="p-2 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-white transition-colors">
+          </Button>
+          <Button type="button" aria-label="Сподели квест" onClick={() => setShareOpen(true)}
+            size="icon"
+            colorClassName="text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:ring-slate-400">
             <Share2 className="w-4.5 h-4.5" />
-          </button>
-          <button type="button" onClick={handleSave} disabled={!isDirty}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-bold transition-colors">
+          </Button>
+          <Button type="button" onClick={handleSave} disabled={!isDirty}
+            variant="success"
+            className="!py-2 !rounded-lg">
             <Save className="w-4 h-4" />
             Зачувај
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -237,13 +249,15 @@ export function BoundCreator() {
         `}>
           {/* Mobile back button */}
           <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-800 md:hidden shrink-0">
-            <button
+            <Button
               type="button"
               onClick={() => setMobilePanel('stages')}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors"
+              size="sm"
+              colorClassName="text-slate-400 hover:text-white focus-visible:ring-slate-400"
+              className="!p-0 !rounded-sm !font-medium"
             >
               <ChevronLeft className="w-4 h-4" /> Назад кон етапи
-            </button>
+            </Button>
           </div>
           {rightPanel === 'settings' ? (
             <QuestSettingsPanel quest={quest} onChange={setField} />
@@ -274,4 +288,3 @@ export function BoundCreator() {
     </div>
   );
 }
-

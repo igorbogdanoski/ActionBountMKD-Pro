@@ -42,7 +42,7 @@ if ('serviceWorker' in navigator) {
     });
     // Sync any queued offline results when the app comes back online
     window.addEventListener('online', () => {
-      import('./utils/offlineQueue').then(({ syncOfflineQueue }) => {
+      import('./utils/offlineSync').then(({ syncOfflineQueue }) => {
         syncOfflineQueue().catch(() => {});
       });
     });

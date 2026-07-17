@@ -4,12 +4,12 @@ import {
   getOfflineQueue,
   clearOfflineQueue,
   offlineQueueSize,
-  syncOfflineQueue,
   cacheQuestLocally,
   getCachedQuest,
   clearCachedQuest,
   isCachedLocally,
 } from '../utils/offlineQueue';
+import { syncOfflineQueue } from '../utils/offlineSync';
 import type { Quest, QuestResult } from 'shared';
 
 const saveQuestResultMock = vi.fn();
@@ -152,4 +152,3 @@ describe('quest local cache', () => {
     expect(isCachedLocally('q-del')).toBe(false);
   });
 });
-

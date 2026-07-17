@@ -6,7 +6,7 @@ import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../utils/firebase';
 import { MapPin, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
-import { getQuestById, getQuestResults, saveQuestResult as saveQuestResultOnline } from '../../utils/storage';
+import { getQuestById, getQuestResults, saveQuestResult as saveQuestResultOnline, submitQuestFeedback } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
   cacheQuestLocally,
@@ -978,7 +978,6 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   const handleFeedbackSubmit = async () => {
     if (!feedbackText.trim()) return;
-    const { submitQuestFeedback } = await import('../../utils/storage');
     await submitQuestFeedback(questId, playerName, feedbackText, points);
     setFeedbackSubmitted(true);
   };
@@ -1593,4 +1592,3 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     </div>
   );
 }
-

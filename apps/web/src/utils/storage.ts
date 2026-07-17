@@ -247,7 +247,6 @@ export {
   isCachedLocally,
   saveOfflineResult,
   getOfflineQueue,
-  syncOfflineQueue,
   offlineQueueSize,
 } from './offlineQueue';
 
@@ -277,4 +276,3 @@ export async function cacheQuestResources(quest: Quest): Promise<void> {
 
   await Promise.allSettled(unique.map(u => cache.add(u)));
 }
-

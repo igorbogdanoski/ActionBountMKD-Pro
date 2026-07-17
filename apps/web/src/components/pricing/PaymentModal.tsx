@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { CreditCard, Building2, Copy, Check, Loader2 } from 'lucide-react';
+import { CreditCard, Building2, Copy, Check } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { submitPaymentRequest, type PaymentMethod } from '../../utils/paymentRequests';
 import { PAYMENT_CONFIG } from '../../config/payment';
 import type { PlanId } from 'shared';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 interface Props {
   planId: 'starter' | 'pro';
@@ -22,14 +23,17 @@ function CopyButton({ text }: { text: string }) {
     setTimeout(() => setCopied(false), 2000);
   };
   return (
-    <button
+    <Button
       type="button"
       onClick={copy}
-      className="ml-2 p-1 rounded text-slate-400 hover:text-white transition-colors shrink-0"
+      size="icon"
+      variant="ghost"
+      colorClassName="text-slate-400 hover:text-white"
+      className="ml-2 !p-1 !rounded shrink-0"
       title="Копирај"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
-    </button>
+    </Button>
   );
 }
 
@@ -94,16 +98,17 @@ export function PaymentModal({ planId, planName, onClose }: Props) {
                 { id: 'bank' as const,   icon: Building2,   label: 'Банкарски\nтрансфер', sub: 'MKD' },
                 { id: 'paypal' as const, icon: CreditCard,  label: 'PayPal',               sub: 'EUR' },
               ] as const).map(({ id, icon: Icon, label, sub }) => (
-                <button
+                <Button
                   key={id}
                   type="button"
                   onClick={() => { setMethod(id); setStep('instructions'); }}
-                  className="flex flex-col items-center gap-2 p-4 rounded-xl border border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 transition-all group"
+                  colorClassName="border border-slate-700 hover:border-indigo-500 hover:bg-indigo-500/5 focus-visible:ring-indigo-500"
+                  className="flex-col !gap-2 !p-4 !rounded-xl transition-all group"
                 >
                   <Icon className="w-6 h-6 text-slate-400 group-hover:text-indigo-400 transition-colors" />
                   <span className="text-sm font-medium text-slate-200 whitespace-pre-line text-center leading-snug">{label}</span>
                   <span className="text-[10px] text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">{sub}</span>
-                </button>
+                </Button>
               ))}
             </div>
           </>
@@ -149,16 +154,25 @@ export function PaymentModal({ planId, planName, onClose }: Props) {
               </div>
             )}
 
-            <button
+            <Button
               type="button"
               onClick={() => setStep('confirm')}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold transition-colors mt-1"
+              variant="app-primary"
+              fullWidth
+              className="mt-1"
             >
               Веќе платив →
-            </button>
-            <button type="button" onClick={() => setStep('method')} className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setStep('method')}
+              variant="ghost"
+              fullWidth
+              colorClassName="text-slate-500 hover:text-slate-300"
+              className="!p-0 font-normal"
+            >
               ← Назад
-            </button>
+            </Button>
           </>
         )}
 
@@ -195,18 +209,26 @@ export function PaymentModal({ planId, planName, onClose }: Props) {
               </div>
             </div>
             {err && <p className="text-xs text-red-400">{err}</p>}
-            <button
+            <Button
               type="button"
               onClick={handleSubmit}
-              disabled={busy}
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2"
+              loading={busy}
+              variant="app-primary"
+              fullWidth
+              className="disabled:opacity-60"
             >
-              {busy && <Loader2 className="w-4 h-4 animate-spin" />}
               Испрати потврда
-            </button>
-            <button type="button" onClick={() => setStep('instructions')} className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors">
+            </Button>
+            <Button
+              type="button"
+              onClick={() => setStep('instructions')}
+              variant="ghost"
+              fullWidth
+              colorClassName="text-slate-500 hover:text-slate-300"
+              className="!p-0 font-normal"
+            >
               ← Назад
-            </button>
+            </Button>
           </div>
         )}
 
@@ -228,13 +250,14 @@ export function PaymentModal({ planId, planName, onClose }: Props) {
                 {PAYMENT_CONFIG.contactEmail}
               </a>
             </p>
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="w-full py-2.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-bold transition-colors"
+              fullWidth
+              colorClassName="bg-slate-700 hover:bg-slate-600 text-white focus-visible:ring-slate-400"
             >
               Затвори
-            </button>
+            </Button>
           </div>
         )}
       </div>

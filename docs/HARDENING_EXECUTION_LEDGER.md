@@ -74,7 +74,7 @@ Batch-от е затворен само кога:
 
 ### H2 — Button Tier 2: среден ризик
 
-- [ ] `PricingPage` + `PaymentModal`.
+- [x] `PricingPage` + `PaymentModal`.
 - [ ] `SettingsPage`.
 - [ ] `JoinSession`.
 - [ ] Form submission, loading, pending state и theme verification.
@@ -147,6 +147,7 @@ Batch-от е затворен само кога:
 | R9 | Recharts испишува negative-size warnings во weak-spots render tests | Детерминистички `ResponsiveContainer` test double | Closed |
 | R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update | Closed |
 | R11 | AutoSave failure-path tests испишуваат очекуван `console.error` noise | Spy, suppress и assert на expected logging contract | Closed |
+| R12 | Fixed `InstallPrompt` може да прекрие pricing content/CTA, особено на mobile | Responsive safe-area/placement fix + cross-page browser QA | Open |
 
 ## Извршена евиденција
 
@@ -155,7 +156,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | Ledger bootstrap + H0 test baseline | `5db9736` | PASS | 472/472 PASS | PASS | Playwright/MCP harness потврден; R9/R10 warning debt е евидентиран. |
 | 2026-07-17 | H1 Button Tier 1 | `5db9736` | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
 | 2026-07-17 | Test warning cleanup R9–R11 | `04f1581` | PASS | 479/479 PASS, clean stderr | n/a | Recharts sizing, React async act и expected AutoSave logging се покриени без шум. |
+| 2026-07-17 | H2a PricingPage + PaymentModal | pending | PASS | 483/483 PASS, clean stderr | PASS | 4 plan CTAs + 7 payment controls; evaluator PASS; desktop/mobile light/dark; R12 overlap follow-up е одделно евидентиран. |
 
 ## Следна акција
 
-Commit-ирај го warning-cleanup batch-от, потоа започни `H2 / PricingPage + PaymentModal`.
+Commit-ирај `H2a`, потоа затвори го `R12` InstallPrompt overlap пред `H2b / SettingsPage`.

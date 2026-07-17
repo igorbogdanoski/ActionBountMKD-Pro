@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor } from '@testing-library/react';
+import { render, screen, within, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { PLAN_LIMITS } from 'shared';
@@ -32,6 +32,7 @@ function renderPage() {
 
 beforeEach(() => {
   authState.user = null;
+  authState.signInWithGoogle.mockReset().mockResolvedValue(undefined);
   getUserPaymentRequests.mockReset().mockResolvedValue([]);
 });
 
@@ -42,6 +43,32 @@ describe('PricingPage', () => {
     expect(screen.getAllByText('Starter').length).toBe(2);
     expect(screen.getAllByText('Pro').length).toBe(2);
     expect(screen.getAllByText('Enterprise').length).toBe(2);
+  });
+
+  it('uses submit-safe shared buttons, preserves plan palettes, and disables the current plan', () => {
+    renderPage();
+
+    const current = screen.getByRole('button', { name: /Активен план/ });
+    const starter = screen.getByRole('button', { name: 'Земи Starter' });
+    const pro = screen.getByRole('button', { name: 'Земи Pro' });
+    const enterprise = screen.getByRole('button', { name: 'Контактирај нè' });
+
+    expect(current).toBeDisabled();
+    expect(current).toHaveAttribute('type', 'button');
+    expect(current.className).toContain('bg-slate-200');
+    expect(starter.className).toContain('bg-indigo-600');
+    expect(pro.className).toContain('bg-emerald-600');
+    expect(enterprise.className).toContain('bg-amber-500');
+    expect([starter, pro, enterprise].every(button => button.getAttribute('type') === 'button')).toBe(true);
+
+    fireEvent.click(current);
+    expect(authState.signInWithGoogle).not.toHaveBeenCalled();
+  });
+
+  it('keeps the logged-out paid-plan CTA on the Google sign-in path', async () => {
+    renderPage();
+    fireEvent.click(screen.getByRole('button', { name: 'Земи Starter' }));
+    await waitFor(() => expect(authState.signInWithGoogle).toHaveBeenCalledOnce());
   });
 
   it('feature comparison table reflects the real PLAN_LIMITS numbers, not hardcoded duplicates', () => {

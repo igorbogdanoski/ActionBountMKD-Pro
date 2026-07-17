@@ -7,6 +7,7 @@ import { trackEvent } from '../../utils/analytics';
 import { getUserPaymentRequests, type PaymentRequest } from '../../utils/paymentRequests';
 import { SEO, PricingSchema, BreadcrumbSchema } from '../SEO';
 import { PaymentModal } from './PaymentModal';
+import { Button } from '../ui/Button';
 import { PLAN_LIMITS, type PlanId } from 'shared';
 
 interface Plan {
@@ -333,15 +334,16 @@ export function PricingPage() {
                       </li>
                     ))}
                   </ul>
-                  <button
+                  <Button
                     type="button"
+                    fullWidth
+                    disabled={isActive}
                     onClick={() => !isActive && handleCta(plan)}
-                    className={`w-full py-2.5 rounded-lg font-bold text-sm transition-colors ${
-                      isActive ? c.btnActive : c.btn
-                    }`}
+                    colorClassName={isActive ? c.btnActive : c.btn}
+                    className="!rounded-lg disabled:opacity-100"
                   >
                     {isActive ? '✓ Активен план' : plan.cta}
-                  </button>
+                  </Button>
                 </div>
               );
             })}
@@ -369,4 +371,3 @@ export function PricingPage() {
     </>
   );
 }
-

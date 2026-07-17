@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, MapPin, Puzzle, Share2, CheckCircle } from 'lucide-react';
+import { Button } from '../ui';
 
 const STORAGE_KEY = 'ak_onboarding_dismissed';
 
@@ -29,13 +30,16 @@ export function OnboardingBanner({ onCreateAdventure }: OnboardingBannerProps) {
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-brand-200 bg-gradient-to-br from-brand-50 to-indigo-50">
-      <button
+      <Button
+        type="button"
         onClick={dismiss}
-        className="absolute top-3 right-3 p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-white/60 transition-colors"
+        size="icon"
+        variant="ghost"
+        className="absolute top-3 right-3 !p-1 text-slate-400 hover:text-slate-600 hover:!bg-white/60"
         aria-label="Затвори"
       >
         <X size={16} />
-      </button>
+      </Button>
 
       <div className="p-5 sm:p-6">
         <div className="flex items-start gap-3 mb-4">
@@ -76,18 +80,23 @@ export function OnboardingBanner({ onCreateAdventure }: OnboardingBannerProps) {
 
         {/* CTA */}
         <div className="flex flex-col sm:flex-row gap-2">
-          <button
+          <Button
+            type="button"
             onClick={onCreateAdventure}
-            className="flex-1 sm:flex-none px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm"
+            variant="primary"
+            className="flex-1 sm:flex-none !px-5 shadow-sm"
           >
             Создади прва авантура →
-          </button>
-          <button
+          </Button>
+          <Button
+            type="button"
             onClick={dismiss}
-            className="text-sm text-slate-400 hover:text-slate-600 px-3 py-2 transition-colors"
+            variant="ghost"
+            colorClassName="text-slate-400 hover:text-slate-600 focus-visible:ring-slate-400"
+            className="!px-3 !py-2"
           >
             Затвори
-          </button>
+          </Button>
         </div>
       </div>
     </div>

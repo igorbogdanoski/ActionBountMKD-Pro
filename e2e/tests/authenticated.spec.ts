@@ -36,4 +36,14 @@ test.describe('authenticated QA harness', () => {
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
   });
+
+  test('keeps the onboarding actions visible and routes the primary CTA', async ({ page }) => {
+    await page.goto('/dashboard?qaPlan=free');
+    const onboarding = page.locator('main .from-brand-50');
+    await expect(onboarding).toBeVisible();
+    const actions = onboarding.getByRole('button');
+    await expect(actions).toHaveCount(3);
+    await actions.nth(1).click();
+    await expect(page).toHaveURL(/\/creator$/);
+  });
 });

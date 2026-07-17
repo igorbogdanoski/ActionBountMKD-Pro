@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { hasAnalyticsConsent, isAnalyticsConfigured, setAnalyticsConsent, syncAnalyticsConsent } from '../utils/analytics';
+import { Button } from './ui';
 
 const DISMISS_KEY = 'avk_analytics_banner_dismissed';
 
@@ -34,20 +35,22 @@ export function AnalyticsConsentBanner() {
         Можеме да собираме анонимни product analytics настани за подобрување на onboarding, pricing и player flow. Не праќаме име, email или други PII полиња.
       </p>
       <div className="mt-4 flex gap-2">
-        <button
+        <Button
           type="button"
           onClick={accept}
-          className="flex-1 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
+          variant="success"
+          className="flex-1"
         >
           Прифати
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={dismiss}
-          className="flex-1 rounded-xl bg-slate-800 px-4 py-2.5 text-sm font-bold text-slate-200 transition-colors hover:bg-slate-700"
+          colorClassName="bg-slate-800 text-slate-200 hover:bg-slate-700 focus-visible:ring-slate-500"
+          className="flex-1"
         >
           Не сега
-        </button>
+        </Button>
       </div>
     </div>
   );

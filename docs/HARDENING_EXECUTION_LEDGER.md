@@ -1,0 +1,159 @@
+# Авантура МКД Pro — Hardening Execution Ledger
+
+> Траен извор на вистина за преостанатото техничко, визуелно и педагошко зацврстување. Се ажурира по секој затворен batch.
+
+**Креирано:** 2026-07-17
+
+**Гранка:** `main`
+
+**Последна потврдена основа:** `8147394`
+
+**Правило за push:** само по експлицитна потврда од сопственикот.
+
+## Мисија
+
+Производот да стигне до регионален best-in-class EdTech SaaS квалитет за училишта и институции, со безбедни промени, мерливи проверки и без големи непроверливи миграции.
+
+## Непреговарачки правила
+
+1. Еден batch опфаќа мал, логички поврзан обем; по правило најмногу 10 production фајла.
+2. Пред и по секој batch: `tsc --noEmit` и целиот Vitest suite.
+3. За визуелни промени: browser QA на desktop и mobile; light/dark каде што е применливо.
+4. Не се мешаат Button и Card миграции во ист batch.
+5. Не се менува палета, типографија, геометрија или semantics како несакан ефект од миграција.
+6. `primary` е coral marketing action; `app-primary` е indigo application action.
+7. Pro/paywall data fetch мора директно да го проверува plan gate-от, не само UI-то.
+8. Нов render test што транзитивно внесува Firebase мора да го mock-ира `utils/firebase` пред import-от.
+9. Секој затворен batch добива сопствен commit. Push не се прави без потврда.
+10. Постоечките кориснички промени во worktree се чуваат и не се вклучуваат во нашите commit-и.
+
+## Потврдена состојба
+
+- Button/Card API prerequisite е завршен во `2b135d3`.
+- Playwright MCP конфигурацијата е versioned во `8147394`.
+- Production Button/Card миграцијата не е започната.
+- Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
+- TypeScript baseline на 2026-07-17: PASS.
+- Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
+- Suite-от не бил заглавен; Windows/jsdom startup и немањето streaming output го направиле run-от да изгледа неактивен.
+- Automated E2E coverage е ограничен на public shell, legal routes и demo-player mount.
+
+## Definition of Done за batch
+
+Batch-от е затворен само кога:
+
+- [ ] Scope-от е мал и експлицитен.
+- [ ] Сите релевантни interaction semantics се зачувани.
+- [ ] Постоечките тестови се ажурирани и новите ризици се покриени.
+- [ ] Typecheck поминува.
+- [ ] Целиот unit/integration suite поминува.
+- [ ] Browser QA поминува на бараните viewport/theme комбинации.
+- [ ] Нема нови console errors и критични accessibility регресии.
+- [ ] Diff-от е рачно прегледан.
+- [ ] Ledger-от е ажуриран со commit, test и QA докази.
+- [ ] Направен е наменски commit; не е push-нат без потврда.
+
+## Извршен редослед
+
+### H0 — Baseline и verification harness
+
+- [x] Утврди зошто целиот Vitest run изгледа како да заглавува.
+- [x] Потврди свеж typecheck и full-suite baseline.
+- [x] Потврди локална Playwright/MCP достапност.
+- [x] Дефинирај browser QA matrix за public и authenticated surfaces.
+
+### H1 — Button Tier 1: низок ризик
+
+- [x] `InstallPrompt` — 2 controls.
+- [x] `ErrorBoundary` — 1 app-primary action.
+- [x] `ImageUploader` + `TrackUploader` — 4 controls.
+- [x] `ExplorePage` — 1 control.
+- [x] `PlanGate` — 1 control.
+- [x] Dedicated tests за interaction, click isolation, reset, disabled и loading патеки.
+- [x] Desktop 1440×900 и mobile 375×812 light/dark visual verification; zero browser console errors.
+
+### H2 — Button Tier 2: среден ризик
+
+- [ ] `PricingPage` + `PaymentModal`.
+- [ ] `SettingsPage`.
+- [ ] `JoinSession`.
+- [ ] Form submission, loading, pending state и theme verification.
+
+### H3 — Button Tier 3: висок ризик, мали подфази
+
+- [ ] H3a Layout/auth/consent/onboarding.
+- [ ] H3b Dashboard и review surfaces.
+- [ ] H3c Creator shell и modals.
+- [ ] H3d Creator stage editors.
+- [ ] H3e Session/Admin.
+- [ ] H3f MobilePlayer shell и stage players, последни.
+
+За секое raw копче прво се одредува дали е action button, tab, toggle, interactive card, icon control или link-like navigation. Не се применува механичка замена.
+
+### H4 — Card semantic audit и миграција
+
+- [ ] Инвентар и класификација: semantic card / interactive surface / shell / overlay / modal / media frame.
+- [ ] Едноставни informational cards.
+- [ ] Dashboard cards.
+- [ ] Creator dark cards со `tone="dark"`.
+- [ ] Player/session surfaces, последни.
+- [ ] Проширување на Card API само за повторлив semantic pattern.
+
+### H5 — Мали product-completeness задачи
+
+- [ ] Changelog route, page и navigation entry.
+- [ ] Преостанатите LandingPage user-facing literals во `mk.json`/`en.json`.
+- [ ] Translation parity test.
+
+### H6 — Стабилен student identity и attempts
+
+- [ ] Optional stable `QuestResult.studentId` за roster players; guest/public compatibility.
+- [ ] `attemptId`/attempt number и immutable result semantics.
+- [ ] First/latest/best/teacher-approved result policy.
+- [ ] Resubmission lifecycle и teacher controls.
+- [ ] Firestore rules, indexes и backward compatibility за стари резултати.
+- [ ] Tests за duplicate names, renamed students, guests и повеќе attempts.
+
+### H7 — Objectives, coverage и mastery
+
+- [ ] Стабилен objective ID/reference model.
+- [ ] Optional `objectiveRef` на `BaseStage` со validation и backward compatibility.
+- [ ] Creator UI за mapping на етапи кон цели.
+- [ ] Curriculum-coverage aggregation и teacher UI.
+- [ ] Objective-level mastery врз stable student/attempt model.
+- [ ] Student/parent report и CSV/PDF export.
+- [ ] Privacy и authorization review за извештаите.
+
+### H8 — Institutional SaaS completeness
+
+- [ ] Billing lifecycle: trial, recurring renewal, cancellation, failure/retry и audit trail.
+- [ ] Onboarding email sequence со consent/unsubscribe контроли.
+- [ ] Institutional renewal/admin documentation.
+- [ ] Security, privacy, accessibility, performance и operational-readiness audit.
+- [ ] Production monitoring, alerting, backup/restore и incident runbooks.
+
+## Регистар на познати ризици
+
+| ID | Ризик | Контрола | Статус |
+|---|---|---|---|
+| R1 | Coral `primary` може да замени indigo app action | Експлицитно variant mapping по call site | Open |
+| R2 | `Button` менува font weight, padding, radius и focus style | Visual diff и semantics review | Open |
+| R3 | `size="icon"` е `rounded-lg`, не `rounded-full` | Зачувај geometry со намерен override/API | Open |
+| R4 | Player/night-mode палети може да се регресираат | Player е последен + browser QA | Open |
+| R5 | Rounded container може погрешно да се претвори во Card | Semantic Card audit пред миграција | Open |
+| R6 | Full Vitest run изгледа заглавен без streaming output | Детерминистички `--maxWorkers=1`; ~2 min на Windows/jsdom | Controlled |
+| R7 | Playwright smoke не покрива authenticated app surfaces | Manual MCP QA + постепени stable E2E specs | Open |
+| R8 | Name-based gradebook identity е нестабилна | Stable student ID пред mastery/reporting | Open |
+| R9 | Recharts испишува negative-size warnings во weak-spots render tests | Стабилен container mock/layout во test environment | Open |
+| R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update и потврди warning-free run | Open |
+
+## Извршена евиденција
+
+| Датум | Batch | Commit | Typecheck | Tests | Browser QA | Забелешки |
+|---|---|---|---|---|---|---|
+| 2026-07-17 | Ledger bootstrap + H0 test baseline | pending | PASS | 472/472 PASS | pending | Почетна консолидација; R9/R10 warning debt е евидентиран. |
+| 2026-07-17 | H1 Button Tier 1 | pending | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
+
+## Следна акција
+
+Commit-ирај ги ledger + `H1`, потоа затвори ги `R9`/`R10` test-warning пропустите пред `H2`.

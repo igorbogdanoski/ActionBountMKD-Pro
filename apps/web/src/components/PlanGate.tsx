@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Zap } from 'lucide-react';
 import { usePlan } from '../hooks/usePlan';
 import type { PlanLimits, PlanId } from 'shared';
+import { Button } from './ui/Button';
 
 interface PlanGateProps {
   /** Feature flag that must be true for this plan */
@@ -41,14 +42,16 @@ export function PlanGate({ feature, minPlan, children, message, overlay = false 
       <p className="text-sm text-slate-300 max-w-xs">
         {message ?? 'Оваа функција е достапна на повисок план.'}
       </p>
-      <button
+      <Button
         type="button"
+        size="sm"
         onClick={() => navigate('/pricing')}
-        className="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg text-sm font-bold transition-colors"
+        leftIcon={<Zap className="w-4 h-4" />}
+        colorClassName="bg-amber-500 hover:bg-amber-400 text-slate-900 focus-visible:ring-amber-500"
+        className="!px-4 !py-2"
       >
-        <Zap className="w-4 h-4" />
         Надгради план
-      </button>
+      </Button>
     </div>
   );
 

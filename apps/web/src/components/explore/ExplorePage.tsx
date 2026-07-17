@@ -6,6 +6,7 @@ import { EDUCATION_SUBJECTS, EDUCATION_GRADES, type EducationSubject, type Educa
 import type { Quest } from 'shared';
 import { SEO, BreadcrumbSchema } from '../SEO';
 import { Footer } from '../layout/Footer';
+import { Button } from '../ui/Button';
 
 const APP_URL = import.meta.env.VITE_APP_URL || 'https://avantura.mismath.net';
 
@@ -195,12 +196,16 @@ export function ExplorePage() {
               <Compass className="mx-auto mb-3 text-slate-300" size={40} />
               <p className="font-medium">Нема пронајдени авантури.</p>
               {(search || subject || grade) && (
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => { setSearch(''); setSubject(''); setGrade(''); }}
-                  className="mt-2 text-brand-600 text-sm hover:underline"
+                  colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500"
+                  className="mt-2 !p-0 !rounded-none !font-normal"
                 >
                   Исчисти филтри
-                </button>
+                </Button>
               )}
             </div>
           ) : (

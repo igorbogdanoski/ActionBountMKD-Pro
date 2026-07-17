@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { Route, Upload, X, Loader2, MapPin } from 'lucide-react';
 import type { Coordinates } from 'shared';
 import { parseTrack } from '../../utils/trackParser';
+import { Button } from '../ui/Button';
 
 export interface TrackResult {
   points: Coordinates[];
@@ -111,17 +112,19 @@ export function TrackUploader({
                 <MapPin className="w-3 h-3" /> {points!.length} точки
               </p>
             </div>
-            <button
+            <Button
               type="button"
+              size="icon"
               aria-label="Отстрани рута"
               onClick={(e) => {
                 e.stopPropagation();
                 onChange(null);
               }}
-              className="p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shrink-0"
+              colorClassName="bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500"
+              className="!p-1.5 !rounded-full shrink-0"
             >
               <X className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           </div>
         )}
 

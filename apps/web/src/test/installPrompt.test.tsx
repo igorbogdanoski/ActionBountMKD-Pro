@@ -19,8 +19,11 @@ import { InstallPrompt } from '../components/InstallPrompt';
 const DISMISS_KEY = 'av_install_prompt_dismissed';
 
 /** Fire a fake beforeinstallprompt event with a stub prompt() */
-function fireInstallEvent(outcome: 'accepted' | 'dismissed' = 'accepted') {
-  const promptFn = vi.fn().mockResolvedValue(undefined);
+function fireInstallEvent(
+  outcome: 'accepted' | 'dismissed' = 'accepted',
+  promptResult: Promise<void> = Promise.resolve(),
+) {
+  const promptFn = vi.fn().mockReturnValue(promptResult);
   const userChoice = Promise.resolve({ outcome, platform: 'web' });
 
   const event = Object.assign(new Event('beforeinstallprompt'), {
@@ -109,6 +112,18 @@ describe('InstallPrompt', () => {
     });
 
     expect(promptFn).toHaveBeenCalledOnce();
+  });
+
+  it('disables the install action and shows loading content while prompt() is pending', () => {
+    render(<InstallPrompt />);
+    fireInstallEvent('accepted', new Promise<void>(() => {}));
+    act(() => { vi.advanceTimersByTime(3000); });
+
+    const install = screen.getAllByRole('button')[0];
+    fireEvent.click(install);
+
+    expect(install).toBeDisabled();
+    expect(install).toHaveTextContent('…');
   });
 
   it('hides the banner after install is accepted', async () => {

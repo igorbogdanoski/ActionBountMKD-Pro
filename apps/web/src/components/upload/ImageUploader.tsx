@@ -3,6 +3,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../utils/firebase';
 import { useAuth } from '../../utils/AuthContext';
 import { Upload, X, Image as ImageIcon, Loader2, Link } from 'lucide-react';
+import { Button } from '../ui/Button';
 
 interface ImageUploaderProps {
   value?: string;
@@ -88,13 +89,17 @@ export function ImageUploader({
       {label && (
         <div className="flex items-center justify-between">
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</label>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setShowUrl(p => !p)}
-            className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            leftIcon={<Link className="w-3 h-3" />}
+            colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+            className="!p-0 !gap-1 !rounded-none !font-normal"
           >
-            <Link className="w-3 h-3" /> URL
-          </button>
+            URL
+          </Button>
         </div>
       )}
 
@@ -109,10 +114,10 @@ export function ImageUploader({
             onChange={e => setUrlInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUrlSave()}
           />
-          <button type="button" onClick={handleUrlSave}
-            className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors">
+          <Button type="button" variant="app-primary" size="sm" onClick={handleUrlSave}
+            className="!py-2 text-sm !font-semibold !shadow-none">
             OK
-          </button>
+          </Button>
         </div>
       )}
 
@@ -148,14 +153,16 @@ export function ImageUploader({
               />
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                 <span className="text-white text-sm font-semibold">Замени слика</span>
-                <button
+                <Button
                   type="button"
+                  size="icon"
                   aria-label="Отстрани слика"
                   onClick={e => { e.stopPropagation(); onChange(''); setUrlInput(''); }}
-                  className="p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
+                  colorClassName="bg-red-500 text-white hover:bg-red-600 focus-visible:ring-red-500"
+                  className="!p-1.5 !rounded-full"
                 >
                   <X className="w-3.5 h-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
           )}

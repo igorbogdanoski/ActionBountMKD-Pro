@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Download, X } from 'lucide-react';
+import { Button } from './ui/Button';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -84,22 +85,27 @@ export function InstallPrompt() {
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
-        <button
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
           onClick={handleInstall}
           disabled={installing}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-brand-500 text-white
-                     hover:bg-brand-600 disabled:opacity-60 transition-colors"
+          className="!font-semibold !shadow-none disabled:opacity-60"
         >
           {installing ? '…' : 'Инсталирај'}
-        </button>
-        <button
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
           onClick={handleDismiss}
           aria-label="Затвори"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100
-                     dark:hover:bg-gray-800 transition-colors"
+          colorClassName="text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 focus-visible:ring-gray-400"
+          className="!p-1.5"
         >
           <X size={16} />
-        </button>
+        </Button>
       </div>
     </div>
   );

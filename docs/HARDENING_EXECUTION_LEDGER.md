@@ -36,7 +36,7 @@
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
 - Suite-от не бил заглавен; Windows/jsdom startup и немањето streaming output го направиле run-от да изгледа неактивен.
-- Automated E2E coverage е ограничен на public shell, legal routes и demo-player mount.
+- Automated E2E coverage ги покрива public shell, legal routes, demo-player mount и безбеден authenticated QA harness за Settings/H3.
 
 ## Definition of Done за batch
 
@@ -77,7 +77,7 @@ Batch-от е затворен само кога:
 - [x] `PricingPage` + `PaymentModal`.
 - [x] `SettingsPage`.
 - [x] `JoinSession`.
-- [x] Form submission, loading, pending state и theme verification за H2a/H2c; Settings state verification е test/evaluator-backed, browser gap е R13.
+- [x] Form submission, loading, pending state и theme verification за H2a/H2c; Settings е потврден преку authenticated desktop/mobile Playwright harness.
 
 ### H3 — Button Tier 3: висок ризик, мали подфази
 
@@ -148,8 +148,9 @@ Batch-от е затворен само кога:
 | R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update | Closed |
 | R11 | AutoSave failure-path tests испишуваат очекуван `console.error` noise | Spy, suppress и assert на expected logging contract | Closed |
 | R12 | Fixed `InstallPrompt` може да прекрие pricing content/CTA, особено на mobile | Route-aware suppression на `/pricing`; deferred event се чува за следна eligible SPA route | Closed |
-| R13 | Local dummy Firebase не овозможува authenticated browser QA за Settings/H3 | Воспостави безбеден test-auth/browser harness пред H3 | Open |
+| R13 | Local dummy Firebase не овозможува authenticated browser QA за Settings/H3 | Одделен QA-only Vite config со mock AuthContext/storage; нема production auth bypass | Closed |
 | R14 | Join inputs немаа explicit labels/error ARIA, Back target е под 44px | Stable labels, field-specific invalid/describedby, `role=alert`, `min-h-11` | Closed |
+| R15 | `npm audit` пријавува 35 dependency наоди (1 critical, 2 high, 31 moderate, 1 low), вклучувајќи Vite и транзитивен `websocket-driver` | Одделен dependency-security batch: classify runtime/dev exposure, non-breaking upgrades прво, потоа целосна web/mobile регресија; без `audit fix --force` | Open |
 
 ## Извршена евиденција
 
@@ -162,7 +163,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | R12 InstallPrompt pricing collision | `db242e3` | PASS | 485/485 PASS, clean stderr | PASS | Pricing suppression + deferred prompt reappearance after SPA navigation; evaluator round 2 PASS. |
 | 2026-07-17 | H2b SettingsPage | `7242c6c` | PASS | 492/492 PASS, clean stderr | Not run (R13) | All Settings controls; 7 focused state/contract tests; evaluator round 2 PASS. |
 | 2026-07-17 | H2c JoinSession + R14 accessibility | `e3bbcb0` | PASS | 499/499 PASS, clean stderr | PASS | Desktop/mobile, light/dark, validation, zero console errors; evaluator round 2 PASS. |
+| 2026-07-17 | R13 authenticated browser QA harness | `9a354ac` | PASS | 499/499 PASS, clean stderr | PASS | Settings на Desktop Chrome + Pixel 7: tabs, Free gating, push state, mobile drawer, overflow и zero console errors; QA config е целосно одделен од production build. |
 
 ## Следна акција
 
-Commit-ирај `H2c`; потоа затвори го `R13` authenticated browser harness пред H3.
+Затвори го R15 dependency-security batch пред H3a; потоа продолжи со H3a Layout/auth/consent/onboarding во мал, browser-проверен обем.

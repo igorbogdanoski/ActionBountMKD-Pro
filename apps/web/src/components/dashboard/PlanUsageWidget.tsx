@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Zap, Crown } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
+import { Button } from '../ui/Button';
 
 const PLAN_LABELS: Record<string, string> = {
   free:       'Free',
@@ -78,14 +79,16 @@ export function PlanUsageWidget({ questCount }: Props) {
       </div>
 
       {(planId === 'free' || planId === 'starter') && (
-        <button
+        <Button
           type="button"
           onClick={() => navigate('/pricing')}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-colors whitespace-nowrap"
+          variant="app-primary"
+          size="sm"
+          className="shrink-0 !gap-1.5 !py-2 !rounded-xl hover:!bg-indigo-700 whitespace-nowrap"
         >
           {planId === 'free' ? <Zap className="w-3.5 h-3.5" /> : <Crown className="w-3.5 h-3.5" />}
           {planId === 'free' ? 'Надгради план' : 'Надгради во Pro'}
-        </button>
+        </Button>
       )}
     </div>
   );

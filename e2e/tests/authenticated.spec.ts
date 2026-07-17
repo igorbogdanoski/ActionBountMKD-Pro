@@ -80,4 +80,12 @@ test.describe('authenticated QA harness', () => {
     await sidebar.locator('button:has(svg.lucide-shield)').click();
     await expect(page).toHaveURL(/\/admin$/);
   });
+
+  test('routes the dashboard plan usage upgrade action to pricing', async ({ page }) => {
+    await page.goto('/dashboard?qaPlan=free', { waitUntil: 'domcontentloaded' });
+    const upgrade = page.locator('main button:has(svg.lucide-zap)');
+    await expect(upgrade).toBeVisible({ timeout: 15_000 });
+    await upgrade.click();
+    await expect(page).toHaveURL(/\/pricing$/);
+  });
 });

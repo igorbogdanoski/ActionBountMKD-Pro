@@ -154,7 +154,7 @@ Batch-от е затворен само кога:
 |---|---|---|---|---|---|---|
 | 2026-07-17 | Ledger bootstrap + H0 test baseline | `5db9736` | PASS | 472/472 PASS | PASS | Playwright/MCP harness потврден; R9/R10 warning debt е евидентиран. |
 | 2026-07-17 | H1 Button Tier 1 | `5db9736` | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
-| 2026-07-17 | Test warning cleanup R9–R11 | pending | PASS | 479/479 PASS, clean stderr | n/a | Recharts sizing, React async act и expected AutoSave logging се покриени без шум. |
+| 2026-07-17 | Test warning cleanup R9–R11 | `04f1581` | PASS | 479/479 PASS, clean stderr | n/a | Recharts sizing, React async act и expected AutoSave logging се покриени без шум. |
 
 ## Следна акција
 

@@ -85,12 +85,12 @@ Batch-от е затворен само кога:
   - [x] H3a-1 Analytics consent + onboarding controls.
   - [x] H3a-2 LoginModal auth controls.
   - [x] H3a-3 DashboardLayout + Sidebar controls.
-- [ ] H3b Dashboard и review surfaces.
+- [x] H3b Dashboard и review surfaces.
   - [x] H3b-1 PlanUsageWidget + SubmissionReviewModal.
   - [x] H3b-2 TemplatesLibrary.
   - [x] H3b-3 ClassGroups.
   - [x] H3b-4 BoundsDashboard.
-  - [ ] H3b-5 ResultsDashboard.
+  - [x] H3b-5 ResultsDashboard.
 - [ ] H3c Creator shell и modals.
 - [ ] H3d Creator stage editors.
 - [ ] H3e Session/Admin.
@@ -182,7 +182,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H3b-2 TemplatesLibrary controls | `122d0a8` | PASS | 513/513 PASS; 3 focused contracts | PASS | Free/Pro gating, template payload, favorite persistence, filtering и accessible toggle state; desktop/mobile submission panel и zero overflow; browser matrix 11 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-17 | H3b-3 ClassGroups controls + safe delete | `370cefc` | PASS | 516/516 PASS; 3 focused contracts | PASS | Сите 8 control patterns мигрирани; group/assignment pressed semantics, create/student persistence и native confirm заменет со Modal. Desktop/mobile create-cancel-delete lifecycle и zero overflow; browser matrix 13 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-17 | H3b-4 BoundsDashboard quest controls | `2601175` | PASS | 519/519 PASS; 6 focused contracts | PASS | Сите 11 raw controls мигрирани; favorite/offline pressed persistence, AI/live/quest-limit gates, exact play/edit routes и noopener player tab. Desktop/mobile quest toggles + cancel/confirm delete и zero overflow; browser matrix 15 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-17 | H3b-5 ResultsDashboard controls + exports | `d1878f4` | PASS | 522/522 PASS; 6 focused contracts | PASS | Сите 6 control patterns мигрирани; semantic tablist, Pro fetch gate, weak-spot navigation, rubric review, disabled empty exports и CSV object-URL cleanup. Desktop/mobile tab/export state и zero overflow; browser matrix 17 PASS со 3 намерни skips; production build PASS; H3b complete. |
 
 ## Следна акција
 
-Продолжи со H3b-5 ResultsDashboard, последниот Dashboard/review batch. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3c Creator shell и modals во мали, независни batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

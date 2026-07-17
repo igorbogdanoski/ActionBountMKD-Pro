@@ -81,10 +81,10 @@ Batch-от е затворен само кога:
 
 ### H3 — Button Tier 3: висок ризик, мали подфази
 
-- [ ] H3a Layout/auth/consent/onboarding.
+- [x] H3a Layout/auth/consent/onboarding.
   - [x] H3a-1 Analytics consent + onboarding controls.
   - [x] H3a-2 LoginModal auth controls.
-  - [ ] H3a-3 DashboardLayout + Sidebar controls.
+  - [x] H3a-3 DashboardLayout + Sidebar controls.
 - [ ] H3b Dashboard и review surfaces.
 - [ ] H3c Creator shell и modals.
 - [ ] H3d Creator stage editors.
@@ -172,7 +172,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | R16 offline sync bundle boundary | `7e81390` | PASS | 499/499 PASS; focused offline/player 14/14; warning-free production build | PASS | Circular `storage`/`offlineQueue` dependency е отстранет; retry queue, partial failure и concurrent-sync deduplication се зачувани. |
 | 2026-07-17 | H3a-1 consent + onboarding controls | `66ec5f0` | PASS | 503/503 PASS; 4 focused contracts | PASS | Desktop/mobile onboarding CTA и navigation; consent accept/sync/dismiss contracts; QA Firebase isolation проширен во `ed8ec9c`. |
 | 2026-07-17 | H3a-2 LoginModal auth controls | `9e55d6d` | PASS | 504/504 PASS; 7 focused contracts | PASS | Public guest flow, tab ARIA, exact submit semantics, Google/email actions, close/Escape; browser matrix 6 PASS со 2 намерни viewport skips. |
+| 2026-07-17 | H3a-3 DashboardLayout + Sidebar controls | `dfceebe` | PASS | 507/507 PASS; 6 focused Sidebar contracts | PASS | Active-page/language ARIA, theme, upgrade, admin, explore, logout и mobile drawer; browser matrix 7 PASS со 3 намерни viewport skips; H3a complete. |
 
 ## Следна акција
 
-Продолжи со H3a-3 DashboardLayout + Sidebar controls. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3b Dashboard и review surfaces во мали batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

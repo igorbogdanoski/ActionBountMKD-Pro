@@ -101,4 +101,23 @@ test.describe('authenticated QA harness', () => {
     await submitToggle.click();
     await expect(page.getByText('Предложи свој шаблон')).toBeHidden();
   });
+
+  test('creates and safely deletes a class group without overflow', async ({ page }) => {
+    await page.goto('/groups?qaPlan=pro', { waitUntil: 'domcontentloaded' });
+    const groupName = page.getByPlaceholder('Нова група, напр. 6-в');
+    await expect(groupName).toBeVisible({ timeout: 15_000 });
+    await groupName.fill('QA 7-А');
+    await page.getByRole('button', { name: 'Создај група' }).click();
+    await expect(page.getByRole('button', { name: /QA 7-А/ })).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Избриши група' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(dialog).toBeHidden();
+    await page.getByRole('button', { name: 'Избриши група' }).click();
+    await dialog.getByRole('button', { name: 'Избриши' }).click();
+    await expect(page.getByRole('button', { name: /QA 7-А/ })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

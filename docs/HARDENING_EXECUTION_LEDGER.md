@@ -151,8 +151,8 @@ Batch-от е затворен само кога:
 
 | Датум | Batch | Commit | Typecheck | Tests | Browser QA | Забелешки |
 |---|---|---|---|---|---|---|
-| 2026-07-17 | Ledger bootstrap + H0 test baseline | pending | PASS | 472/472 PASS | pending | Почетна консолидација; R9/R10 warning debt е евидентиран. |
-| 2026-07-17 | H1 Button Tier 1 | pending | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
+| 2026-07-17 | Ledger bootstrap + H0 test baseline | `5db9736` | PASS | 472/472 PASS | PASS | Playwright/MCP harness потврден; R9/R10 warning debt е евидентиран. |
+| 2026-07-17 | H1 Button Tier 1 | `5db9736` | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
 
 ## Следна акција
 

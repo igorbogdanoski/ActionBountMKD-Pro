@@ -144,8 +144,9 @@ Batch-от е затворен само кога:
 | R6 | Full Vitest run изгледа заглавен без streaming output | Детерминистички `--maxWorkers=1`; ~2 min на Windows/jsdom | Controlled |
 | R7 | Playwright smoke не покрива authenticated app surfaces | Manual MCP QA + постепени stable E2E specs | Open |
 | R8 | Name-based gradebook identity е нестабилна | Stable student ID пред mastery/reporting | Open |
-| R9 | Recharts испишува negative-size warnings во weak-spots render tests | Стабилен container mock/layout во test environment | Open |
-| R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update и потврди warning-free run | Open |
+| R9 | Recharts испишува negative-size warnings во weak-spots render tests | Детерминистички `ResponsiveContainer` test double | Closed |
+| R10 | LoginModal Google sign-in test испишува React `act(...)` warning | Await/wrap asynchronous state update | Closed |
+| R11 | AutoSave failure-path tests испишуваат очекуван `console.error` noise | Spy, suppress и assert на expected logging contract | Closed |
 
 ## Извршена евиденција
 
@@ -153,7 +154,8 @@ Batch-от е затворен само кога:
 |---|---|---|---|---|---|---|
 | 2026-07-17 | Ledger bootstrap + H0 test baseline | `5db9736` | PASS | 472/472 PASS | PASS | Playwright/MCP harness потврден; R9/R10 warning debt е евидентиран. |
 | 2026-07-17 | H1 Button Tier 1 | `5db9736` | PASS | 479/479 PASS | PASS | 6 production files, 9 controls; evaluator round 2 PASS; desktop/mobile light/dark; zero console errors. |
+| 2026-07-17 | Test warning cleanup R9–R11 | pending | PASS | 479/479 PASS, clean stderr | n/a | Recharts sizing, React async act и expected AutoSave logging се покриени без шум. |
 
 ## Следна акција
 
-Commit-ирај ги ledger + `H1`, потоа затвори ги `R9`/`R10` test-warning пропустите пред `H2`.
+Commit-ирај го warning-cleanup batch-от, потоа започни `H2 / PricingPage + PaymentModal`.

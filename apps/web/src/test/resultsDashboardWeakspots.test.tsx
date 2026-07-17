@@ -6,6 +6,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { Quest, QuestResult } from 'shared';
 
+// This suite verifies weak-spot data and navigation, not Recharts sizing.
+// jsdom has no layout engine, so give ResponsiveContainer deterministic
+// dimensions instead of letting it emit negative-size warnings.
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts');
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+      <div style={{ width: 800, height: 320 }}>{children}</div>
+    ),
+  };
+});
+
 vi.mock('../utils/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'teacher-1' } }) }));
 
 const planState = vi.hoisted(() => ({ planId: 'pro' as 'free' | 'pro' }));

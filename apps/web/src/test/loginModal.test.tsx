@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import '../i18n';
 
 const authState = vi.hoisted(() => ({
@@ -41,9 +41,11 @@ describe('LoginModal', () => {
     expect(screen.getByPlaceholderText('vase@email.com')).toBeTruthy();
   });
 
-  it('calls signInWithGoogle when the Google button is clicked', () => {
+  it('calls signInWithGoogle when the Google button is clicked', async () => {
     render(<LoginModal isOpen onClose={vi.fn()} />);
-    fireEvent.click(screen.getByText('Најави се со Google'));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Најави се со Google'));
+    });
     expect(authState.signInWithGoogle).toHaveBeenCalledOnce();
   });
 

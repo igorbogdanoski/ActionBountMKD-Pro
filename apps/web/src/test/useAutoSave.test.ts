@@ -38,6 +38,7 @@ describe('useAutoSave', () => {
   });
 
   it('surfaces a visible error instead of failing silently when the save rejects', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     saveQuest.mockRejectedValue(new Error('network down'));
     const { result } = renderHook(() => useAutoSave(makeQuest(), true, vi.fn()));
 
@@ -46,9 +47,12 @@ describe('useAutoSave', () => {
     expect(result.current.error).not.toBeNull();
     expect(result.current.lastSaved).toBeNull();
     expect(result.current.saving).toBe(false);
+    expect(consoleError).toHaveBeenCalledWith('[AutoSave]', expect.any(Error));
+    consoleError.mockRestore();
   });
 
   it('retry() re-attempts the save and clears the error on success', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
     saveQuest.mockRejectedValueOnce(new Error('network down'));
     saveQuest.mockResolvedValueOnce(undefined);
     const { result } = renderHook(() => useAutoSave(makeQuest(), true, vi.fn()));
@@ -61,6 +65,8 @@ describe('useAutoSave', () => {
     expect(result.current.error).toBeNull();
     expect(result.current.lastSaved).not.toBeNull();
     expect(saveQuest).toHaveBeenCalledTimes(2);
+    expect(consoleError).toHaveBeenCalledOnce();
+    consoleError.mockRestore();
   });
 
   it('never saves when creatorId is missing', async () => {

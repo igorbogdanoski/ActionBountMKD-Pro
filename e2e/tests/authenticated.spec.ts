@@ -145,4 +145,21 @@ test.describe('authenticated QA harness', () => {
     await expect(questCard).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('switches semantic results tabs and exposes valid exports without overflow', async ({ page }) => {
+    await page.goto('/results?qaPlan=pro&qaResults=1', { waitUntil: 'domcontentloaded' });
+    const tabs = page.getByRole('tab');
+    await expect(tabs).toHaveCount(4, { timeout: 15_000 });
+    await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByRole('button', { name: 'Извоз во CSV' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Извоз во Excel' })).toBeEnabled();
+
+    const analytics = page.getByRole('tab', { name: /Аналитика/ });
+    await analytics.click();
+    await expect(analytics).toHaveAttribute('aria-selected', 'true');
+    const weakspots = page.getByRole('tab', { name: /Слаби точки/ });
+    await weakspots.click();
+    await expect(weakspots).toHaveAttribute('aria-selected', 'true');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

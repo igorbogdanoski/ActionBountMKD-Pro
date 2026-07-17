@@ -19,7 +19,8 @@ vi.mock('recharts', async () => {
   };
 });
 
-vi.mock('../utils/AuthContext', () => ({ useAuth: () => ({ user: { uid: 'teacher-1' } }) }));
+const authState = vi.hoisted(() => ({ user: { uid: 'teacher-1' } }));
+vi.mock('../utils/AuthContext', () => ({ useAuth: () => authState }));
 
 const planState = vi.hoisted(() => ({ planId: 'pro' as 'free' | 'pro' }));
 vi.mock('../hooks/usePlan', () => ({ usePlan: () => planState }));
@@ -27,6 +28,11 @@ vi.mock('../hooks/usePlan', () => ({ usePlan: () => planState }));
 const getQuests = vi.hoisted(() => vi.fn());
 const getQuestResults = vi.hoisted(() => vi.fn());
 vi.mock('../utils/storage', () => ({ getQuests, getQuestResults }));
+const downloadWorkbook = vi.hoisted(() => vi.fn());
+vi.mock('../utils/excelExport', () => ({ downloadWorkbook }));
+vi.mock('../components/dashboard/SubmissionReviewModal', () => ({
+  SubmissionReviewModal: ({ stageId }: { stageId: string }) => <div role="dialog">Review {stageId}</div>,
+}));
 
 import { ResultsDashboard } from '../components/dashboard/ResultsDashboard';
 
@@ -62,6 +68,7 @@ beforeEach(() => {
   planState.planId = 'pro';
   getQuests.mockReset().mockResolvedValue(quests());
   getQuestResults.mockReset().mockImplementation((questId: string) => Promise.resolve(resultsFor(questId)));
+  downloadWorkbook.mockReset();
 });
 
 describe('ResultsDashboard cross-quest weak-spots tab', () => {
@@ -98,5 +105,62 @@ describe('ResultsDashboard cross-quest weak-spots tab', () => {
     fireEvent.click(await screen.findByText('Тешко прашање'));
 
     expect(await screen.findByText('Точност по прашање')).toBeTruthy();
+  });
+});
+
+describe('ResultsDashboard H3b controls', () => {
+  it('exposes a semantic tablist and keeps empty exports disabled', async () => {
+    getQuestResults.mockResolvedValue([]);
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs).toHaveLength(4);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(screen.getByRole('tab', { name: /Аналитика/ }));
+    expect(screen.getByRole('tab', { name: /Аналитика/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('button', { name: 'Извоз во CSV' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Извоз во Excel' })).toBeDisabled();
+  });
+
+  it('exports both formats and releases the temporary CSV object URL', async () => {
+    const createObjectURL = vi.fn(() => 'blob:results');
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    const csv = screen.getByRole('button', { name: 'Извоз во CSV' });
+    await waitFor(() => expect(csv).toBeEnabled());
+    fireEvent.click(csv);
+    expect(createObjectURL).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:results');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Извоз во Excel' }));
+    expect(downloadWorkbook).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ name: 'Резултати' }),
+      expect.objectContaining({ name: 'Завршеност по етапа' }),
+    ]), 'rezultati_q1');
+    click.mockRestore();
+  });
+
+  it('opens rubric review from the grading tab', async () => {
+    const mission = {
+      id: 'mission-1', type: 'MISSION', title: 'Field evidence', description: '', order: 0,
+      rubric: { criteria: [{ id: 'quality', title: 'Quality', levels: [{ id: 'ok', label: 'OK', points: 1 }] }] },
+    };
+    getQuests.mockResolvedValue([{ ...quests()[0], stages: [mission] }]);
+    getQuestResults.mockResolvedValue([{
+      id: 'grade-result', questId: 'q1', playerName: 'Ana', points: 0, completedAt: '',
+      submissions: [{ stageId: 'mission-1', type: 'photo', mediaUrl: 'https://example.test/photo.jpg' }],
+    }]);
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByRole('tab', { name: /За оценување/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Оцени' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('Review mission-1');
   });
 });

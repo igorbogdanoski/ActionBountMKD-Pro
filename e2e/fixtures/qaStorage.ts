@@ -26,7 +26,8 @@ export async function upsertUserProfile(_profile: UserProfile) {}
 // mock module export-compatible with storage.ts while returning inert data for
 // routes that authenticated.spec.ts does not exercise.
 export async function getQuests() {
-  if (!new URLSearchParams(window.location.search).has('qaQuest')) return [];
+  const params = new URLSearchParams(window.location.search);
+  if (!params.has('qaQuest') && !params.has('qaResults')) return [];
   return [{
     id: 'qa-quest-1',
     creatorId: 'qa-teacher',
@@ -35,7 +36,9 @@ export async function getQuests() {
     visibility: 'secret',
     playMode: 'singleplayer',
     sequenceType: 'fixed',
-    stages: [],
+    stages: params.has('qaResults')
+      ? [{ id: 'qa-stage-1', type: 'INFO', title: 'QA етапа', description: 'Browser stage', order: 0 }]
+      : [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }];
@@ -45,7 +48,17 @@ export async function getQuestById() { return null; }
 export async function saveQuest() {}
 export async function deleteQuest() {}
 export async function saveQuestResult() { return 'qa-result-001'; }
-export async function getQuestResults() { return []; }
+export async function getQuestResults(questId?: string) {
+  if (!new URLSearchParams(window.location.search).has('qaResults') || questId !== 'qa-quest-1') return [];
+  return [{
+    id: 'qa-result-1',
+    questId,
+    playerName: 'QA Student',
+    points: 10,
+    completedAt: '2026-07-17T12:00:00.000Z',
+    stageDurations: [{ stageId: 'qa-stage-1', durationSec: 42 }],
+  }];
+}
 export async function gradeSubmission() {}
 export async function getPublicQuestResults() { return []; }
 export async function getPublicTemplates() { return []; }

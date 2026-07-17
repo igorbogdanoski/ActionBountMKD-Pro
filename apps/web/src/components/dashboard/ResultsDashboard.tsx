@@ -9,6 +9,7 @@ import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, A
 import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { SubmissionReviewModal } from './SubmissionReviewModal';
+import { Button } from '../ui/Button';
 
 export function ResultsDashboard() {
   const { user } = useAuth();
@@ -230,6 +231,7 @@ export function ResultsDashboard() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const exportExcel = () => {
@@ -299,22 +301,30 @@ export function ResultsDashboard() {
               <option key={q.id} value={q.id}>{q.title}</option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             onClick={exportCSV}
+            disabled={results.length === 0}
             title="Извоз во CSV"
-            className="p-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md transition-colors shadow-sm"
+            aria-label="Извоз во CSV"
+            variant="success"
+            size="icon"
+            className="!p-2.5 !rounded-md shadow-sm"
           >
             <Download className="w-5 h-5" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={exportExcel}
+            disabled={results.length === 0}
             title="Извоз во Excel (со завршеност по етапа)"
-            className="p-2.5 bg-teal-700 hover:bg-teal-600 text-white rounded-md transition-colors shadow-sm"
+            aria-label="Извоз во Excel"
+            size="icon"
+            colorClassName="bg-teal-700 hover:bg-teal-600 text-white focus-visible:ring-teal-500"
+            className="!p-2.5 !rounded-md shadow-sm"
           >
             <FileSpreadsheet className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -349,17 +359,18 @@ export function ResultsDashboard() {
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-slate-700">
+      <div role="tablist" aria-label="Приказ на резултати" className="flex gap-1 border-b border-slate-700">
         {([['leaderboard', '🏆 Топ Листа'], ['funnel', '📊 Аналитика'], ['weakspots', '🎯 Слаби точки'], ['grade', '📝 За оценување']] as const).map(([tab, label]) => (
-          <button
+          <Button
             key={tab}
             type="button"
+            role="tab"
+            aria-selected={activeTab === tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-colors -mb-px flex items-center gap-1.5 ${
-              activeTab === tab
-                ? 'border-indigo-500 text-indigo-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
+            colorClassName={activeTab === tab
+              ? 'border-indigo-500 text-indigo-400 focus-visible:ring-indigo-500'
+              : 'border-transparent text-slate-400 hover:text-slate-200 focus-visible:ring-slate-500'}
+            className="!rounded-none !font-semibold border-b-2 -mb-px"
           >
             {label}
             {(tab === 'funnel' || tab === 'weakspots') && !isPro && (
@@ -370,7 +381,7 @@ export function ResultsDashboard() {
                 {pendingGradeCount}
               </span>
             )}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -547,11 +558,12 @@ export function ResultsDashboard() {
                 ) : (
                   <div className="space-y-2">
                     {crossQuestWeakQuestions.map(q => (
-                      <button
+                      <Button
                         key={`${q.questId}-${q.id}`}
                         type="button"
                         onClick={() => openQuestInFunnel(q.questId)}
-                        className="w-full text-left rounded-xl border border-slate-700 bg-slate-800 hover:border-indigo-500/50 px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+                        colorClassName="border-slate-700 bg-slate-800 text-slate-200 hover:border-indigo-500/50 focus-visible:ring-indigo-500"
+                        className="w-full !justify-between !text-left !px-4 !py-3 border"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-200 truncate">{q.title}</p>
@@ -562,7 +574,7 @@ export function ResultsDashboard() {
                         }`}>
                           {q.accuracy}%
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -578,11 +590,12 @@ export function ResultsDashboard() {
                 ) : (
                   <div className="space-y-2">
                     {crossQuestDropOffs.map(s => (
-                      <button
+                      <Button
                         key={`${s.questId}-${s.id}`}
                         type="button"
                         onClick={() => openQuestInFunnel(s.questId)}
-                        className="w-full text-left rounded-xl border border-rose-500/20 bg-rose-500/5 hover:border-rose-500/50 px-4 py-3 flex items-center justify-between gap-3 transition-colors"
+                        colorClassName="border-rose-500/20 bg-rose-500/5 text-slate-200 hover:border-rose-500/50 focus-visible:ring-rose-500"
+                        className="w-full !justify-between !text-left !px-4 !py-3 border"
                       >
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-200 truncate">{s.title || s.label}</p>
@@ -591,7 +604,7 @@ export function ResultsDashboard() {
                         <span className="text-sm font-bold text-rose-400 shrink-0 flex items-center gap-1">
                           <AlertTriangle className="w-3.5 h-3.5" /> -{s.dropOff}%
                         </span>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}
@@ -647,13 +660,15 @@ export function ResultsDashboard() {
                 ) : (
                   <span className="text-xs font-bold text-amber-400 shrink-0">Чека оценување</span>
                 )}
-                <button
+                <Button
                   type="button"
                   onClick={() => setReviewing({ result, stageId: stage.id })}
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors shrink-0"
+                  variant="app-primary"
+                  size="sm"
+                  className="shrink-0"
                 >
                   {graded ? 'Прегледај' : 'Оцени'}
-                </button>
+                </Button>
               </div>
             ))
           )}
@@ -808,5 +823,4 @@ export function ResultsDashboard() {
     </div>
   );
 }
-
 

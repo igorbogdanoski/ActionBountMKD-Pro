@@ -37,6 +37,7 @@ export function ClassGroups() {
   const [studentInput, setStudentInput] = useState('');
   const [certQuestId, setCertQuestId] = useState<string>('');
   const [busy, setBusy] = useState<'' | 'csv' | 'cert'>('');
+  const [certificateNotice, setCertificateNotice] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -171,6 +172,7 @@ export function ClassGroups() {
     const quest = quests.find(q => q.id === certQuestId);
     if (!quest) return;
     setBusy('cert');
+    setCertificateNotice(null);
     try {
       const results = await getQuestResults(certQuestId);
       const maxScore = questMaxScore(quest);
@@ -188,7 +190,7 @@ export function ClassGroups() {
         });
       }
       if (items.length === 0) {
-        window.alert('Ниту еден ученик од оваа група сè уште не ја завршил избраната авантура.');
+        setCertificateNotice('Ниту еден ученик од оваа група сè уште не ја завршил избраната авантура.');
         return;
       }
       await downloadClassCertificates(items, `Сертификати_${selected.name}_${quest.title}`);
@@ -448,6 +450,11 @@ export function ClassGroups() {
               <p className="text-xs text-slate-500">
                 Се генерира PDF со по една страница за секој ученик што ја завршил избраната авантура.
               </p>
+              {certificateNotice && (
+                <p role="alert" className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+                  {certificateNotice}
+                </p>
+              )}
             </div>
           </div>
         ) : (

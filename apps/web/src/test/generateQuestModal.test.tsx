@@ -59,7 +59,7 @@ describe('GenerateQuestModal', () => {
     fireEvent.change(screen.getByLabelText('Тема'), { target: { value: 'Сончевиот систем' } });
     fireEvent.click(screen.getByRole('button', { name: /Генерирај/ }));
 
-    await waitFor(() => expect(screen.getByText(/Грешка при генерирање/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/Грешка при генерирање/));
     expect(navigateSpy).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });

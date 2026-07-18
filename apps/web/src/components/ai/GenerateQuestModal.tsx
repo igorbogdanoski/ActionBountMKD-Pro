@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Loader2, AlertTriangle, Wand2 } from 'lucide-react';
+import { Sparkles, AlertTriangle, Wand2 } from 'lucide-react';
 import { generateQuest } from '../../utils/aiService';
 import { trackEvent } from '../../utils/analytics';
 import { AiQuestError, clampStageCount, MIN_STAGES, MAX_STAGES, type TemplateSubject } from 'shared';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 interface GenerateQuestModalProps {
   open: boolean;
@@ -61,23 +62,21 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
       size="lg"
       footer={
         <>
-          <button
-            type="button"
+          <Button
             onClick={onClose}
-            className="px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            variant="ghost"
           >
             Откажи
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             onClick={handleGenerate}
             disabled={loading || topic.trim().length < 3}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-lg bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:from-fuchsia-400 hover:to-indigo-500 shadow-lg shadow-indigo-600/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={loading}
+            colorClassName="text-white bg-gradient-to-r from-fuchsia-500 to-indigo-600 hover:from-fuchsia-400 hover:to-indigo-500 focus-visible:ring-indigo-500"
+            className="shadow-lg shadow-indigo-600/20"
           >
-            {loading
-              ? <><Loader2 className="w-4 h-4 animate-spin" /> Генерирам…</>
-              : <><Wand2 className="w-4 h-4" /> Генерирај</>}
-          </button>
+            {loading ? 'Генерирам…' : <><Wand2 aria-hidden="true" className="w-4 h-4" /> Генерирај</>}
+          </Button>
         </>
       }
     >
@@ -149,7 +148,7 @@ export function GenerateQuestModal({ open, onClose }: GenerateQuestModalProps) {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-300">
+          <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-rose-50 dark:bg-rose-500/10 border border-rose-300 dark:border-rose-500/30 text-sm text-rose-700 dark:text-rose-300">
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
             <span>{error}</span>
           </div>

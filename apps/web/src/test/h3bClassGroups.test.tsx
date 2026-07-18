@@ -105,4 +105,15 @@ describe('H3b ClassGroups controls', () => {
       expect(screen.queryByRole('button', { name: /6-Б/ })).not.toBeInTheDocument();
     });
   });
+
+  it('reports an empty certificate cohort in-app without invoking a native alert', async () => {
+    getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-1'] }]);
+    render(<ClassGroups />);
+    await screen.findByRole('button', { name: /6-Б/ });
+    fireEvent.change(screen.getByTitle('Избери авантура за сертификати'), { target: { value: 'quest-1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Сертификати за класа' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Ниту еден ученик/);
+    expect(downloadClassCertificates).not.toHaveBeenCalled();
+  });
 });

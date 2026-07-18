@@ -98,6 +98,10 @@ Batch-от е затворен само кога:
   - [x] H3c-4 QuestSettingsPanel.
   - [x] H3c-5 FindSpotPlannerPanel.
 - [ ] H3d Creator stage editors.
+  - [x] H3d-1 Shared editor Tabs semantic primitive.
+  - [ ] H3d-2 Simple editors: FindSpot, Survey и Switch.
+  - [ ] H3d-3 ScanCode и QrTask lifecycle-и.
+  - [ ] H3d-4 Quiz и Rubric complex lifecycle-и.
 - [ ] H3e Session/Admin.
 - [ ] H3f MobilePlayer shell и stage players, последни.
 
@@ -193,7 +197,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3c-3 StageList controls + accessible lifecycle | `e6c3974` | PASS | 533/533 PASS; 9 focused StageList contracts | PASS | Сите raw controls мигрирани; semantic pressed stage selection, keyboard-visible insert/card actions, precise labels, safe delete modal и валидирани reorder indices. Desktop/mobile add, duplicate, Enter selection, confirm delete и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3c-4 QuestSettings controls + destructive lifecycle | `55e7bb5` | PASS | 542/542 PASS; 22 focused settings/creator/autosave contracts | PASS | Tags, inventory, goals и danger controls мигрирани; мртвото delete копче доби confirmation/loading/error flow. Unicode sanitizer ја задржува „ј“; autosave suspend + snapshot guard спречуваат resurrect-after-delete и губење понова dirty измена. Desktop/mobile CRUD, delete-cancel, manual save и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3c-5 FindSpotPlanner controls + H3c audit | `71e6c03` | PASS | 546/546 PASS; 8 focused planner contracts | PASS | Add-mode и marker selection контролите мигрирани со semantic pressed state, точни accessible имиња и memoized map payload. Direct tests ги покриваат empty/add/select/move lifecycle-ите; desktop/mobile FIND_SPOT creator flow и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Completion audit: нема raw button во H3c shell опсегот; преостанатите creator raw controls се ограничени на планираниот H3d `creator/stages/*` опсег. H3c complete. |
+| 2026-07-18 | H3d-1 Shared creator editor Tabs | `55c4cbc` | PASS | 548/548 PASS; 28 focused dependent contracts | PASS | Shared Tabs мигриран во Button-backed `tablist`/`tab` primitive со `aria-selected`; сите Quiz/QuestSettings/BoundCreator consumers и тестови усогласени. QA manual-save насловот е направен детерминистички за reuse-нат server. Desktop/mobile tab selection и creator lifecycle; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3d Creator stage editors во мали semantic batches: прво inventory/classification и shared editor controls, потоа едноставните editors, а Quiz/Rubric/QR complex lifecycle-ите одделно. За секој batch важат focused tests, full suite/build и desktop/mobile creator QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3d-2: FindSpot, Survey и Switch simple editor controls. Не мешај ScanCode/QrTask или Quiz/Rubric lifecycle-и во истиот batch. За секој batch важат focused tests, full suite/build и desktop/mobile creator QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

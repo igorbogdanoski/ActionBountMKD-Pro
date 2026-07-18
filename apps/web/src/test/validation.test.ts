@@ -282,6 +282,32 @@ describe('QuizStageSchema', () => {
     expect(r.success).toBe(true);
   });
 
+  it('accepts matching and ordering structures', () => {
+    expect(QuizStageSchema.safeParse({
+      ...base,
+      questionType: 'matching',
+      matchingPairs: [{ id: 'p1', left: 'H₂O', right: 'Вода' }],
+    }).success).toBe(true);
+    expect(QuizStageSchema.safeParse({
+      ...base,
+      questionType: 'ordering',
+      orderingItems: [{ id: 'i1', text: 'Прво' }],
+    }).success).toBe(true);
+  });
+
+  it('rejects malformed or oversized matching and ordering structures', () => {
+    expect(QuizStageSchema.safeParse({
+      ...base,
+      questionType: 'matching',
+      matchingPairs: Array.from({ length: 21 }, (_, i) => ({ id: `p${i}`, left: '', right: '' })),
+    }).success).toBe(false);
+    expect(QuizStageSchema.safeParse({
+      ...base,
+      questionType: 'ordering',
+      orderingItems: [{ id: '', text: 'Прво' }],
+    }).success).toBe(false);
+  });
+
   it('rejects timeLimitSeconds over 3600', () => {
     const r = QuizStageSchema.safeParse({ ...base, timeLimitSeconds: 3601 });
     expect(r.success).toBe(false);

@@ -3,6 +3,11 @@ import { Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import type { QuizStage, MatchingPair, OrderingItem } from 'shared';
 import { Tabs, Field, Toggle, inputCls } from './shared';
 import { MathRichEditor } from '../../editor/MathRichEditor';
+import { Button } from '../../ui/Button';
+
+const MAX_QUIZ_OPTIONS = 8;
+const MAX_MATCHING_PAIRS = 20;
+const MAX_ORDERING_ITEMS = 20;
 
 function uid() {
   try { return crypto.randomUUID(); } catch { return Math.random().toString(36).slice(2); }
@@ -102,26 +107,31 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                         onChange({ matchingPairs: next });
                       }}
                     />
-                    <button
+                    <Button
                       type="button"
-                      aria-label={`Избриши пар ${i + 1}`}
+                      aria-label={`Отстрани пар ${i + 1}`}
                       onClick={() => onChange({ matchingPairs: (stage.matchingPairs ?? []).filter((_, j) => j !== i) })}
-                      className="p-2 text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                      variant="ghost" size="icon"
+                      colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
+                      className="shrink-0"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </div>
                 ))}
-                <button
+                <Button
                   type="button"
+                  disabled={(stage.matchingPairs ?? []).length >= MAX_MATCHING_PAIRS}
                   onClick={() => {
                     const pair: MatchingPair = { id: uid(), left: '', right: '' };
                     onChange({ matchingPairs: [...(stage.matchingPairs ?? []), pair] });
                   }}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  variant="ghost" size="sm"
+                  colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                  leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}
                 >
-                  <Plus className="w-3.5 h-3.5" /> Додај пар
-                </button>
+                  Додај пар
+                </Button>
               </div>
             </Field>
           )}
@@ -143,7 +153,7 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                         onChange({ orderingItems: next });
                       }}
                     />
-                    <button
+                    <Button
                       type="button"
                       aria-label={`Помести нагоре ${i + 1}`}
                       disabled={i === 0}
@@ -152,11 +162,13 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                         [next[i - 1], next[i]] = [next[i], next[i - 1]];
                         onChange({ orderingItems: next });
                       }}
-                      className="p-2 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+                      variant="ghost" size="icon"
+                      colorClassName="text-slate-500 hover:text-indigo-400 focus-visible:ring-indigo-400"
+                      className="shrink-0"
                     >
-                      <ChevronUp className="w-4 h-4" />
-                    </button>
-                    <button
+                      <ChevronUp className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button
                       type="button"
                       aria-label={`Помести надолу ${i + 1}`}
                       disabled={i === (stage.orderingItems ?? []).length - 1}
@@ -165,30 +177,37 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                         [next[i], next[i + 1]] = [next[i + 1], next[i]];
                         onChange({ orderingItems: next });
                       }}
-                      className="p-2 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors shrink-0"
+                      variant="ghost" size="icon"
+                      colorClassName="text-slate-500 hover:text-indigo-400 focus-visible:ring-indigo-400"
+                      className="shrink-0"
                     >
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                    <button
+                      <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                    <Button
                       type="button"
-                      aria-label={`Избриши ставка ${i + 1}`}
+                      aria-label={`Отстрани ставка ${i + 1}`}
                       onClick={() => onChange({ orderingItems: (stage.orderingItems ?? []).filter((_, j) => j !== i) })}
-                      className="p-2 text-slate-500 hover:text-red-400 transition-colors shrink-0"
+                      variant="ghost" size="icon"
+                      colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
+                      className="shrink-0"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </div>
                 ))}
-                <button
+                <Button
                   type="button"
+                  disabled={(stage.orderingItems ?? []).length >= MAX_ORDERING_ITEMS}
                   onClick={() => {
                     const item: OrderingItem = { id: uid(), text: '' };
                     onChange({ orderingItems: [...(stage.orderingItems ?? []), item] });
                   }}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  variant="ghost" size="sm"
+                  colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                  leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}
                 >
-                  <Plus className="w-3.5 h-3.5" /> Додај ставка
-                </button>
+                  Додај ставка
+                </Button>
               </div>
             </Field>
           )}
@@ -209,26 +228,30 @@ export function QuizStageEditor({ stage, onChange }: Props) {
                         onChange({ options: opts });
                       }}
                     />
-                    <button
+                    <Button
                       type="button"
-                      aria-label={`Избриши опција ${i + 1}`}
+                      aria-label={`Отстрани опција ${i + 1}`}
                       onClick={() => {
                         const opts = (stage.options ?? ['']).filter((_, j) => j !== i);
                         onChange({ options: opts });
                       }}
-                      className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                      variant="ghost" size="icon"
+                      colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                      <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </div>
                 ))}
-                <button
+                <Button
                   type="button"
+                  disabled={(stage.options ?? []).length >= MAX_QUIZ_OPTIONS}
                   onClick={() => onChange({ options: [...(stage.options ?? []), ''] })}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                  variant="ghost" size="sm"
+                  colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                  leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}
                 >
-                  <Plus className="w-3.5 h-3.5" /> Додај опција
-                </button>
+                  Додај опција
+                </Button>
               </div>
             </Field>
           )}
@@ -305,4 +328,3 @@ export function QuizStageEditor({ stage, onChange }: Props) {
     </div>
   );
 }
-

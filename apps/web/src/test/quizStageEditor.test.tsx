@@ -56,13 +56,21 @@ describe('QuizStageEditor — matching questions', () => {
       { id: 'p2', left: 'Сол', right: 'NaCl' },
     ];
     const onChange = renderOnAnswerTab(makeStage({ questionType: 'matching', matchingPairs: pairs }));
-    fireEvent.click(screen.getByLabelText('Избриши пар 1'));
+    fireEvent.click(screen.getByLabelText('Отстрани пар 1'));
     expect(onChange).toHaveBeenCalledWith({ matchingPairs: [{ id: 'p2', left: 'Сол', right: 'NaCl' }] });
   });
 
   it('hides the single "correct answer" field for matching questions', () => {
     renderOnAnswerTab(makeStage({ questionType: 'matching' }));
     expect(screen.queryByPlaceholderText('Точен одговор...')).toBeNull();
+  });
+
+  it('disables adding pairs at the persisted limit', () => {
+    renderOnAnswerTab(makeStage({
+      questionType: 'matching',
+      matchingPairs: Array.from({ length: 20 }, (_, i) => ({ id: `p${i}`, left: '', right: '' })),
+    }));
+    expect(screen.getByRole('button', { name: 'Додај пар' })).toBeDisabled();
   });
 });
 
@@ -101,11 +109,27 @@ describe('QuizStageEditor — ordering questions', () => {
     renderOnAnswerTab(makeStage({ questionType: 'ordering' }));
     expect(screen.queryByPlaceholderText('Точен одговор...')).toBeNull();
   });
+
+  it('removes an exact item and disables adding at the persisted limit', () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({ id: `i${i}`, text: `${i}` }));
+    const onChange = renderOnAnswerTab(makeStage({ questionType: 'ordering', orderingItems: items }));
+    expect(screen.getByRole('button', { name: 'Додај ставка' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Отстрани ставка 2' }));
+    expect(onChange).toHaveBeenCalledWith({ orderingItems: items.filter((_, i) => i !== 1) });
+  });
 });
 
 describe('QuizStageEditor — existing question types unaffected', () => {
   it('still shows the correct-answer field for free_text', () => {
     renderOnAnswerTab(makeStage({ questionType: 'free_text' }));
     expect(screen.getByPlaceholderText('Точен одговор...')).toBeTruthy();
+  });
+
+  it('removes an exact multiple-choice option and disables adding at eight', () => {
+    const options = Array.from({ length: 8 }, (_, i) => `Опција ${i + 1}`);
+    const onChange = renderOnAnswerTab(makeStage({ questionType: 'multiple_choice', options }));
+    expect(screen.getByRole('button', { name: 'Додај опција' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Отстрани опција 2' }));
+    expect(onChange).toHaveBeenCalledWith({ options: options.filter((_, i) => i !== 1) });
   });
 });

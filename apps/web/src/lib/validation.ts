@@ -34,9 +34,18 @@ export const StageBaseSchema = z.object({
 
 export const QuizStageSchema = StageBaseSchema.extend({
   type:          z.literal('QUIZ'),
-  questionType:  z.enum(['multiple_choice', 'free_text', 'estimate_number']),
+  questionType:  z.enum(['multiple_choice', 'free_text', 'estimate_number', 'matching', 'ordering']),
   correctAnswer: z.union([z.string().max(500), z.number()]),
   options:       z.array(z.string().max(200)).max(8).optional(),
+  matchingPairs: z.array(z.object({
+    id: z.string().min(1).max(64),
+    left: z.string().max(200),
+    right: z.string().max(200),
+  })).max(20).optional(),
+  orderingItems: z.array(z.object({
+    id: z.string().min(1).max(64),
+    text: z.string().max(200),
+  })).max(20).optional(),
   timeLimitSeconds: z.number().min(0).max(3600).optional(),
 });
 

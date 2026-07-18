@@ -285,6 +285,21 @@ test.describe('authenticated QA harness', () => {
     await surveyDeleteDialog.getByRole('button', { name: 'Избриши' }).click();
     await expect(stageSelectors).toHaveCount(1);
 
+    await page.getByRole('button', { name: 'Вметни: Квиз' }).last().click();
+    await page.getByRole('tab', { name: 'Одговор' }).click();
+    await page.getByLabel('Тип на одговор').selectOption('matching');
+    const addPair = page.getByRole('button', { name: 'Додај пар' });
+    await addPair.click();
+    await expect(page.getByPlaceholder('Лево 1')).toBeVisible();
+    await expect(page.getByPlaceholder('Десно 1')).toBeVisible();
+    await page.getByRole('button', { name: 'Отстрани пар 1' }).click();
+    await expect(page.getByPlaceholder('Лево 1')).toBeHidden();
+    if (await backToStages.isVisible()) await backToStages.click();
+    await page.getByRole('button', { name: 'Избриши етапа 2' }).click();
+    const quizDeleteDialog = page.getByRole('dialog', { name: 'Избриши етапа?' });
+    await quizDeleteDialog.getByRole('button', { name: 'Избриши' }).click();
+    await expect(stageSelectors).toHaveCount(1);
+
     await page.getByRole('button', { name: 'Сподели квест' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

@@ -19,7 +19,7 @@ function makeStage(overrides: Partial<QuizStage> = {}): QuizStage {
 
 function renderOnAnswerTab(stage: QuizStage, onChange = vi.fn()) {
   render(<QuizStageEditor stage={stage} onChange={onChange} />);
-  fireEvent.click(screen.getByRole('button', { name: 'Одговор' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Одговор' }));
   return onChange;
 }
 

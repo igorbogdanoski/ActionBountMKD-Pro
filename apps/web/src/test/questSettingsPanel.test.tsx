@@ -70,7 +70,7 @@ describe('QuestSettingsPanel controls', () => {
     const { rerender } = render(
       <QuestSettingsPanel quest={makeQuest()} onChange={onChange} onDeleteQuest={vi.fn().mockResolvedValue(undefined)} />,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Педагогија' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
     fireEvent.change(screen.getByPlaceholderText(/Препознава историски/), { target: { value: 'Препознава обележја' } });
     fireEvent.click(screen.getByRole('button', { name: 'Додај цел на учење' }));
     expect(onChange).toHaveBeenCalledWith('pedagogy', { learningGoals: ['Препознава обележја'] });
@@ -84,7 +84,7 @@ describe('QuestSettingsPanel controls', () => {
   it('gates the public leaderboard control by plan', () => {
     planState.planId = 'free';
     const { rerender } = renderPanel();
-    fireEvent.click(screen.getByRole('button', { name: 'Карактеристики' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Карактеристики' }));
     expect(screen.getByText(/достапна со Pro план/)).toBeInTheDocument();
     expect(screen.queryByRole('checkbox', { name: /Јавна табела/ })).not.toBeInTheDocument();
 
@@ -96,7 +96,7 @@ describe('QuestSettingsPanel controls', () => {
   it('confirms quest deletion and reports a rejected delete without closing the dialog', async () => {
     const onDeleteQuest = vi.fn().mockRejectedValue(new Error('offline'));
     renderPanel(makeQuest(), vi.fn(), onDeleteQuest);
-    fireEvent.click(screen.getByRole('button', { name: 'Опасна зона' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Опасна зона' }));
     fireEvent.click(screen.getByRole('button', { name: 'Избриши квест' }));
     const dialog = screen.getByRole('dialog');
     expect(within(dialog).getByText(/„Тест квест“/)).toBeInTheDocument();

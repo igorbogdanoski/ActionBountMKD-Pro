@@ -217,7 +217,10 @@ test.describe('authenticated QA harness', () => {
     await removeItem.click();
     await expect(removeItem).toBeHidden();
 
-    await page.getByRole('button', { name: 'Опасна зона' }).click();
+    const dangerZone = page.getByRole('tab', { name: 'Опасна зона' });
+    await expect(dangerZone).toHaveAttribute('aria-selected', 'false');
+    await dangerZone.click();
+    await expect(dangerZone).toHaveAttribute('aria-selected', 'true');
     await page.getByRole('button', { name: 'Избриши квест' }).click();
     const questDeleteDialog = page.getByRole('dialog', { name: 'Избриши квест?' });
     await expect(questDeleteDialog).toBeVisible();
@@ -246,8 +249,7 @@ test.describe('authenticated QA harness', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 
-    const currentTitle = await title.inputValue();
-    await title.fill(`${currentTitle || 'QA creator quest'} · manual`);
+    await title.fill(`QA manual save ${Date.now()}`);
     await expect(save).toBeEnabled();
     await save.click();
     await expect(save).toBeDisabled();

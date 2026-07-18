@@ -145,7 +145,7 @@ describe('BoundCreator', () => {
     await screen.findByDisplayValue('Постоечка авантура');
 
     fireEvent.click(screen.getByRole('button', { name: 'Поставки на квестот' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Опасна зона' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Опасна зона' }));
     fireEvent.click(screen.getByRole('button', { name: 'Избриши квест' }));
     fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Избриши засекогаш' }));
 

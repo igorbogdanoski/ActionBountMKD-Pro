@@ -31,7 +31,7 @@
 
 - Button/Card API prerequisite е завршен во `2b135d3`.
 - Playwright MCP конфигурацијата е versioned во `8147394`.
-- Production Button миграцијата е завршена низ H1, H2 и H3a-H3e, како и H3f-1/H3f-2; H3f-3 player stage components останува последен. Card миграцијата не е започната.
+- Production Button миграцијата е завршена низ H1, H2 и H3a-H3f. Completion audit отвори H3g remediation за 27 raw non-primitive controls и еден native alert; Card миграцијата не е започната.
 - Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
@@ -109,14 +109,19 @@ Batch-от е затворен само кога:
   - [x] H3e-2 AdminPanel по функционални секции.
     - [x] H3e-2a Shell, semantic tabs/filters и payment moderation lifecycle.
     - [x] H3e-2b Template seed/cleanup/moderation lifecycle и H3e audit.
-- [ ] H3f MobilePlayer shell и stage players, последни.
+- [x] H3f MobilePlayer shell и stage players.
   - [x] H3f-1 Entry/onboarding и finish/grade/feedback/certificate controls.
   - [x] H3f-2 Stage selection и active gameplay shell/modals.
   - [ ] H3f-3 Player stage components по сродни мали групи.
     - [x] H3f-3a Info, Survey и Tournament single-action players.
     - [x] H3f-3b Mission и Switch input/action players.
     - [x] H3f-3c FindSpot и QR device-assisted players.
-    - [ ] H3f-3d Quiz multi-format player и H3/Button completion audit.
+    - [x] H3f-3d Quiz multi-format player и H3/Button completion audit.
+- [ ] H3g Completion-audit remediation пред Card миграција.
+  - [ ] H3g-1 GenerateQuestModal и ClassGroups native alert.
+  - [ ] H3g-2 MathRichEditor toolbar/popover controls.
+  - [ ] H3g-3 LandingPage navigation/CTA/language controls.
+  - [ ] H3g-4 Нулти production raw-control audit и целосна browser matrix.
 
 За секое raw копче прво се одредува дали е action button, tab, toggle, interactive card, icon control или link-like navigation. Не се применува механичка замена.
 
@@ -223,7 +228,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3f-3a Info, Survey + Tournament stage actions | `055941a` | PASS | 592/592 PASS; 11 focused stage contracts | PASS | Трите едно-action stage players се мигрирани во shared Button без промена на нивната визуелна хиерархија: emerald success, indigo app-primary и explicit orange tournament action. Survey disabled contract и сите callback contracts остануваат покриени. Desktop/mobile player entry/finish/HUD regression 4/4 PASS со zero overflow; production build PASS. Во stage inventory остануваат 18 raw controls во Mission, Switch, FindSpot, QR и Quiz. |
 | 2026-07-18 | H3f-3b Mission + Switch input/action players | `9ae6e37` | PASS | 594/594 PASS; 14 focused stage contracts | PASS | Сите 5 Mission/Switch raw controls се мигрирани. Audio start/stop е вистински toggle со `aria-pressed`, retake/finish ја задржуваат точната визуелна хиерархија, а upload errors се live alerts. Switch патеките добија прецизни recommended/locked accessible names без лажно selected state; missing-item disabled contract е зачуван. Desktop/mobile player regression 4/4 PASS со zero overflow; production build PASS. Во stage inventory остануваат 13 raw controls само во FindSpot, QR и Quiz. |
 | 2026-07-18 | H3f-3c FindSpot + QR device-assisted players | `5a713e0` | PASS | 596/596 PASS; 15 focused stage contracts | PASS | Сите 8 FindSpot/QR control категории се мигрирани. GPS denied/unavailable и scanner failures се live alerts; arrived/retry/continue/optional-skip actions ја задржуваат точната визуелна хиерархија. QR multiple-choice има pressed state и се заклучува по feedback; error/success feedback има alert/status semantics. Scanner lifecycle останува правилно во parent orchestration и не е дуплиран во presentation component. Desktop/mobile player regression 4/4 PASS со zero overflow; production build PASS. Stage inventory: само 5 raw controls во Quiz. |
+| 2026-07-18 | H3f-3d Quiz multi-format player + completion audit | `c0d6597` | PASS | 597/597 PASS; 19 focused Quiz contracts | PASS | Последните 5 player control категории се мигрирани: multiple-choice pressed/locked state, item-aware ordering controls, submit/timeout actions и accessible timer/progressbar/feedback. Player/stages audit е нула raw controls. Desktop/mobile player regression 4/4 PASS со zero overflow; production build PASS. Глобалниот production component audit спречи лажно H3 затворање: остануваат 27 raw non-primitive controls во GenerateQuestModal, MathRichEditor и LandingPage, плус еден native alert во ClassGroups; евидентирани како H3g. |
 
 ## Следна акција
 
-Продолжи со H3f-3d: Quiz multi-format player (single/multiple choice, matching и ordering), потоа изврши целосен H3/Button completion audit низ production component TSX. Не мешај Card миграција во истиот batch. Важи precise selected/locked/feedback semantics, focused contracts, full suite/build и desktop/mobile QA; R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3g-1: мигрирај ги двата `GenerateQuestModal` controls и замени го `ClassGroups` native alert со видлив, тестиран in-app status/alert. Не мешај MathRichEditor, LandingPage или Card миграција во истиот batch. Потоа H3g-2 и H3g-3, па нулти audit + целосна browser matrix во H3g-4; R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

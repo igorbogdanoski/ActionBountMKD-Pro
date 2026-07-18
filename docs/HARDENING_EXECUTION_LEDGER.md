@@ -97,13 +97,13 @@ Batch-от е затворен само кога:
   - [x] H3c-3 StageList.
   - [x] H3c-4 QuestSettingsPanel.
   - [x] H3c-5 FindSpotPlannerPanel.
-- [ ] H3d Creator stage editors.
+- [x] H3d Creator stage editors.
   - [x] H3d-1 Shared editor Tabs semantic primitive.
   - [x] H3d-2 Simple editors: FindSpot, Survey и Switch.
   - [x] H3d-3 ScanCode и QrTask lifecycle-и.
-  - [ ] H3d-4 Quiz и Rubric complex lifecycle-и.
+  - [x] H3d-4 Quiz и Rubric complex lifecycle-и.
     - [x] H3d-4a Rubric CRUD, presets и score bounds.
-    - [ ] H3d-4b Quiz answer-type controls и reorder semantics.
+    - [x] H3d-4b Quiz answer-type controls и reorder semantics.
 - [ ] H3e Session/Admin.
 - [ ] H3f MobilePlayer shell и stage players, последни.
 
@@ -203,7 +203,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3d-2 FindSpot, Survey и Switch editors | `60df4a9` | PASS | 554/554 PASS; 8 focused simple-editor contracts | PASS | Сите 6 raw controls мигрирани; map toggle има semantic pressed state, GPS success rounding/map-open contract, а Survey/Switch icon-delete controls имаат точни индексни labels. Add/remove и 20-question limit lifecycle-и се директно покриени. Desktop/mobile FIND_SPOT coordinates/map lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Manual-save browser assertion е задржан на независниот desktop run за да нема cross-project autosave race. |
 | 2026-07-18 | H3d-3 ScanCode + QrTask QR lifecycles | `a7d945d` | PASS | 559/559 PASS; 13 focused QR editor/player contracts | PASS | Сите 8 raw controls мигрирани. Shared clipboard lifecycle чека реален write, прикажува success/error и го чисти timer-от при unmount; SVG download секогаш го revoke-ира object URL преку `finally`. Option controls имаат precise A-F labels и limit contract; нула raw buttons во двата editors. Desktop/mobile QR_TASK create→generate→copy→tab→delete lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3d-4a Rubric CRUD + presets | `6045c90` | PASS | 564/564 PASS; 14 focused rubric/editor/review contracts | PASS | Сите 6 raw controls мигрирани со precise criterion/level/preset labels. Level score persistence е clamp-ирана на 0–1000; empty/duplicate/max preset action е semantic disabled. Criterion/level/preset add-remove, sole-level guard и max-score contracts се директно покриени; нула raw buttons во RubricEditor. Desktop/mobile Survey rubric criterion/preset CRUD и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-18 | H3d-4b Quiz controls + validation + H3d audit | `4c87ab2` | PASS | 569/569 PASS; 89 focused Quiz editor/validation/player contracts | PASS | Сите 8 Quiz raw controls мигрирани; precise remove/reorder labels и 8-option/20-pair/20-item limits се усогласени меѓу UI и schema. Критичен production gap затворен: QuizStageSchema сега прифаќа и валидира matching/ordering payload-и наместо да ги одбива. Desktop/mobile Quiz matching add/remove lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Completion audit: нула raw `<button>` во целиот `creator/stages/*`; H3d complete. |
 
 ## Следна акција
 
-Продолжи со H3d-4b: Quiz answer-type controls, add/remove и reorder semantics. По затворање направи H3d completion audit. За секој batch важат focused tests, full suite/build и desktop/mobile creator QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3e Session/Admin, повторно во мали подфази: прво LiveSessionHost/session controls, потоа AdminPanel по функционални секции. Не мешај MobilePlayer (H3f) во истиот batch. За секој batch важат focused tests, full suite/build и desktop/mobile QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

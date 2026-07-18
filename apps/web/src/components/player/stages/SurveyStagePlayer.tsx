@@ -1,5 +1,6 @@
 import type { SurveyStage, StageSubmission } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 import { RubricPreview } from './RubricPreview';
 
 interface Props {
@@ -49,13 +50,16 @@ export function SurveyStagePlayer({ stage, isNightMode, answers, onAnswerChange,
         ))}
       </div>
 
-      <button
+      <Button
         onClick={handleSubmit}
         disabled={!complete}
-        className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
+        fullWidth
+        size="lg"
+        variant="app-primary"
+        className="py-4 uppercase shadow-xl mt-auto"
       >
         {hasRubric ? 'Испрати за оценување' : 'Поднеси анкета'}
-      </button>
+      </Button>
     </div>
   );
 }

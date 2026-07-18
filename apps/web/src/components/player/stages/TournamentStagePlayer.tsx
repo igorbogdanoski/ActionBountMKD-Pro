@@ -1,6 +1,7 @@
 import { Trophy } from 'lucide-react';
 import type { TournamentStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 
 interface Props {
   stage: TournamentStage;
@@ -28,13 +29,15 @@ export function TournamentStagePlayer({ stage, isNightMode, onFinish }: Props) {
         </p>
       )}
       <div className="mt-auto w-full">
-        <button
-          type="button"
+        <Button
           onClick={onFinish}
-          className="w-full py-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+          fullWidth
+          size="lg"
+          colorClassName="bg-orange-500 text-white hover:bg-orange-600 focus-visible:ring-orange-500"
+          className="py-4 uppercase shadow-lg"
         >
           Турнирот заврши (+{stage.points})
-        </button>
+        </Button>
       </div>
     </div>
   );

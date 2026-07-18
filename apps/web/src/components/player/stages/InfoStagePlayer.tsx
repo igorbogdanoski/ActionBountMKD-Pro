@@ -1,5 +1,6 @@
 import type { InfoStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 import { StageMedia } from './StageMedia';
 
 interface Props {
@@ -17,9 +18,9 @@ export function InfoStagePlayer({ stage, isNightMode, onContinue }: Props) {
         <MathRenderer text={stage.description} className="leading-relaxed" />
       </div>
       <div className="mt-auto">
-        <button onClick={onContinue} className="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">
+        <Button onClick={onContinue} fullWidth size="lg" variant="success" className="py-4 uppercase shadow-lg shadow-emerald-500/20">
           Разбрав, понатаму
-        </button>
+        </Button>
       </div>
     </div>
   );

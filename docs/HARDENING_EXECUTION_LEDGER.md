@@ -31,7 +31,7 @@
 
 - Button/Card API prerequisite е завршен во `2b135d3`.
 - Playwright MCP конфигурацијата е versioned во `8147394`.
-- Production Button миграцијата е завршена низ H1, H2 и H3a-H3e; H3f MobilePlayer/player stages останува последен. Card миграцијата не е започната.
+- Production Button миграцијата е завршена низ H1, H2 и H3a-H3e, како и H3f-1/H3f-2; H3f-3 player stage components останува последен. Card миграцијата не е започната.
 - Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
@@ -111,7 +111,7 @@ Batch-от е затворен само кога:
     - [x] H3e-2b Template seed/cleanup/moderation lifecycle и H3e audit.
 - [ ] H3f MobilePlayer shell и stage players, последни.
   - [x] H3f-1 Entry/onboarding и finish/grade/feedback/certificate controls.
-  - [ ] H3f-2 Stage selection и active gameplay shell/modals.
+  - [x] H3f-2 Stage selection и active gameplay shell/modals.
   - [ ] H3f-3 Player stage components по сродни мали групи.
 
 За секое raw копче прво се одредува дали е action button, tab, toggle, interactive card, icon control или link-like navigation. Не се применува механичка замена.
@@ -215,7 +215,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3e-2a Admin shell + payment moderation | `538f7f3` | PASS | 579/579 PASS; 5 focused admin contracts | PASS | Shell navigation и refresh се Button-backed; main sections се semantic tabs, а payment filters имаат pressed state. Approve/reject повеќе не извршуваат финансиска промена со единечен клик: confirmation modal ја прикажува трансакцијата, чека backend success и останува отворен со видлив alert при failure. Load/refresh errors се видливи. QA-only payment fixture овозможува desktop/mobile tabs→filter→approve-cancel lifecycle и zero overflow; browser matrix 23 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3e-2b Admin template moderation + H3e audit | `0d96d5f` | PASS | 585/585 PASS; 11 focused admin/storage contracts | PASS | Сите 5 template controls мигрирани; native seed/cleanup confirms се заменети со Modal, moderation labels го именуваат точниот шаблон, а сите actions имаат loading/error lifecycle. Seed/cleanup ја освежуваат листата. Затворен production logic gap: Featured контролата претходно била недостижна бидејќи pending-only fetch никогаш не враќал approved шаблон; новиот admin contract вчитува одделно ограничени queues од 100 pending + 100 approved за едната да не ја истисне другата. Desktop/mobile seed-cancel, approve-cancel, reachable Featured toggle и zero overflow; browser matrix 25 PASS со 3 намерни skips; production build PASS. Completion audit: нула raw `<button>` во `AdminPanel` и `LiveSessionHost`; H3e complete. |
 | 2026-07-18 | H3f-1 MobilePlayer entry + finish controls | `113cbe7` | PASS | 589/589 PASS; 7 focused orchestration contracts | PASS | Осум entry/onboarding/finish raw controls се мигрирани; theme toggle има pressed semantics и прецизно светла/темна име, onboarding dismissal се перзистира, а start останува semantic disabled додека името е празно. Grade failure доби вистински retry; feedback и certificate async failures сега имаат loading, видлив alert и успешен retry наместо unhandled promise/console-only feedback. QA-only едноетапен player quest овозможува desktop/mobile entry→theme→onboarding→finish→feedback lifecycle и zero overflow; browser matrix 27 PASS со 3 намерни skips; production build PASS. Преостанатите 14 raw MobilePlayer controls се изолирани во H3f-2 active shell опсегот. |
+| 2026-07-18 | H3f-2 MobilePlayer stage selection + active gameplay shell/modals | `d7c26fb` | PASS | 592/592 PASS; 10 focused orchestration contracts | PASS | Сите преостанати 14 raw `MobilePlayer` controls се мигрирани и component audit потврди нула `<button>`/`window.confirm`. Selectable stages имаат прецизни state labels; theme/offline/SOS/HUD controls имаат pressed/loading/error discipline; offline cache failure го враќа state-от и прикажува alert. Tournament/map overlays се semantic dialogs, а напуштањето користи shared confirmation Modal. Desktop/mobile HUD→tournament→map→exit-cancel lifecycle и zero overflow; browser matrix 29 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3f-2: преостанатите 14 `MobilePlayer` stage-selection, active header, SOS/offline, tournament/map modal и timeout controls. Не мешај `player/stages/*` (H3f-3) или Card миграција во истиот batch. Важи interaction inventory, focused tests, full suite/build и desktop/mobile QA. По H3f направи целосен Button completion audit пред H4 Card. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3f-3: мигрирај ги `player/stages/*` controls по сродни мали групи, со interaction inventory и focused tests за секоја група. Не мешај Card миграција во истиот batch. По H3f направи целосен Button completion audit пред H4 Card. Важи full suite/build и desktop/mobile QA; R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

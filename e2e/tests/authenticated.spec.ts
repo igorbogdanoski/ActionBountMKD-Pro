@@ -177,12 +177,21 @@ test.describe('authenticated QA harness', () => {
     await settings.click();
     await expect(settings).toHaveAttribute('aria-pressed', 'false');
 
-    await page.getByRole('button', { name: 'Квиз', exact: true }).click();
+    await page.getByRole('button', { name: 'GPS Место', exact: true }).click();
     const backToStages = page.getByRole('button', { name: 'Назад кон етапи' });
     if (await backToStages.isVisible()) await backToStages.click();
     let stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
     await expect(stageSelectors).toHaveCount(1);
     await expect(stageSelectors.first()).toHaveAttribute('aria-pressed', 'true');
+    const plannerPoint = page.getByRole('button', { name: /Избери точка 1:/ });
+    await expect(plannerPoint).toHaveAttribute('aria-pressed', 'true');
+    const addPoint = page.getByRole('button', { name: 'Нова точка' });
+    await expect(addPoint).toHaveAttribute('aria-pressed', 'false');
+    await addPoint.click();
+    const cancelAddPoint = page.getByRole('button', { name: 'Откажи додавање' });
+    await expect(cancelAddPoint).toHaveAttribute('aria-pressed', 'true');
+    await cancelAddPoint.click();
+    await expect(addPoint).toHaveAttribute('aria-pressed', 'false');
 
     await page.getByRole('button', { name: 'Дуплирај етапа 1' }).click();
     stageSelectors = page.getByRole('button', { name: /Избери етапа/ });

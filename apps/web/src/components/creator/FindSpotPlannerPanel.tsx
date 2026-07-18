@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { Loader2, MapPin, Plus } from 'lucide-react';
 import type { Coordinates, Stage } from 'shared';
 import { getFindSpotMarkers } from '../../lib/findSpotPlanner';
+import { Button } from '../ui/Button';
 
 const MapSelector = lazy(() =>
   import('../MapSelector').then(module => ({ default: module.MapSelector }))
@@ -18,13 +19,13 @@ interface Props {
 export function FindSpotPlannerPanel({ stages, selectedStageId, onSelectStage, onMoveStage, onAddStageAtCoordinates }: Props) {
   const [addingPoint, setAddingPoint] = useState(false);
   const markers = useMemo(() => getFindSpotMarkers(stages), [stages]);
-  const plannerMarkers = markers.map((marker, index) => ({
+  const plannerMarkers = useMemo(() => markers.map((marker, index) => ({
     id: marker.stageId,
     coordinates: marker.coordinates,
     label: `${index + 1}`,
     title: marker.title || `Точка ${index + 1}`,
     draggable: true,
-  }));
+  })), [markers]);
 
   return (
     <div className="border-t border-slate-800 bg-slate-950/70 p-3 space-y-3 shrink-0">
@@ -37,14 +38,17 @@ export function FindSpotPlannerPanel({ stages, selectedStageId, onSelectStage, o
               : 'Повлечи маркер за промена на координати. Бројките го следат редоследот на етапите.'}
           </p>
         </div>
-        <button
+        <Button
           type="button"
           onClick={() => setAddingPoint(value => !value)}
-          className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${addingPoint ? 'bg-emerald-600 text-white hover:bg-emerald-500' : 'bg-slate-800 text-slate-200 hover:bg-slate-700'}`}
+          variant={addingPoint ? 'success' : 'secondary'}
+          size="sm"
+          aria-pressed={addingPoint}
+          leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}
+          className="shrink-0"
         >
-          <Plus className="w-3.5 h-3.5" />
           {addingPoint ? 'Откажи додавање' : 'Нова точка'}
-        </button>
+        </Button>
       </div>
 
       <Suspense fallback={
@@ -74,11 +78,18 @@ export function FindSpotPlannerPanel({ stages, selectedStageId, onSelectStage, o
           {markers.map((marker, index) => {
             const isActive = marker.stageId === selectedStageId;
             return (
-              <button
+              <Button
                 key={marker.stageId}
                 type="button"
                 onClick={() => onSelectStage(marker.stageId)}
-                className={`w-full flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${isActive ? 'border-indigo-500 bg-indigo-500/10 text-white' : 'border-slate-800 bg-slate-900/70 text-slate-300 hover:bg-slate-800'}`}
+                size="sm"
+                fullWidth
+                aria-label={`Избери точка ${index + 1}: ${marker.title || `Точка ${index + 1}`}`}
+                aria-pressed={isActive}
+                colorClassName={isActive
+                  ? 'border border-indigo-500 bg-indigo-500/10 text-white focus-visible:ring-indigo-500'
+                  : 'border border-slate-800 bg-slate-900/70 text-slate-300 hover:bg-slate-800 focus-visible:ring-slate-500'}
+                className="justify-start gap-3 rounded-xl px-3 py-2 text-left"
               >
                 <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-800 text-slate-300'}`}>
                   {index + 1}
@@ -89,8 +100,8 @@ export function FindSpotPlannerPanel({ stages, selectedStageId, onSelectStage, o
                     {marker.coordinates.latitude.toFixed(5)}, {marker.coordinates.longitude.toFixed(5)}
                   </p>
                 </div>
-                <MapPin className="w-4 h-4 shrink-0 text-emerald-400" />
-              </button>
+                <MapPin className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden="true" />
+              </Button>
             );
           })}
         </div>

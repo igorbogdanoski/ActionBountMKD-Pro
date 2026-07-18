@@ -31,7 +31,7 @@
 
 - Button/Card API prerequisite е завршен во `2b135d3`.
 - Playwright MCP конфигурацијата е versioned во `8147394`.
-- Production Button/Card миграцијата не е започната.
+- Production Button миграцијата е завршена низ H1, H2 и H3a-H3c; H3d-H3f остануваат. Card миграцијата не е започната.
 - Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
@@ -91,12 +91,12 @@ Batch-от е затворен само кога:
   - [x] H3b-3 ClassGroups.
   - [x] H3b-4 BoundsDashboard.
   - [x] H3b-5 ResultsDashboard.
-- [ ] H3c Creator shell и modals.
+- [x] H3c Creator shell и modals.
   - [x] H3c-1 BoundCreator header/shell.
   - [x] H3c-2 ShareModal.
   - [x] H3c-3 StageList.
   - [x] H3c-4 QuestSettingsPanel.
-  - [ ] H3c-5 FindSpotPlannerPanel.
+  - [x] H3c-5 FindSpotPlannerPanel.
 - [ ] H3d Creator stage editors.
 - [ ] H3e Session/Admin.
 - [ ] H3f MobilePlayer shell и stage players, последни.
@@ -192,7 +192,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3c-2 ShareModal copy controls + feedback | `920a1e8` | PASS | 529/529 PASS; 7 focused ShareModal contracts | PASS | Двата copy controls мигрирани во заеднички Button-backed flow; успех само по потврден Clipboard запис, visible/accessibility feedback при одбивање и timer cleanup. Desktop/mobile copy success, semantic link value и zero modal overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3c-3 StageList controls + accessible lifecycle | `e6c3974` | PASS | 533/533 PASS; 9 focused StageList contracts | PASS | Сите raw controls мигрирани; semantic pressed stage selection, keyboard-visible insert/card actions, precise labels, safe delete modal и валидирани reorder indices. Desktop/mobile add, duplicate, Enter selection, confirm delete и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3c-4 QuestSettings controls + destructive lifecycle | `55e7bb5` | PASS | 542/542 PASS; 22 focused settings/creator/autosave contracts | PASS | Tags, inventory, goals и danger controls мигрирани; мртвото delete копче доби confirmation/loading/error flow. Unicode sanitizer ја задржува „ј“; autosave suspend + snapshot guard спречуваат resurrect-after-delete и губење понова dirty измена. Desktop/mobile CRUD, delete-cancel, manual save и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-18 | H3c-5 FindSpotPlanner controls + H3c audit | `71e6c03` | PASS | 546/546 PASS; 8 focused planner contracts | PASS | Add-mode и marker selection контролите мигрирани со semantic pressed state, точни accessible имиња и memoized map payload. Direct tests ги покриваат empty/add/select/move lifecycle-ите; desktop/mobile FIND_SPOT creator flow и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Completion audit: нема raw button во H3c shell опсегот; преостанатите creator raw controls се ограничени на планираниот H3d `creator/stages/*` опсег. H3c complete. |
 
 ## Следна акција
 
-Продолжи со H3c-5 FindSpotPlannerPanel; по негово затворање направи H3c completion audit пред H3d. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3d Creator stage editors во мали semantic batches: прво inventory/classification и shared editor controls, потоа едноставните editors, а Quiz/Rubric/QR complex lifecycle-ите одделно. За секој batch важат focused tests, full suite/build и desktop/mobile creator QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { Rubric, RubricCriterion, RubricLevel } from 'shared';
 import { MAX_RUBRIC_CRITERIA, MAX_RUBRIC_LEVELS, MAX_FEEDBACK_PRESETS, rubricMaxPoints } from 'shared';
 import { Field, inputCls } from './shared';
+import { Button } from '../../ui/Button';
 
 interface Props {
   rubric?: Rubric;
@@ -69,6 +70,10 @@ export function RubricEditor({ rubric, onChange }: Props) {
   const removePreset = (p: string) => commit(criteria, presets.filter(x => x !== p));
 
   const maxPoints = rubricMaxPoints(rubric);
+  const normalizedPreset = presetInput.trim().slice(0, 200);
+  const canAddPreset = Boolean(normalizedPreset)
+    && presets.length < MAX_FEEDBACK_PRESETS
+    && !presets.includes(normalizedPreset);
 
   return (
     <Field
@@ -92,17 +97,19 @@ export function RubricEditor({ rubric, onChange }: Props) {
                     maxLength={120}
                     onChange={e => updateCriterion(c.id, { title: e.target.value })}
                   />
-                  <button
+                  <Button
                     type="button"
-                    title="Отстрани критериум"
+                    aria-label={`Отстрани критериум ${ci + 1}`}
                     onClick={() => removeCriterion(c.id)}
-                    className="p-1.5 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
+                    variant="ghost" size="icon"
+                    colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
+                    className="shrink-0 p-1.5"
                   >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
                 </div>
                 <div className="space-y-1.5 pl-5">
-                  {c.levels.map(l => (
+                  {c.levels.map((l, li) => (
                     <div key={l.id} className="flex items-center gap-2">
                       <input
                         type="text"
@@ -119,28 +126,34 @@ export function RubricEditor({ rubric, onChange }: Props) {
                         max={1000}
                         value={l.points}
                         title="Поени"
-                        onChange={e => updateLevel(c.id, l.id, { points: Number(e.target.value) || 0 })}
+                        onChange={e => updateLevel(c.id, l.id, {
+                          points: Math.min(1000, Math.max(0, Number(e.target.value) || 0)),
+                        })}
                       />
                       {c.levels.length > 1 && (
-                        <button
+                        <Button
                           type="button"
-                          title="Отстрани ниво"
+                          aria-label={`Отстрани ниво ${li + 1} од критериум ${ci + 1}`}
                           onClick={() => removeLevel(c.id, l.id)}
-                          className="p-1 text-slate-500 hover:text-rose-400 transition-colors shrink-0"
+                          variant="ghost" size="icon"
+                          colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
+                          className="shrink-0 p-1"
                         >
-                          <X className="w-4 h-4" />
-                        </button>
+                          <X className="h-4 w-4" aria-hidden="true" />
+                        </Button>
                       )}
                     </div>
                   ))}
                   {c.levels.length < MAX_RUBRIC_LEVELS && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => addLevel(c.id)}
-                      className="flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+                      variant="ghost" size="sm"
+                      colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                      leftIcon={<Plus className="h-3 w-3" aria-hidden="true" />}
                     >
-                      <Plus className="w-3 h-3" /> Додај ниво
-                    </button>
+                      Додај ниво
+                    </Button>
                   )}
                 </div>
               </div>
@@ -149,13 +162,15 @@ export function RubricEditor({ rubric, onChange }: Props) {
         )}
 
         {criteria.length < MAX_RUBRIC_CRITERIA && (
-          <button
+          <Button
             type="button"
             onClick={addCriterion}
-            className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors"
+            variant="ghost" size="sm"
+            colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+            leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}
           >
-            <Plus className="w-3.5 h-3.5" /> Додај критериум
-          </button>
+            Додај критериум
+          </Button>
         )}
 
         {maxPoints > 0 && (
@@ -177,20 +192,25 @@ export function RubricEditor({ rubric, onChange }: Props) {
               onChange={e => setPresetInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPreset(); } }}
             />
-            <button
+            <Button
               type="button"
               onClick={addPreset}
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors shrink-0"
+              disabled={!canAddPreset}
+              aria-label="Додај брз коментар"
+              variant="app-primary" size="icon" className="shrink-0"
             >
               +
-            </button>
+            </Button>
           </div>
           {presets.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {presets.map(p => (
                 <span key={p} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-700/60 text-slate-200 text-xs rounded-full">
                   {p}
-                  <button type="button" onClick={() => removePreset(p)} className="hover:text-rose-400 leading-none">×</button>
+                  <Button type="button" onClick={() => removePreset(p)} variant="ghost" size="icon"
+                    aria-label={`Отстрани брз коментар: ${p}`}
+                    colorClassName="text-slate-300 hover:text-rose-400 focus-visible:ring-rose-400"
+                    className="h-5 w-5 p-0 leading-none">×</Button>
                 </span>
               ))}
             </div>

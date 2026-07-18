@@ -65,6 +65,21 @@ test.describe('authenticated QA harness', () => {
     await expect(dialog).toBeHidden();
   });
 
+  test('preserves landing language and FAQ semantics without overflow', async ({ page }) => {
+    await page.goto('/?qaGuest=1', { waitUntil: 'domcontentloaded' });
+    const languages = page.getByRole('group', { name: 'Language' }).getByRole('button');
+    await expect(languages).toHaveCount(2);
+    await expect(page.getByRole('group', { name: 'Language' }).locator('button[aria-pressed="true"]')).toHaveCount(1);
+
+    const faq = page.locator('button[aria-controls]').first();
+    await expect(faq).toHaveAttribute('aria-expanded', 'false');
+    const answerId = await faq.getAttribute('aria-controls');
+    await faq.click();
+    await expect(faq).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator(`[id="${answerId}"]`)).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
+
   test('exposes active, language, theme and admin sidebar controls', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'authenticated-desktop', 'desktop sidebar contract');
     await page.goto('/settings?qaPlan=pro&qaAdmin=1', { waitUntil: 'domcontentloaded' });

@@ -1,6 +1,6 @@
 import { Map, QrCode, Target, Users, MapPin, Trophy, Navigation, Smartphone, WifiOff, MessageSquare, Clock, Play, PenTool, Sparkles, GraduationCap, Landmark, Share2, Heart, Puzzle, ChevronDown } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { LoginModal } from '../auth/LoginModal';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { SEO, SoftwareAppSchema, FaqSchema } from '../SEO';
 import { Footer } from '../layout/Footer';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import { DEMO_QUEST_ID } from '../../data/demoQuest';
+import { Button } from '../ui/Button';
 
 // Simple placeholder icons to match the design
 const StarIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
@@ -84,40 +85,42 @@ export function LandingPage() {
             <span className="text-3xl text-brand-500 font-cursive pt-1">Авантура</span>
           </div>
           <nav className="hidden md:flex gap-6 text-sm font-medium">
-            <button onClick={onNavigateToPlayerDemo} className="hover:text-brand-500 transition-colors">{t('landing.nav.play')}</button>
-            <button onClick={onNavigateToCreator} className="hover:text-brand-500 transition-colors">{t('landing.nav.create')}</button>
-            <button onClick={() => navigate('/explore')} className="hover:text-brand-500 transition-colors">{t('landing.nav.explore')}</button>
+            <Button onClick={onNavigateToPlayerDemo} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.play')}</Button>
+            <Button onClick={onNavigateToCreator} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.create')}</Button>
+            <Button onClick={() => navigate('/explore')} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.explore')}</Button>
           </nav>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-1" role="group" aria-label="Language">
             {LANGUAGES.map(lang => (
-              <button
+              <Button
                 key={lang.code}
-                type="button"
                 onClick={() => switchLang(lang.code)}
                 aria-pressed={i18n.language === lang.code}
+                aria-label={lang.label}
                 title={lang.label}
-                className={`px-2 py-1 rounded-md text-xs font-bold transition-colors ${
+                size="sm"
+                className="px-2 py-1 rounded-md"
+                colorClassName={
                   i18n.language === lang.code
-                    ? 'bg-brand-500 text-white'
-                    : 'text-slate-300 hover:text-white hover:bg-white/10'
-                }`}
+                    ? 'bg-brand-500 text-white focus-visible:ring-brand-500'
+                    : 'text-slate-300 hover:text-white hover:bg-white/10 focus-visible:ring-brand-500'
+                }
               >
                 {lang.code.toUpperCase()}
-              </button>
+              </Button>
             ))}
           </div>
           {user ? (
-             <button onClick={onNavigateToCreator} className="border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white px-4 py-1.5 rounded-full text-sm font-bold transition-colors">
+             <Button onClick={onNavigateToCreator} variant="outline" size="sm" className="rounded-full">
                {t('landing.nav.dashboard')}
-             </button>
+             </Button>
           ) : (
              <>
-               <button onClick={openLogin} className="hidden md:block text-sm font-medium hover:text-brand-500 transition-colors">{t('landing.nav.login')}</button>
-               <button onClick={onNavigateToCreator} className="border border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white px-4 py-1.5 rounded-full text-sm font-bold transition-colors">
+               <Button onClick={openLogin} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="hidden md:inline-flex font-medium p-0">{t('landing.nav.login')}</Button>
+               <Button onClick={onNavigateToCreator} variant="outline" size="sm" className="rounded-full">
                  {t('landing.nav.freeTest')}
-               </button>
+               </Button>
              </>
           )}
         </div>
@@ -169,19 +172,25 @@ export function LandingPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
-              <button
+              <Button
                 onClick={user ? onNavigateToCreator : openLogin}
-                className="w-full sm:w-auto px-8 py-4 text-white bg-brand-500 hover:bg-brand-600 font-bold rounded-xl shadow-lg hover:shadow-brand-500/30 transform hover:-translate-y-0.5 transition-all duration-200"
+                variant="primary"
+                size="lg"
+                fullWidth
+                className="sm:w-auto px-8 py-4 shadow-lg hover:shadow-brand-500/30 transform hover:-translate-y-0.5 duration-200"
               >
                 {t('landing.hero.ctaPrimary')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={scrollToHowItWorks}
-                className="w-full sm:w-auto px-8 py-4 text-white bg-white/5 hover:bg-white/10 font-semibold rounded-xl border border-white/15 transition-all duration-200 flex items-center justify-center gap-2"
+                size="lg"
+                fullWidth
+                colorClassName="text-white bg-white/5 hover:bg-white/10 border border-white/15 focus-visible:ring-white/60"
+                className="sm:w-auto px-8 py-4 font-semibold duration-200"
               >
-                <Play className="w-5 h-5 text-brand-500" />
+                <Play aria-hidden="true" className="w-5 h-5 text-brand-500" />
                 {t('landing.hero.ctaSecondary')}
-              </button>
+              </Button>
             </div>
 
             {/* Social proof */}
@@ -253,12 +262,12 @@ export function LandingPage() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-14">
-            <button onClick={onNavigateToCreator} className="px-7 py-3.5 bg-[#2a2522] text-white font-bold rounded-xl hover:bg-[#3d322c] transition-colors flex items-center gap-2">
-              <PenTool className="w-5 h-5 text-brand-500" /> {t('landing.how.ctaCreate')}
-            </button>
-            <button onClick={onNavigateToPlayerDemo} className="px-7 py-3.5 bg-white text-slate-700 font-semibold rounded-xl border border-slate-300 hover:bg-slate-50 transition-colors flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-emerald-600" /> {t('landing.how.ctaDemo')}
-            </button>
+            <Button onClick={onNavigateToCreator} size="lg" colorClassName="bg-[#2a2522] text-white hover:bg-[#3d322c] focus-visible:ring-[#2a2522]" className="px-7 py-3.5">
+              <PenTool aria-hidden="true" className="w-5 h-5 text-brand-500" /> {t('landing.how.ctaCreate')}
+            </Button>
+            <Button onClick={onNavigateToPlayerDemo} size="lg" colorClassName="bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 focus-visible:ring-slate-400" className="px-7 py-3.5 font-semibold">
+              <Smartphone aria-hidden="true" className="w-5 h-5 text-emerald-600" /> {t('landing.how.ctaDemo')}
+            </Button>
           </div>
         </div>
       </section>
@@ -336,13 +345,15 @@ export function LandingPage() {
               <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Примери авантури</h2>
               <p className="text-slate-500 text-sm mt-1">Создадени од македонски наставници — готови за употреба</p>
             </div>
-            <button
+            <Button
               onClick={() => navigate('/explore')}
-              type="button"
-              className="flex-shrink-0 text-sm font-semibold text-brand-600 hover:text-brand-700 hover:underline flex items-center gap-1"
+              variant="ghost"
+              size="sm"
+              colorClassName="text-brand-600 hover:text-brand-700 hover:underline focus-visible:ring-brand-500"
+              className="flex-shrink-0 p-0 font-semibold"
             >
               Сите авантури →
-            </button>
+            </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
@@ -350,11 +361,13 @@ export function LandingPage() {
               { emoji: '🏛️', title: 'Скопје низ вековите', subject: 'Историја', grade: 'Сите', desc: 'Водена прошетка до Камен Мост, Чаршијата и Кале со QR станици.', time: 75 },
               { emoji: '🌿', title: 'Лов на екосистеми', subject: 'Природни науки', grade: '6 одд.', desc: 'Теренска настава — фотографирање растенија и мерење на услови на средина.', time: 60 },
             ].map((a, i) => (
-              <button
+              <Button
                 key={i}
+                aria-label={`Отвори авантура: ${a.title}`}
                 onClick={() => navigate('/explore')}
-                type="button"
-                className="text-left bg-[#f4f6ee] hover:bg-brand-50 border border-slate-200 hover:border-brand-300 rounded-2xl p-5 transition-all group"
+                fullWidth
+                colorClassName="bg-[#f4f6ee] hover:bg-brand-50 border border-slate-200 hover:border-brand-300 focus-visible:ring-brand-500"
+                className="!block text-left rounded-2xl p-5 group"
               >
                 <div className="text-3xl mb-3">{a.emoji}</div>
                 <h3 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-brand-600 transition-colors">{a.title}</h3>
@@ -364,7 +377,7 @@ export function LandingPage() {
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{a.grade}</span>
                   <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">~{a.time} мин</span>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -375,12 +388,14 @@ export function LandingPage() {
         <div className="max-w-3xl mx-auto space-y-6">
           <h2 className="text-3xl md:text-4xl font-extrabold">{t('landing.finalCta.title')}</h2>
           <p className="text-slate-300">{t('landing.finalCta.subtitle')}</p>
-          <button
+          <Button
             onClick={user ? onNavigateToCreator : openLogin}
-            className="px-8 py-4 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl shadow-lg transition-colors"
+            variant="primary"
+            size="lg"
+            className="px-8 py-4 shadow-lg"
           >
             {t('landing.finalCta.button')}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -410,18 +425,22 @@ function Testimonial({ quote, name, role, initial }: { quote: string, name: stri
 
 function FaqItem({ q, a }: { q: string, a: string }) {
   const [open, setOpen] = useState(false);
+  const answerId = useId();
   return (
     <div className="bg-white rounded-xl border border-slate-200/70 overflow-hidden">
-      <button
-        type="button"
+      <Button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+        aria-expanded={open}
+        aria-controls={answerId}
+        fullWidth
+        colorClassName="bg-white text-slate-800 hover:bg-slate-50 focus-visible:ring-brand-500"
+        className="justify-between gap-4 px-5 py-4 text-left rounded-none"
       >
         <span className="font-semibold text-slate-800">{q}</span>
-        <ChevronDown className={`w-5 h-5 text-brand-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
+        <ChevronDown aria-hidden="true" className={`w-5 h-5 text-brand-500 shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </Button>
       {open && (
-        <div className="px-5 pb-5 -mt-1 text-sm text-slate-600 leading-relaxed">{a}</div>
+        <div id={answerId} className="px-5 pb-5 -mt-1 text-sm text-slate-600 leading-relaxed">{a}</div>
       )}
     </div>
   );
@@ -460,4 +479,3 @@ function Audience({ icon: Icon, title, text }: { icon: any, title: string, text:
     </div>
   );
 }
-

@@ -10,6 +10,7 @@ import { Footer } from '../layout/Footer';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import { DEMO_QUEST_ID } from '../../data/demoQuest';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 // Simple placeholder icons to match the design
 const StarIcon = (props: any) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>;
@@ -409,7 +410,7 @@ export function LandingPage() {
 
 function Testimonial({ quote, name, role, initial }: { quote: string, name: string, role: string, initial: string }) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60 flex flex-col">
+    <Card padded={false} data-testid="landing-testimonial-card" className="!bg-white !border-slate-200/60 !shadow-sm p-6 flex flex-col">
       <div className="text-brand-500 text-5xl font-cursive leading-none mb-2">“</div>
       <p className="text-sm text-slate-600 leading-relaxed flex-1">{quote}</p>
       <div className="flex items-center gap-3 mt-5 pt-4 border-t border-slate-100">
@@ -419,7 +420,7 @@ function Testimonial({ quote, name, role, initial }: { quote: string, name: stri
           <p className="text-xs text-slate-500">{role}</p>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -457,25 +458,25 @@ function Feature({ icon: Icon, label }: { icon: any, label: string }) {
 
 function Step({ number, icon: Icon, title, text }: { number: string, icon: any, title: string, text: string }) {
   return (
-    <div className="relative bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center md:text-left">
+    <Card padded={false} data-testid="landing-step-card" className="relative !bg-white !border-slate-100 !shadow-sm p-6 text-center md:text-left">
       <span className="absolute -top-4 right-5 text-5xl font-extrabold text-brand-500/15 select-none">{number}</span>
       <div className="w-12 h-12 rounded-xl bg-brand-500/10 flex items-center justify-center mb-4 mx-auto md:mx-0">
         <Icon className="w-6 h-6 text-brand-500" />
       </div>
       <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
       <p className="text-sm text-slate-500 leading-relaxed">{text}</p>
-    </div>
+    </Card>
   );
 }
 
 function Audience({ icon: Icon, title, text }: { icon: any, title: string, text: string }) {
   return (
-    <div className="bg-white rounded-2xl p-7 shadow-sm border border-slate-200/60 hover:-translate-y-1 transition-transform">
+    <Card padded={false} data-testid="landing-audience-card" className="!bg-white !border-slate-200/60 !shadow-sm p-7 hover:-translate-y-1 transition-transform">
       <div className="w-14 h-14 rounded-2xl bg-[#2a2522] flex items-center justify-center mb-5">
         <Icon className="w-7 h-7 text-brand-500" />
       </div>
       <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
       <p className="text-sm text-slate-600 leading-relaxed">{text}</p>
-    </div>
+    </Card>
   );
 }

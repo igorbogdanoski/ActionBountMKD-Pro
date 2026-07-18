@@ -77,6 +77,19 @@ test.describe('authenticated QA harness', () => {
     await faq.click();
     await expect(faq).toHaveAttribute('aria-expanded', 'true');
     await expect(page.locator(`[id="${answerId}"]`)).toBeVisible();
+
+    const informationalCards = [
+      ['landing-testimonial-card', 3],
+      ['landing-step-card', 3],
+      ['landing-audience-card', 3],
+    ] as const;
+    for (const [testId, expectedCount] of informationalCards) {
+      const cards = page.getByTestId(testId);
+      await expect(cards).toHaveCount(expectedCount);
+      await expect(cards.first()).toHaveClass(/shadow-soft/);
+      await expect(cards.first()).toHaveClass(/!bg-white/);
+    }
+
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
 

@@ -1,7 +1,7 @@
 # H4 Card Semantic Inventory
 
-**Датум:** 2026-07-18  
-**Статус:** завршен read-only classification audit; production миграцијата не е започната  
+**Датум:** 2026-07-18
+**Статус:** завршен read-only classification audit; production миграцијата не е започната
 **Опфат:** `apps/web/src/components/**/*.tsx`
 
 ## Потврдена основа

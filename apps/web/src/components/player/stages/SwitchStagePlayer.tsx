@@ -1,5 +1,6 @@
 import type { SwitchStage, Stage, InventoryItem } from 'shared';
 import { evaluateSwitchTarget } from '../../../lib/inventory';
+import { Button } from '../../ui/Button';
 
 interface Props {
   stage: SwitchStage;
@@ -51,34 +52,41 @@ export function SwitchStagePlayer({
             return minOk && maxOk && reqOk && itemOk && c.targetStageId;
           })?.id;
           const neededItem = inventoryItems.find(item => item.id === cond.requiredItemId);
+          const isLocked = !!cond.requiredItemId && !collectedItemIds.includes(cond.requiredItemId);
+          const label = cond.label || `Патека ${cond.id.slice(-4)}`;
           return (
-            <button
+            <Button
               key={cond.id}
-              type="button"
+              aria-label={`${label}${isRecommended ? ', препорачана патека' : ''}${isLocked ? ', заклучена' : ''}`}
               onClick={() => onChoosePath(cond.targetStageId)}
-              disabled={!!cond.requiredItemId && !collectedItemIds.includes(cond.requiredItemId)}
-              className={`w-full text-left p-4 rounded-xl border transition-all active:scale-95 ${
+              disabled={isLocked}
+              fullWidth
+              colorClassName={`border focus-visible:ring-violet-500 ${
                 isRecommended
                   ? 'border-violet-500 bg-violet-500/10 text-violet-300'
                   : isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              }`}
+              className="text-left p-4 rounded-xl justify-start"
             >
-              <p className="font-semibold text-sm">{cond.label || `Патека ${cond.id.slice(-4)}`}</p>
+              <div>
+              <p className="font-semibold text-sm">{label}</p>
               {target && <p className={`text-xs mt-1 ${isNightMode ? 'text-slate-500' : 'text-slate-400'}`}>{target.title || `Етапа ${target.order + 1}`}</p>}
               {neededItem && !collectedItemIds.includes(neededItem.id) && (
                 <p className="text-xs mt-1 text-amber-400">Потребно: {neededItem.icon ? `${neededItem.icon} ` : ''}{neededItem.name}</p>
               )}
-            </button>
+              </div>
+            </Button>
           );
         })}
         {stage.defaultTargetStageId && !matchedId && (
-          <button
-            type="button"
+          <Button
             onClick={() => onChoosePath(stage.defaultTargetStageId)}
-            className={`w-full text-left p-4 rounded-xl border transition-all active:scale-95 ${isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'}`}
+            fullWidth
+            colorClassName={`border focus-visible:ring-violet-500 ${isNightMode ? 'border-slate-700 bg-slate-800 text-slate-300' : 'border-slate-200 bg-white text-slate-700'}`}
+            className="text-left p-4 rounded-xl justify-start"
           >
             <p className="font-semibold text-sm">Стандарден пат</p>
-          </button>
+          </Button>
         )}
       </div>
     </div>

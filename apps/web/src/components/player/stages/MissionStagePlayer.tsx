@@ -1,6 +1,7 @@
 import { Camera, Mic, Square } from 'lucide-react';
 import type { MissionStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 import { RubricPreview } from './RubricPreview';
 
 interface Props {
@@ -45,15 +46,22 @@ export function MissionStagePlayer({
                 <audio src={recordedAudioURL} controls className="w-full h-10 outline-none mb-3" />
                 {missionUploading && <p className="text-xs text-slate-500 mt-1">Се прикачува...</p>}
                 {missionUploadedUrl && !missionUploading && <p className="text-xs text-emerald-500 mt-1 font-bold">✓ Прикачено</p>}
-                <button onClick={onRetakeAudio} className="text-sm font-bold text-slate-500 hover:text-rose-500 transition-colors mt-2">Сними повторно</button>
+                <Button onClick={onRetakeAudio} variant="ghost" size="sm" className="mt-2" colorClassName="text-slate-500 hover:text-rose-500 focus-visible:ring-rose-500">Сними повторно</Button>
               </div>
             ) : (
-              <button
+              <Button
                 onClick={onToggleRecording}
-                className={`mt-4 px-6 py-3 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${isRecording ? 'bg-rose-500 text-white animate-pulse' : (isNightMode ? 'bg-slate-700 text-slate-300' : 'bg-white border border-slate-300 shadow-sm')}`}
+                aria-pressed={isRecording}
+                size="md"
+                className={`mt-4 rounded-full ${isRecording ? 'animate-pulse' : ''}`}
+                colorClassName={isRecording
+                  ? 'bg-rose-500 text-white hover:bg-rose-600 focus-visible:ring-rose-500'
+                  : isNightMode
+                    ? 'bg-slate-700 text-slate-300 hover:bg-slate-600 focus-visible:ring-slate-400'
+                    : 'bg-white text-slate-700 border border-slate-300 shadow-sm hover:bg-slate-50 focus-visible:ring-slate-400'}
               >
-                {isRecording ? <><Square className="w-4 h-4 fill-current" /> Стопирај Снимање</> : <><Mic className="w-4 h-4" /> Започни Снимање</>}
-              </button>
+                {isRecording ? <><Square aria-hidden="true" className="w-4 h-4 fill-current" /> Стопирај Снимање</> : <><Mic aria-hidden="true" className="w-4 h-4" /> Започни Снимање</>}
+              </Button>
             )}
           </>
         ) : (
@@ -80,16 +88,19 @@ export function MissionStagePlayer({
             </label>
           </>
         )}
-        {missionUploadError && <p className="text-xs text-red-500 mt-3">{missionUploadError}</p>}
+        {missionUploadError && <p role="alert" className="text-xs text-red-500 mt-3">{missionUploadError}</p>}
       </div>
 
-      <button
+      <Button
         onClick={onFinish}
         disabled={!missionUploadedUrl || isRecording || missionUploading}
-        className="w-full py-4 bg-emerald-500 disabled:bg-slate-300 hover:bg-emerald-600 text-white rounded-xl font-bold uppercase shadow-xl active:scale-95 transition-all mt-auto"
+        fullWidth
+        size="lg"
+        variant="success"
+        className="py-4 uppercase shadow-xl mt-auto"
       >
         {hasRubric ? 'Испрати за оценување' : `Заврши ја мисијата (+${stage.points})`}
-      </button>
+      </Button>
     </div>
   );
 }

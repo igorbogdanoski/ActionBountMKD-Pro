@@ -50,8 +50,15 @@ describe('MissionStagePlayer', () => {
   it('shows the audio recording UI for audio submissions and toggles recording', () => {
     const onToggleRecording = vi.fn();
     render(<MissionStagePlayer stage={makeStage({ submissionType: 'audio' })} {...baseProps()} onToggleRecording={onToggleRecording} />);
-    fireEvent.click(screen.getByRole('button', { name: /Започни Снимање/ }));
+    const recording = screen.getByRole('button', { name: /Започни Снимање/ });
+    expect(recording).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(recording);
     expect(onToggleRecording).toHaveBeenCalledOnce();
+  });
+
+  it('exposes the active recording state and stop action', () => {
+    render(<MissionStagePlayer stage={makeStage({ submissionType: 'audio' })} {...baseProps()} isRecording />);
+    expect(screen.getByRole('button', { name: /Стопирај Снимање/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows the recorded audio player and a retake button once a recording exists', () => {
@@ -87,6 +94,6 @@ describe('MissionStagePlayer', () => {
 
   it('surfaces an upload error message when present', () => {
     render(<MissionStagePlayer stage={makeStage()} {...baseProps()} missionUploadError="Датотеката е преголема (max 20MB)." />);
-    expect(screen.getByText('Датотеката е преголема (max 20MB).')).toBeTruthy();
+    expect(screen.getByRole('alert')).toHaveTextContent('Датотеката е преголема (max 20MB).');
   });
 });

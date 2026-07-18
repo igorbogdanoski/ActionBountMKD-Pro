@@ -79,6 +79,18 @@ describe('SwitchStagePlayer', () => {
     expect(screen.getByRole('button', { name: /Тајна патека/ })).not.toBeDisabled();
   });
 
+  it('names the evaluated route as recommended without marking alternatives selected', () => {
+    const stage = makeStage({
+      conditions: [
+        { id: 'c1', label: 'Патека А', targetStageId: 'target-a', minPoints: 10 },
+        { id: 'c2', label: 'Патека Б', targetStageId: 'target-b' },
+      ],
+    });
+    render(<SwitchStagePlayer stage={stage} {...baseProps()} points={20} />);
+    expect(screen.getByRole('button', { name: 'Патека А, препорачана патека' })).not.toHaveAttribute('aria-pressed');
+    expect(screen.getByRole('button', { name: 'Патека Б' })).not.toHaveAttribute('aria-pressed');
+  });
+
   it('renders no path buttons when there are no conditions and no default target', () => {
     const stage = makeStage({ conditions: [] });
     render(<SwitchStagePlayer stage={stage} {...baseProps()} />);

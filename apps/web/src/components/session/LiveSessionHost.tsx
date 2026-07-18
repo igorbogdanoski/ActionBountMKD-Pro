@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
@@ -18,6 +18,8 @@ import {
 } from '../../utils/sessionStorage';
 import type { LeaderboardEntry, Quest, SessionMode, SessionSosAlert } from 'shared';
 import { SEO } from '../SEO';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 
 const MAP_FALLBACK_CENTER: [number, number] = [41.9981, 21.4254];
 const MARKER_COLORS = ['#14b8a6', '#f97316', '#6366f1', '#ec4899', '#f59e0b', '#22c55e'];
@@ -102,7 +104,10 @@ export function LiveSessionHost() {
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [focusedAlertPlayerId, setFocusedAlertPlayerId] = useState<string | null>(null);
+  const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { session, leaderboard, stats } = useGameSession(code ?? undefined);
 
@@ -113,6 +118,10 @@ export function LiveSessionHost() {
       .catch(() => setQuest(null))
       .finally(() => setLoadingQuest(false));
   }, [questId]);
+
+  useEffect(() => () => {
+    if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+  }, []);
 
   const joinUrl = code ? `${window.location.origin}/join/${code}` : '';
   const trackedPlayers = leaderboard.filter(
@@ -161,11 +170,41 @@ export function LiveSessionHost() {
   };
 
   const copyLink = async () => {
+    setError(null);
     try {
       await navigator.clipboard.writeText(joinUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard unavailable */ }
+      if (copyResetTimer.current) clearTimeout(copyResetTimer.current);
+      copyResetTimer.current = setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+      setError('Линкот не може да се копира. Копирај го рачно од адресната лента.');
+    }
+  };
+
+  const runSessionAction = async (actionName: string, action: () => Promise<void>, message: string) => {
+    if (pendingAction) return false;
+    setPendingAction(actionName);
+    setError(null);
+    try {
+      await action();
+      return true;
+    } catch {
+      setError(message);
+      return false;
+    } finally {
+      setPendingAction(null);
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    if (!code) return;
+    const deleted = await runSessionAction(
+      'delete',
+      () => deleteSession(code),
+      'Сесијата не може да се избрише. Обиди се повторно.',
+    );
+    if (deleted) navigate('/dashboard');
   };
 
   // ─── Guards ───
@@ -175,10 +214,10 @@ export function LiveSessionHost() {
         <Radio className="w-12 h-12 text-amber-400" />
         <h1 className="text-2xl font-bold text-white">Игра во живо</h1>
         <p className="text-slate-400 max-w-sm">Соработката во реално време е достапна на Pro план и погоре.</p>
-        <button onClick={() => navigate('/pricing')} className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg font-bold">
+        <Button onClick={() => navigate('/pricing')} colorClassName="bg-amber-500 hover:bg-amber-400 text-slate-900 focus-visible:ring-amber-500">
           Надгради на Pro
-        </button>
-        <button onClick={() => navigate('/dashboard')} className="text-slate-400 hover:text-white text-sm">← Назад</button>
+        </Button>
+        <Button onClick={() => navigate('/dashboard')} variant="ghost" size="sm" colorClassName="text-slate-400 hover:text-white focus-visible:ring-slate-400">← Назад</Button>
       </div>
     );
   }
@@ -191,7 +230,7 @@ export function LiveSessionHost() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-950 text-center p-6">
         <p className="text-slate-300">Квестот не е пронајден.</p>
-        <button onClick={() => navigate('/dashboard')} className="text-indigo-400 hover:text-indigo-300">← Назад кон таблата</button>
+        <Button onClick={() => navigate('/dashboard')} variant="ghost" colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-500">← Назад кон таблата</Button>
       </div>
     );
   }
@@ -202,9 +241,9 @@ export function LiveSessionHost() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6">
       <SEO title={`Игра во живо — ${quest.title}`} description="Хостирај авантура во реално време" noIndex />
       <div className="max-w-5xl mx-auto">
-        <button onClick={() => navigate('/dashboard')} className="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6">
-          <ArrowLeft className="w-4 h-4" /> Назад кон таблата
-        </button>
+        <Button onClick={() => navigate('/dashboard')} variant="ghost" size="sm" className="mb-6" colorClassName="text-slate-400 hover:text-white focus-visible:ring-slate-400" leftIcon={<ArrowLeft aria-hidden="true" className="w-4 h-4" />}>
+          Назад кон таблата
+        </Button>
 
         <h1 className="text-2xl sm:text-3xl font-bold mb-1">{quest.title}</h1>
         <p className="text-slate-400 mb-6">Игра во живо · {stageCount} етапи</p>
@@ -221,11 +260,10 @@ export function LiveSessionHost() {
               <ModeOption active={mode === 'broadcast'} onClick={() => setMode('broadcast')} icon={<Radio className="w-5 h-5" />}
                 title="Водено (broadcast)" desc="Ти ја контролираш етапата за сите играчи." />
             </div>
-            <button onClick={handleCreate} disabled={creating}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-xl font-bold inline-flex items-center justify-center gap-2">
-              {creating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
+            <Button onClick={handleCreate} loading={creating} fullWidth size="lg" variant="app-primary"
+              leftIcon={<Play aria-hidden="true" className="w-5 h-5" />}>
               Создади сесија
-            </button>
+            </Button>
           </div>
         ) : (
           // ─── Active session dashboard ───
@@ -235,23 +273,21 @@ export function LiveSessionHost() {
               <p className="text-xs uppercase tracking-widest text-slate-500 mb-2">Код за приклучување</p>
               <p className="text-5xl font-black tracking-[0.3em] text-emerald-400 mb-4 pl-[0.3em]">{code}</p>
               <div className="bg-white p-3 rounded-xl mb-4"><QRCodeSVG value={joinUrl} size={160} /></div>
-              <button onClick={copyLink} className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              <Button onClick={copyLink} variant="ghost" size="sm" colorClassName="text-slate-300 hover:text-white focus-visible:ring-slate-400"
+                leftIcon={copied ? <Check aria-hidden="true" className="w-4 h-4 text-emerald-400" /> : <Copy aria-hidden="true" className="w-4 h-4" />}>
                 {copied ? 'Копирано!' : 'Копирај линк'}
-              </button>
+              </Button>
 
               <div className="flex flex-wrap gap-2 justify-center mt-6 w-full">
                 {session?.status === 'waiting' && (
-                  <button onClick={() => setSessionStatus(code, 'active')}
-                    className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg font-bold inline-flex items-center justify-center gap-2">
-                    <Play className="w-4 h-4" /> Започни играта
-                  </button>
+                  <Button onClick={() => void runSessionAction('start', () => setSessionStatus(code, 'active'), 'Играта не може да се започне. Обиди се повторно.')}
+                    loading={pendingAction === 'start'} disabled={pendingAction !== null} variant="success" className="flex-1"
+                    leftIcon={<Play aria-hidden="true" className="w-4 h-4" />}>Започни играта</Button>
                 )}
                 {session?.status === 'active' && (
-                  <button onClick={() => setSessionStatus(code, 'finished')}
-                    className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 rounded-lg font-bold inline-flex items-center justify-center gap-2">
-                    <Square className="w-4 h-4" /> Заврши
-                  </button>
+                  <Button onClick={() => void runSessionAction('finish', () => setSessionStatus(code, 'finished'), 'Играта не може да се заврши. Обиди се повторно.')}
+                    loading={pendingAction === 'finish'} disabled={pendingAction !== null} variant="danger" className="flex-1"
+                    leftIcon={<Square aria-hidden="true" className="w-4 h-4" />}>Заврши</Button>
                 )}
                 {session?.status === 'finished' && (
                   <span className="flex-1 py-2.5 bg-slate-800 rounded-lg font-bold text-slate-400 inline-flex items-center justify-center gap-2">
@@ -263,18 +299,18 @@ export function LiveSessionHost() {
               {/* Broadcast controls */}
               {session?.mode === 'broadcast' && session.status === 'active' && (
                 <div className="mt-4 w-full flex items-center justify-between gap-2 bg-slate-800 rounded-xl p-2">
-                  <button onClick={() => setBroadcastStage(code, session.currentStageIndex - 1)}
+                  <Button aria-label="Претходна етапа" onClick={() => void runSessionAction('previous-stage', () => setBroadcastStage(code, session.currentStageIndex - 1), 'Етапата не може да се промени. Обиди се повторно.')}
                     disabled={session.currentStageIndex <= 0}
-                    className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-40"><ChevronLeft className="w-5 h-5" /></button>
+                    loading={pendingAction === 'previous-stage'} size="icon" colorClassName="bg-slate-700 text-white hover:bg-slate-600 focus-visible:ring-slate-400"><ChevronLeft aria-hidden="true" className="w-5 h-5" /></Button>
                   <span className="text-sm font-bold">Етапа {session.currentStageIndex + 1} / {stageCount}</span>
-                  <button onClick={() => setBroadcastStage(code, session.currentStageIndex + 1)}
+                  <Button aria-label="Следна етапа" onClick={() => void runSessionAction('next-stage', () => setBroadcastStage(code, session.currentStageIndex + 1), 'Етапата не може да се промени. Обиди се повторно.')}
                     disabled={session.currentStageIndex >= stageCount - 1}
-                    className="p-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-40"><ChevronRight className="w-5 h-5" /></button>
+                    loading={pendingAction === 'next-stage'} size="icon" colorClassName="bg-slate-700 text-white hover:bg-slate-600 focus-visible:ring-slate-400"><ChevronRight aria-hidden="true" className="w-5 h-5" /></Button>
                 </div>
               )}
 
-              <button onClick={() => { deleteSession(code).catch(() => {}); navigate('/dashboard'); }}
-                className="mt-4 text-xs text-slate-500 hover:text-rose-400">Затвори и избриши сесија</button>
+              <Button onClick={() => setDeleteConfirmOpen(true)} variant="ghost" size="sm" className="mt-4"
+                colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-500">Затвори и избриши сесија</Button>
             </div>
 
             <div className="space-y-6">
@@ -292,20 +328,19 @@ export function LiveSessionHost() {
                       <p className="text-xs text-rose-200/70 mt-2">{formatLastSeen(focusedAlert.ts)}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
+                      <Button
                         onClick={() => setFocusedAlertPlayerId(focusedAlert.playerId)}
-                        className="px-4 py-2 rounded-lg bg-rose-500 text-white font-semibold hover:bg-rose-400"
+                        colorClassName="bg-rose-500 text-white hover:bg-rose-400 focus-visible:ring-rose-500"
                       >
                         Приближи на мапа
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => clearSosAlert(code, focusedAlert.playerId).catch(() => {})}
-                        className="px-4 py-2 rounded-lg bg-slate-800 text-slate-100 font-semibold hover:bg-slate-700"
+                      </Button>
+                      <Button
+                        onClick={() => void runSessionAction('clear-sos', () => clearSosAlert(code, focusedAlert.playerId), 'SOS повикот не може да се означи како решен. Обиди се повторно.')}
+                        loading={pendingAction === 'clear-sos'} disabled={pendingAction !== null}
+                        colorClassName="bg-slate-800 text-slate-100 hover:bg-slate-700 focus-visible:ring-slate-400"
                       >
                         Означи како решено
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -326,16 +361,17 @@ export function LiveSessionHost() {
                           p.rank === 1 ? 'bg-amber-400 text-slate-900' : p.rank === 2 ? 'bg-slate-300 text-slate-900' : p.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-700 text-slate-300'
                         }`}>{p.rank}</span>
                         <span className="flex-1 font-semibold truncate">{p.name}{p.finished && <Check className="inline w-4 h-4 text-emerald-400 ml-1" />}</span>
-                        <button
-                          type="button"
+                        <Button
+                          aria-label={`${p.timeMultiplier && p.timeMultiplier > 1 ? 'Исклучи' : 'Вклучи'} дополнителни 50% време за ${p.name}`}
+                          aria-pressed={Boolean(p.timeMultiplier && p.timeMultiplier > 1)}
                           title="Дозволи +50% време на етапи со временско ограничување — за ученици на кои им треба поддршка"
-                          onClick={() => updateProgress(code, p.uid, { timeMultiplier: p.timeMultiplier && p.timeMultiplier > 1 ? 1 : 1.5 }).catch(() => {})}
-                          className={`text-xs font-bold px-2 py-1 rounded-full transition-colors shrink-0 ${
-                            p.timeMultiplier && p.timeMultiplier > 1 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-500 hover:text-slate-300'
-                          }`}
+                          onClick={() => void runSessionAction(`time-${p.uid}`, () => updateProgress(code, p.uid, { timeMultiplier: p.timeMultiplier && p.timeMultiplier > 1 ? 1 : 1.5 }), `Временската поддршка за ${p.name} не може да се промени. Обиди се повторно.`)}
+                          loading={pendingAction === `time-${p.uid}`} disabled={pendingAction !== null}
+                          size="sm" colorClassName={p.timeMultiplier && p.timeMultiplier > 1 ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 focus-visible:ring-emerald-500' : 'bg-slate-700 text-slate-500 hover:text-slate-300 focus-visible:ring-slate-400'}
+                          className="rounded-full shrink-0"
                         >
                           ⏱ +50%
-                        </button>
+                        </Button>
                         <span className="text-xs text-slate-400">Е{p.stageIndex + 1}</span>
                         <span className="font-black text-indigo-400 tabular-nums">{p.points}</span>
                       </li>
@@ -417,6 +453,27 @@ export function LiveSessionHost() {
           </div>
         )}
       </div>
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => { if (pendingAction !== 'delete') setDeleteConfirmOpen(false); }}
+        title="Избриши ја сесијата?"
+        size="sm"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setDeleteConfirmOpen(false)} disabled={pendingAction === 'delete'}>Откажи</Button>
+            <Button variant="danger" onClick={() => void handleDeleteSession()} loading={pendingAction === 'delete'}>Избриши сесија</Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Сесијата, кодот за приклучување и тековниот напредок ќе бидат трајно отстранети. Ова дејство не може да се врати.
+        </p>
+        {error && (
+          <p role="alert" className="mt-3 rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-sm text-rose-600 dark:text-rose-300">
+            {error}
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }
@@ -425,15 +482,15 @@ function ModeOption({ active, onClick, icon, title, desc }: {
   active: boolean; onClick: () => void; icon: React.ReactNode; title: string; desc: string;
 }) {
   return (
-    <button onClick={onClick} className={`w-full text-left p-3 rounded-xl border-2 transition-all flex gap-3 items-start ${
-      active ? 'border-indigo-500 bg-indigo-500/10' : 'border-slate-700 bg-slate-800 hover:border-slate-600'
-    }`}>
+    <Button onClick={onClick} aria-pressed={active} fullWidth colorClassName={active
+      ? 'border-2 border-indigo-500 bg-indigo-500/10 text-slate-100 hover:bg-indigo-500/15 focus-visible:ring-indigo-500'
+      : 'border-2 border-slate-700 bg-slate-800 text-slate-100 hover:border-slate-600 focus-visible:ring-slate-400'}
+      className="text-left p-3 items-start justify-start">
       <span className={active ? 'text-indigo-400' : 'text-slate-400'}>{icon}</span>
       <span>
         <span className="block font-bold">{title}</span>
         <span className="block text-xs text-slate-400">{desc}</span>
       </span>
-    </button>
+    </Button>
   );
 }
-

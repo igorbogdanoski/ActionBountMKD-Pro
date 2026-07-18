@@ -44,7 +44,24 @@ export async function getQuests() {
   }];
 }
 export async function getPublicQuests() { return []; }
-export async function getQuestById() { return null; }
+export async function getQuestById(id?: string) {
+  if (id !== 'qa-host-quest') return null;
+  return {
+    id,
+    creatorId: 'qa-teacher-001',
+    title: 'QA сесија во живо',
+    description: 'Browser verification quest',
+    visibility: 'secret',
+    playMode: 'singleplayer',
+    sequenceType: 'fixed',
+    stages: [
+      { id: 'qa-stage-1', type: 'INFO', title: 'Прва етапа', description: 'Browser stage', order: 0 },
+      { id: 'qa-stage-2', type: 'INFO', title: 'Втора етапа', description: 'Browser stage', order: 1 },
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
 export async function saveQuest() {}
 export async function deleteQuest() {}
 export async function saveQuestResult() { return 'qa-result-001'; }

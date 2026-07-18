@@ -319,4 +319,27 @@ test.describe('authenticated QA harness', () => {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('creates a live session with semantic controls and safe deletion confirmation', async ({ page }) => {
+    await page.goto('/host/qa-host-quest?qaPlan=pro');
+    const freeMode = page.getByRole('button', { name: /Слободно темпо/ });
+    const broadcastMode = page.getByRole('button', { name: /Водено/ });
+    await expect(freeMode).toHaveAttribute('aria-pressed', 'true');
+    await broadcastMode.click();
+    await expect(broadcastMode).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Создади сесија' }).click();
+    await expect(page.getByText('QA1234', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Копирај линк' }).click();
+    await expect(page.getByRole('button', { name: 'Копирано!' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Затвори и избриши сесија' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Избриши ја сесијата?' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole('button', { name: 'Избриши сесија' })).toBeVisible();
+    expect(await dialog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
+    await dialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(dialog).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

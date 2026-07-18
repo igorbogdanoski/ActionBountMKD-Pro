@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle2, Lightbulb, ChevronUp, ChevronDown } from 'lucide-react';
 import type { QuizStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 import { StageMedia } from './StageMedia';
 import { shouldRevealHint } from '../../../utils/hints';
 
@@ -44,7 +45,7 @@ export function QuizStagePlayer({
           Коин: {stage.points} Поени
         </div>
         {timeLeft !== null && (
-          <div className={`flex items-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold transition-colors ${
+          <div role="timer" aria-live={timerUrgent ? 'polite' : 'off'} className={`flex items-center gap-2 py-1.5 px-3 rounded-full text-xs font-bold transition-colors ${
             timerUrgent ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-slate-700 text-slate-300'
           }`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -55,7 +56,7 @@ export function QuizStagePlayer({
         )}
       </div>
       {timeLeft !== null && timeLimitSec && (
-        <div className="w-full h-1 rounded-full bg-slate-700 mb-4 overflow-hidden">
+        <div role="progressbar" aria-label="Преостанато време" aria-valuemin={0} aria-valuemax={timeLimitSec} aria-valuenow={timeLeft ?? 0} className="w-full h-1 rounded-full bg-slate-700 mb-4 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-1000 ${timerUrgent ? 'bg-rose-500' : 'bg-amber-400'}`}
             style={{ width: `${timerPct}%` }}
@@ -69,20 +70,23 @@ export function QuizStagePlayer({
       {stage.questionType === 'multiple_choice' ? (
         <div className="space-y-3 mb-6">
           {stage.options?.map((opt: string) => (
-            <button
+            <Button
               key={opt}
+              aria-pressed={quizAnswer === opt}
               disabled={locked}
               onClick={() => onAnswerChange(opt)}
-              className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
+              fullWidth
+              colorClassName={`border-2 focus-visible:ring-indigo-500 ${
                 quizAnswer === opt
                   ? 'border-indigo-500 bg-indigo-500/10 text-indigo-500 shadow-sm'
                   : isNightMode
                     ? 'border-slate-700 bg-slate-800 text-slate-300 hover:border-indigo-400'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-indigo-300'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              }`}
+              className="p-4 rounded-xl text-left justify-start"
             >
               {opt}
-            </button>
+            </Button>
           ))}
         </div>
       ) : stage.questionType === 'estimate_number' ? (
@@ -138,24 +142,28 @@ export function QuizStagePlayer({
               >
                 <span className="text-xs font-bold text-slate-500 w-5 shrink-0">{i + 1}.</span>
                 <span className="flex-1 text-sm font-semibold">{item?.text}</span>
-                <button
-                  type="button"
-                  aria-label={`Помести нагоре ${i + 1}`}
+                <Button
+                  aria-label={`Помести нагоре: ${item?.text ?? `ставка ${i + 1}`}`}
                   disabled={locked || i === 0}
                   onClick={() => onOrderingMove(i, 'up')}
-                  className="p-1.5 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  size="icon"
+                  variant="ghost"
+                  className="p-1.5"
+                  colorClassName="text-slate-500 hover:text-indigo-400 focus-visible:ring-indigo-500"
                 >
-                  <ChevronUp className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Помести надолу ${i + 1}`}
+                  <ChevronUp aria-hidden="true" className="w-4 h-4" />
+                </Button>
+                <Button
+                  aria-label={`Помести надолу: ${item?.text ?? `ставка ${i + 1}`}`}
                   disabled={locked || i === orderingSequence.length - 1}
                   onClick={() => onOrderingMove(i, 'down')}
-                  className="p-1.5 text-slate-500 hover:text-indigo-400 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                  size="icon"
+                  variant="ghost"
+                  className="p-1.5"
+                  colorClassName="text-slate-500 hover:text-indigo-400 focus-visible:ring-indigo-500"
                 >
-                  <ChevronDown className="w-4 h-4" />
-                </button>
+                  <ChevronDown aria-hidden="true" className="w-4 h-4" />
+                </Button>
               </div>
             );
           })}
@@ -176,7 +184,7 @@ export function QuizStagePlayer({
       )}
 
       {quizFeedback === 'error' && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
+        <div role="alert" className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm font-semibold">{timeLeft === 0 ? 'Времето истече!' : 'Погрешен одговор, обиди се повторно!'}</span>
         </div>
@@ -190,7 +198,7 @@ export function QuizStagePlayer({
       )}
 
       {quizFeedback === 'success' && (
-        <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center gap-2 mb-4 border border-emerald-100">
+        <div role="status" className="p-4 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center gap-2 mb-4 border border-emerald-100">
           <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
           <span className="font-bold text-lg">Точно! +{stage.points}</span>
         </div>
@@ -198,22 +206,26 @@ export function QuizStagePlayer({
 
       <div className="mt-auto">
         {quizFeedback === 'error' && timeLeft === 0 ? (
-          <button
-            type="button"
+          <Button
             onClick={onSkip}
-            className="w-full py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+            fullWidth
+            size="lg"
+            colorClassName="bg-slate-600 text-white hover:bg-slate-500 focus-visible:ring-slate-500"
+            className="py-4 uppercase shadow-lg"
           >
             Продолжи →
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
+          <Button
             onClick={onSubmit}
             disabled={!hasAnswer || quizFeedback === 'success'}
-            className="w-full py-4 bg-indigo-600 disabled:bg-slate-300 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-indigo-600/20 active:scale-95 transition-all"
+            fullWidth
+            size="lg"
+            variant="app-primary"
+            className="py-4 uppercase shadow-lg shadow-indigo-600/20"
           >
             Потврди
-          </button>
+          </Button>
         )}
       </div>
     </div>

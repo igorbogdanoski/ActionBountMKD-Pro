@@ -44,6 +44,13 @@ describe('QuizStagePlayer', () => {
     expect(onAnswerChange).toHaveBeenCalledWith('Б');
   });
 
+  it('exposes the selected option and locks choices after feedback', () => {
+    render(<QuizStagePlayer stage={makeStage()} {...baseProps()} quizAnswer="Б" quizFeedback="success" />);
+    expect(screen.getByRole('button', { name: 'Б' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Б' })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Точно! +25');
+  });
+
   it('disables submit until an answer is selected, and calls onSubmit', () => {
     const onSubmit = vi.fn();
     const { rerender } = render(<QuizStagePlayer stage={makeStage()} {...baseProps()} onSubmit={onSubmit} />);
@@ -56,7 +63,8 @@ describe('QuizStagePlayer', () => {
 
   it('shows a countdown timer and progress bar when timeLimitSeconds is set', () => {
     render(<QuizStagePlayer stage={makeStage({ timeLimitSeconds: 60 })} {...baseProps()} timeLeft={45} />);
-    expect(screen.getByText('0:45')).toBeTruthy();
+    expect(screen.getByRole('timer')).toHaveTextContent('0:45');
+    expect(screen.getByRole('progressbar', { name: 'Преостанато време' })).toHaveAttribute('aria-valuenow', '45');
   });
 
   it('shows "time expired" feedback and a continue button when the timer hits zero', () => {
@@ -69,7 +77,7 @@ describe('QuizStagePlayer', () => {
 
   it('shows "wrong answer" feedback (not "time expired") on a normal incorrect attempt', () => {
     render(<QuizStagePlayer stage={makeStage()} {...baseProps()} quizFeedback="error" />);
-    expect(screen.getByText('Погрешен одговор, обиди се повторно!')).toBeTruthy();
+    expect(screen.getByRole('alert')).toHaveTextContent('Погрешен одговор, обиди се повторно!');
   });
 
   it('shows success feedback with the points earned', () => {
@@ -206,7 +214,7 @@ describe('QuizStagePlayer — ordering questions', () => {
         onOrderingMove={onOrderingMove}
       />
     );
-    fireEvent.click(screen.getByLabelText('Помести надолу 1'));
+    fireEvent.click(screen.getByLabelText('Помести надолу: Прво'));
     expect(onOrderingMove).toHaveBeenCalledWith(0, 'down');
   });
 
@@ -217,7 +225,7 @@ describe('QuizStagePlayer — ordering questions', () => {
 
   it('disables moving the first item up and the last item down', () => {
     render(<QuizStagePlayer stage={orderingStage()} {...baseProps()} orderingSequence={['i1', 'i2', 'i3']} />);
-    expect(screen.getByLabelText('Помести нагоре 1')).toBeDisabled();
-    expect(screen.getByLabelText('Помести надолу 3')).toBeDisabled();
+    expect(screen.getByLabelText('Помести нагоре: Прво')).toBeDisabled();
+    expect(screen.getByLabelText('Помести надолу: Трето')).toBeDisabled();
   });
 });

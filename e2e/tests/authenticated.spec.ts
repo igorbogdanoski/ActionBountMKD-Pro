@@ -250,6 +250,21 @@ test.describe('authenticated QA harness', () => {
     await deleteDialog.getByRole('button', { name: 'Избриши' }).click();
     await expect(stageSelectors).toHaveCount(1);
 
+    await page.getByRole('button', { name: 'Вметни: QR Задача' }).last().click();
+    await page.getByRole('button', { name: 'Генерирај случаен' }).click();
+    const copyQrPayload = page.getByRole('button', { name: 'Копирај' });
+    await expect(copyQrPayload).toBeEnabled();
+    await copyQrPayload.click();
+    await expect(page.getByRole('button', { name: 'Копирано' })).toBeVisible();
+    const qrTaskTab = page.getByRole('tab', { name: 'Задача' });
+    await qrTaskTab.click();
+    await expect(qrTaskTab).toHaveAttribute('aria-selected', 'true');
+    if (await backToStages.isVisible()) await backToStages.click();
+    await page.getByRole('button', { name: 'Избриши етапа 2' }).click();
+    const qrDeleteDialog = page.getByRole('dialog', { name: 'Избриши етапа?' });
+    await qrDeleteDialog.getByRole('button', { name: 'Избриши' }).click();
+    await expect(stageSelectors).toHaveCount(1);
+
     await page.getByRole('button', { name: 'Сподели квест' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

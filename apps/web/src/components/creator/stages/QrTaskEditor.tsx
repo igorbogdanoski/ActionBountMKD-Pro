@@ -3,6 +3,8 @@ import { QRCodeSVG } from 'qrcode.react';
 import { RefreshCw, Copy, Check, Download, Plus, Trash2 } from 'lucide-react';
 import type { QrTaskStage } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './shared';
+import { Button } from '../../ui/Button';
+import { downloadSvgById, useClipboardFeedback } from './qrEditorUtils';
 
 interface Props {
   stage: QrTaskStage;
@@ -17,25 +19,10 @@ function randomPayload() {
 
 export function QrTaskEditor({ stage, onChange }: Props) {
   const [tab, setTab] = useState(0);
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    navigator.clipboard.writeText(stage.targetQrPayload || '');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const { status: copyStatus, copy } = useClipboardFeedback();
 
   const downloadQR = () => {
-    const svg = document.getElementById('qrtask-preview-svg');
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `qr-zadaca-${stage.targetQrPayload || 'kod'}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadSvgById('qrtask-preview-svg', `qr-zadaca-${stage.targetQrPayload || 'kod'}.svg`);
   };
 
   const addOption = () => onChange({ options: [...(stage.options || []), ''] });
@@ -75,16 +62,17 @@ export function QrTaskEditor({ stage, onChange }: Props) {
                 placeholder="avt-ABC123"
                 value={stage.targetQrPayload}
                 onChange={e => onChange({ targetQrPayload: e.target.value })} />
-              <button type="button" title="Генерирај случаен"
+              <Button type="button" aria-label="Генерирај случаен"
                 onClick={() => onChange({ targetQrPayload: randomPayload() })}
-                className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-              <button type="button" title="Копирај"
-                onClick={copy} disabled={!stage.targetQrPayload}
-                className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors disabled:opacity-40">
-                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-              </button>
+                variant="secondary" size="icon" className="shrink-0">
+                <RefreshCw className="h-4 w-4" aria-hidden="true" />
+              </Button>
+              <Button type="button"
+                aria-label={copyStatus === 'success' ? 'Копирано' : copyStatus === 'error' ? 'Копирањето не успеа' : 'Копирај'}
+                onClick={() => void copy(stage.targetQrPayload || '')} disabled={!stage.targetQrPayload}
+                variant="secondary" size="icon" className="shrink-0">
+                {copyStatus === 'success' ? <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+              </Button>
             </div>
           </Field>
 
@@ -94,10 +82,10 @@ export function QrTaskEditor({ stage, onChange }: Props) {
               <QRCodeSVG id="qrtask-preview-svg" value={stage.targetQrPayload}
                 size={180} level="M" includeMargin />
               <p className="text-xs text-slate-400 font-mono">{stage.targetQrPayload}</p>
-              <button type="button" onClick={downloadQR}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors">
-                <Download className="w-3.5 h-3.5" /> Симни QR (SVG)
-              </button>
+              <Button type="button" onClick={downloadQR} variant="app-primary" size="sm"
+                leftIcon={<Download className="h-3.5 w-3.5" aria-hidden="true" />}>
+                Симни QR (SVG)
+              </Button>
             </div>
           )}
         </div>
@@ -150,17 +138,19 @@ export function QrTaskEditor({ stage, onChange }: Props) {
                     placeholder={`Одговор ${String.fromCharCode(65 + i)}`}
                     value={opt}
                     onChange={e => updateOption(i, e.target.value)} />
-                  <button type="button" onClick={() => removeOption(i)}
-                    className="p-2 rounded-lg bg-slate-700 hover:bg-red-900/30 text-slate-400 hover:text-red-400 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <Button type="button" onClick={() => removeOption(i)} variant="ghost" size="icon"
+                    aria-label={`Отстрани одговор ${String.fromCharCode(65 + i)}`}
+                    colorClassName="bg-slate-700 text-slate-400 hover:bg-rose-900/30 hover:text-rose-400 focus-visible:ring-rose-400">
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
                 </div>
               ))}
               {(stage.options || []).length < 6 && (
-                <button type="button" onClick={addOption}
-                  className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-                  <Plus className="w-3.5 h-3.5" /> Додади одговор
-                </button>
+                <Button type="button" onClick={addOption} variant="ghost" size="sm"
+                  colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                  leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}>
+                  Додади одговор
+                </Button>
               )}
             </div>
           )}

@@ -1,8 +1,9 @@
-import { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Copy, Check, RefreshCw, Download } from 'lucide-react';
 import type { ScanCodeStage } from 'shared';
 import { Field, inputCls, textareaCls } from './shared';
+import { Button } from '../../ui/Button';
+import { downloadSvgById, useClipboardFeedback } from './qrEditorUtils';
 
 interface Props { stage: ScanCodeStage; onChange: (u: Partial<ScanCodeStage>) => void; }
 
@@ -11,25 +12,10 @@ function randomPayload() {
 }
 
 export function ScanCodeEditor({ stage, onChange }: Props) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = () => {
-    navigator.clipboard.writeText(stage.targetQrPayload || '');
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const { status: copyStatus, copy } = useClipboardFeedback();
 
   const downloadQR = () => {
-    const svg = document.getElementById('qr-preview-svg');
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `qr-${stage.targetQrPayload || 'kod'}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadSvgById('qr-preview-svg', `qr-${stage.targetQrPayload || 'kod'}.svg`);
   };
 
   return (
@@ -48,23 +34,23 @@ export function ScanCodeEditor({ stage, onChange }: Props) {
           <input type="text" className={inputCls} placeholder="npr. location-skopje-001"
             value={stage.targetQrPayload}
             onChange={e => onChange({ targetQrPayload: e.target.value })} />
-          <button
+          <Button
             type="button"
-            title="Генерирај случаен код"
+            aria-label="Генерирај случаен код"
             onClick={() => onChange({ targetQrPayload: randomPayload() })}
-            className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors"
+            variant="secondary" size="icon" className="shrink-0"
           >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <button
+            <RefreshCw className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <Button
             type="button"
-            title="Копирај"
-            onClick={copy}
+            aria-label={copyStatus === 'success' ? 'Копирано' : copyStatus === 'error' ? 'Копирањето не успеа' : 'Копирај'}
+            onClick={() => void copy(stage.targetQrPayload || '')}
             disabled={!stage.targetQrPayload}
-            className="shrink-0 p-2 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 transition-colors disabled:opacity-40"
+            variant="secondary" size="icon" className="shrink-0"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          </button>
+            {copyStatus === 'success' ? <Check className="h-4 w-4 text-emerald-400" aria-hidden="true" /> : <Copy className="h-4 w-4" aria-hidden="true" />}
+          </Button>
         </div>
       </Field>
 
@@ -80,13 +66,14 @@ export function ScanCodeEditor({ stage, onChange }: Props) {
             includeMargin
           />
           <p className="text-xs text-slate-400 font-mono">{stage.targetQrPayload}</p>
-          <button
+          <Button
             type="button"
             onClick={downloadQR}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold transition-colors"
+            variant="app-primary" size="sm"
+            leftIcon={<Download className="h-3.5 w-3.5" aria-hidden="true" />}
           >
-            <Download className="w-3.5 h-3.5" /> Симни QR код (SVG)
-          </button>
+            Симни QR код (SVG)
+          </Button>
         </div>
       )}
 

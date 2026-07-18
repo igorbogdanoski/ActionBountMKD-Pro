@@ -129,6 +129,8 @@ Batch-от е затворен само кога:
 
 - [x] Инвентар и класификација: semantic card / interactive surface / shell / overlay / modal / media frame (`docs/H4_CARD_SEMANTIC_INVENTORY.md`).
 - [ ] Едноставни informational cards.
+  - [x] H4a Landing `Testimonial`, `Step` и `Audience`.
+  - [ ] H4b Други light informational cards, по individual semantic review.
 - [ ] Dashboard cards.
 - [ ] Creator dark cards со `tone="dark"`.
 - [ ] Player/session surfaces, последни.
@@ -232,7 +234,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3g-1 AI modal + ClassGroups alert remediation | `8f672a3` | PASS | 598/598 PASS; 9 focused AI/group contracts | PASS | Двата GenerateQuestModal controls се мигрирани со shared loading/disabled semantics и live error alert. ClassGroups native blocking alert е заменет со тестиран in-app certificate notice; empty cohort не повикува PDF download. Desktop/mobile ClassGroups regression 2/2 PASS; production build PASS. Audit: нула native alerts/confirms и 22 raw non-primitive controls — 7 MathRichEditor + 15 LandingPage. |
 | 2026-07-18 | H3g-2 MathRichEditor toolbar/popover controls | `34dfce9` | PASS | 601/601 PASS; 3 dedicated editor contracts | PASS | Сите 7 toolbar/popover control категории се мигрирани. Bold/italic/math actions имаат precise labels; symbols и preview имаат expanded/controls semantics; dynamic symbols се именувани по визуелен знак и LaTeX insert. Новите тестови го заклучуваат selection wrapping, textarea focus/cursor restoration, symbol insertion и preview visibility. Desktop/mobile creator lifecycle 2/2 PASS со zero overflow; production build PASS. Audit: само 15 raw non-primitive controls во LandingPage. |
 | 2026-07-18 | H3g-3/H3g-4 LandingPage + Button completion audit | `4275cad` | PASS | 601/601 PASS; Landing semantics 2/2 PASS | PASS | Сите 15 LandingPage navigation/CTA/language/FAQ controls се мигрирани со зачувана coral marketing, dark custom и white secondary хиерархија. Language state користи `aria-pressed`; FAQ користи `aria-expanded`/`aria-controls`. Финалниот production audit потврди нула raw application controls и нула native alerts/confirms; остануваат само трите намерни Button/Modal/Toggle primitives. Целосната desktop/mobile browser matrix: 31 PASS и 3 намерни viewport skips; zero overflow; production build PASS. |
+| 2026-07-18 | H4a Landing informational cards | `e20ec12` | PASS | 601/601 PASS; Landing Card browser contract 2/2 PASS | PASS | `Testimonial`, `Step` и `Audience` се мигрирани во shared Card во единствениот одобрен production фајл; вкупно 9 render-и. Exact light background, border opacity, small shadow, padding и Audience hover contract се зачувани со експлицитни overrides; FAQ, adventure tiles, banners и media frames не се допрени. Desktop/mobile Landing semantics и zero overflow PASS; production build PASS. |
 
 ## Следна акција
 
-Изврши H4a: мигрирај ги само Landing `Testimonial`, `Step` и `Audience` informational cards во shared `Card`. Зачувај ги точните light palette, spacing, border/shadow и Audience hover contracts; не допирај FAQ, adventure tiles, banners или media/device frames. Додај render contracts и desktop/mobile Landing browser QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H4b преку individual semantic review на преостанатите light informational candidates во `PricingPage` и статичните `SettingsPage` sections. Оддели commerce-selected/recommended states и form shells од вистинските informational cards; мигрирај само една сродна група и најмногу 10 production фајла. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

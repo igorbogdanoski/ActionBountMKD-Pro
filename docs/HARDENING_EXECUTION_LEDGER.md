@@ -31,7 +31,7 @@
 
 - Button/Card API prerequisite е завршен во `2b135d3`.
 - Playwright MCP конфигурацијата е versioned во `8147394`.
-- Production Button миграцијата е завршена низ H1, H2 и H3a-H3d, како и H3e-1 LiveSessionHost; AdminPanel (H3e-2) и H3f остануваат. Card миграцијата не е започната.
+- Production Button миграцијата е завршена низ H1, H2 и H3a-H3e; H3f MobilePlayer/player stages останува последен. Card миграцијата не е започната.
 - Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
@@ -104,11 +104,11 @@ Batch-от е затворен само кога:
   - [x] H3d-4 Quiz и Rubric complex lifecycle-и.
     - [x] H3d-4a Rubric CRUD, presets и score bounds.
     - [x] H3d-4b Quiz answer-type controls и reorder semantics.
-- [ ] H3e Session/Admin.
+- [x] H3e Session/Admin.
   - [x] H3e-1 LiveSessionHost/session controls.
-  - [ ] H3e-2 AdminPanel по функционални секции.
+  - [x] H3e-2 AdminPanel по функционални секции.
     - [x] H3e-2a Shell, semantic tabs/filters и payment moderation lifecycle.
-    - [ ] H3e-2b Template seed/cleanup/moderation lifecycle и H3e audit.
+    - [x] H3e-2b Template seed/cleanup/moderation lifecycle и H3e audit.
 - [ ] H3f MobilePlayer shell и stage players, последни.
 
 За секое raw копче прво се одредува дали е action button, tab, toggle, interactive card, icon control или link-like navigation. Не се применува механичка замена.
@@ -210,7 +210,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3d-4b Quiz controls + validation + H3d audit | `4c87ab2` | PASS | 569/569 PASS; 89 focused Quiz editor/validation/player contracts | PASS | Сите 8 Quiz raw controls мигрирани; precise remove/reorder labels и 8-option/20-pair/20-item limits се усогласени меѓу UI и schema. Критичен production gap затворен: QuizStageSchema сега прифаќа и валидира matching/ordering payload-и наместо да ги одбива. Desktop/mobile Quiz matching add/remove lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Completion audit: нула raw `<button>` во целиот `creator/stages/*`; H3d complete. |
 | 2026-07-18 | H3e-1 LiveSessionHost controls + safe async lifecycle | `3e9bdb6` | PASS | 574/574 PASS; 5 focused host contracts | PASS | Сите 14 raw controls мигрирани; mode/time toggles имаат pressed semantics, broadcast icon controls precise labels, а clipboard timer се чисти. Start/finish/stage/SOS/time actions имаат loading/error discipline. Небезбедното delete-and-navigate е заменето со confirmation modal што навигира само по успешен delete и прикажува видлив dialog alert при failure. QA-only session fixture овозможува desktop/mobile create→copy→delete-cancel lifecycle и zero overflow; browser matrix 21 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3e-2a Admin shell + payment moderation | `538f7f3` | PASS | 579/579 PASS; 5 focused admin contracts | PASS | Shell navigation и refresh се Button-backed; main sections се semantic tabs, а payment filters имаат pressed state. Approve/reject повеќе не извршуваат финансиска промена со единечен клик: confirmation modal ја прикажува трансакцијата, чека backend success и останува отворен со видлив alert при failure. Load/refresh errors се видливи. QA-only payment fixture овозможува desktop/mobile tabs→filter→approve-cancel lifecycle и zero overflow; browser matrix 23 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-18 | H3e-2b Admin template moderation + H3e audit | `0d96d5f` | PASS | 585/585 PASS; 11 focused admin/storage contracts | PASS | Сите 5 template controls мигрирани; native seed/cleanup confirms се заменети со Modal, moderation labels го именуваат точниот шаблон, а сите actions имаат loading/error lifecycle. Seed/cleanup ја освежуваат листата. Затворен production logic gap: Featured контролата претходно била недостижна бидејќи pending-only fetch никогаш не враќал approved шаблон; новиот admin contract вчитува одделно ограничени queues од 100 pending + 100 approved за едната да не ја истисне другата. Desktop/mobile seed-cancel, approve-cancel, reachable Featured toggle и zero overflow; browser matrix 25 PASS со 3 намерни skips; production build PASS. Completion audit: нула raw `<button>` во `AdminPanel` и `LiveSessionHost`; H3e complete. |
 
 ## Следна акција
 
-Продолжи со H3e-2b Admin template seed/cleanup/moderation controls, вклучувајќи замена на native confirmations, видлив async error lifecycle и H3e completion audit. Не мешај MobilePlayer (H3f) во истиот batch. Потоа H3f останува последниот Button Tier 3 опсег. За секој batch важат focused tests, full suite/build и desktop/mobile QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3f, последниот Button Tier 3 опсег, во мали подфази: прво MobilePlayer shell/finish/inventory controls, потоа `player/stages/*` по сродни stage групи. Пред секој batch направи interaction inventory и не мешај Card миграција. За секој batch важат focused tests, full suite/build и desktop/mobile QA. По H3f направи целосен Button completion audit пред H4 Card. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

@@ -31,7 +31,7 @@
 
 - Button/Card API prerequisite е завршен во `2b135d3`.
 - Playwright MCP конфигурацијата е versioned во `8147394`.
-- Production Button миграцијата е завршена низ H1, H2 и H3a-H3c; H3d-H3f остануваат. Card миграцијата не е започната.
+- Production Button миграцијата е завршена низ H1, H2 и H3a-H3d, како и H3e-1 LiveSessionHost; AdminPanel (H3e-2) и H3f остануваат. Card миграцијата не е започната.
 - Инвентар: 232 raw `<button>` појавувања во 51 component TSX фајл.
 - TypeScript baseline на 2026-07-17: PASS.
 - Full-suite baseline на 2026-07-17: 55/55 test files, 472/472 tests PASS (`--maxWorkers=1`, 110.71 s).
@@ -105,6 +105,8 @@ Batch-от е затворен само кога:
     - [x] H3d-4a Rubric CRUD, presets и score bounds.
     - [x] H3d-4b Quiz answer-type controls и reorder semantics.
 - [ ] H3e Session/Admin.
+  - [x] H3e-1 LiveSessionHost/session controls.
+  - [ ] H3e-2 AdminPanel по функционални секции.
 - [ ] H3f MobilePlayer shell и stage players, последни.
 
 За секое raw копче прво се одредува дали е action button, tab, toggle, interactive card, icon control или link-like navigation. Не се применува механичка замена.
@@ -204,7 +206,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H3d-3 ScanCode + QrTask QR lifecycles | `a7d945d` | PASS | 559/559 PASS; 13 focused QR editor/player contracts | PASS | Сите 8 raw controls мигрирани. Shared clipboard lifecycle чека реален write, прикажува success/error и го чисти timer-от при unmount; SVG download секогаш го revoke-ира object URL преку `finally`. Option controls имаат precise A-F labels и limit contract; нула raw buttons во двата editors. Desktop/mobile QR_TASK create→generate→copy→tab→delete lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3d-4a Rubric CRUD + presets | `6045c90` | PASS | 564/564 PASS; 14 focused rubric/editor/review contracts | PASS | Сите 6 raw controls мигрирани со precise criterion/level/preset labels. Level score persistence е clamp-ирана на 0–1000; empty/duplicate/max preset action е semantic disabled. Criterion/level/preset add-remove, sole-level guard и max-score contracts се директно покриени; нула raw buttons во RubricEditor. Desktop/mobile Survey rubric criterion/preset CRUD и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3d-4b Quiz controls + validation + H3d audit | `4c87ab2` | PASS | 569/569 PASS; 89 focused Quiz editor/validation/player contracts | PASS | Сите 8 Quiz raw controls мигрирани; precise remove/reorder labels и 8-option/20-pair/20-item limits се усогласени меѓу UI и schema. Критичен production gap затворен: QuizStageSchema сега прифаќа и валидира matching/ordering payload-и наместо да ги одбива. Desktop/mobile Quiz matching add/remove lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. Completion audit: нула raw `<button>` во целиот `creator/stages/*`; H3d complete. |
+| 2026-07-18 | H3e-1 LiveSessionHost controls + safe async lifecycle | `3e9bdb6` | PASS | 574/574 PASS; 5 focused host contracts | PASS | Сите 14 raw controls мигрирани; mode/time toggles имаат pressed semantics, broadcast icon controls precise labels, а clipboard timer се чисти. Start/finish/stage/SOS/time actions имаат loading/error discipline. Небезбедното delete-and-navigate е заменето со confirmation modal што навигира само по успешен delete и прикажува видлив dialog alert при failure. QA-only session fixture овозможува desktop/mobile create→copy→delete-cancel lifecycle и zero overflow; browser matrix 21 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3e Session/Admin, повторно во мали подфази: прво LiveSessionHost/session controls, потоа AdminPanel по функционални секции. Не мешај MobilePlayer (H3f) во истиот batch. За секој batch важат focused tests, full suite/build и desktop/mobile QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3e-2 AdminPanel, во мали batch-еви по функционални секции и со interaction inventory пред секој batch. Не мешај MobilePlayer (H3f) во истиот batch. За секој batch важат focused tests, full suite/build и desktop/mobile QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

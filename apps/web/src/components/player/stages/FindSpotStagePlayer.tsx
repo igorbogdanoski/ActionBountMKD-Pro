@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { MapPin, AlertCircle, Navigation, RefreshCw } from 'lucide-react';
 import type { FindSpotStage, Coordinates } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 
 const MAP_ICON_EMOJI: Record<string, string> = {
   museum: '🏛️', park: '🌳', statue: '🗽', school: '🏫',
@@ -72,7 +73,7 @@ export function FindSpotStagePlayer({
             </span>
           </div>
           {gpsError && (
-            <div className={`mt-3 flex items-start gap-2 p-3 rounded-xl text-sm ${isNightMode ? 'bg-red-500/10 text-red-300' : 'bg-red-50 text-red-700'}`}>
+            <div role="alert" className={`mt-3 flex items-start gap-2 p-3 rounded-xl text-sm ${isNightMode ? 'bg-red-500/10 text-red-300' : 'bg-red-50 text-red-700'}`}>
               <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
               <span>
                 {gpsError === 'denied'
@@ -94,37 +95,45 @@ export function FindSpotStagePlayer({
 
       <div className={`z-10 mt-auto p-6 pb-8 ${isNightMode ? 'bg-gradient-to-t from-slate-900 via-slate-900 to-transparent' : 'bg-gradient-to-t from-slate-50 via-slate-50 to-transparent'}`}>
         {isStageCompleted ? (
-          <button onClick={onContinue} className="w-full py-4 bg-indigo-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-indigo-600 active:scale-95 transition-all">
+          <Button onClick={onContinue} fullWidth size="lg" variant="app-primary" className="py-4 uppercase shadow-xl">
             Продолжи напред
-          </button>
+          </Button>
         ) : isCloseEnough ? (
-          <button onClick={onArrived} className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-emerald-600 animate-pulse active:scale-95 transition-all">
+          <Button onClick={onArrived} fullWidth size="lg" variant="success" className="py-4 uppercase shadow-xl animate-pulse">
             Ја најдов! (+{stage.points})
-          </button>
+          </Button>
         ) : gpsError ? (
           <div className="space-y-2">
-            <button
+            <Button
               onClick={onRetryGps}
-              className="w-full py-4 bg-indigo-500 text-white rounded-xl font-bold uppercase shadow-xl hover:bg-indigo-600 active:scale-95 transition-all flex items-center justify-center gap-2"
+              fullWidth
+              size="lg"
+              variant="app-primary"
+              className="py-4 uppercase shadow-xl"
             >
-              <RefreshCw className="w-4 h-4" /> Обиди се повторно
-            </button>
+              <RefreshCw aria-hidden="true" className="w-4 h-4" /> Обиди се повторно
+            </Button>
             {!stage.requiredToAdvance && (
-              <button
+              <Button
                 onClick={onSkip}
-                className={`w-full py-2.5 rounded-xl text-sm font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+                fullWidth
+                variant="ghost"
+                colorClassName={isNightMode ? 'text-slate-400 hover:text-slate-200 focus-visible:ring-slate-400' : 'text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400'}
               >
                 Прескокни без поени
-              </button>
+              </Button>
             )}
           </div>
         ) : !stage.requiredToAdvance ? (
-          <button
+          <Button
             onClick={onSkip}
-            className={`w-full py-4 rounded-xl text-sm font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'}`}
+            fullWidth
+            size="lg"
+            variant="ghost"
+            colorClassName={isNightMode ? 'text-slate-400 hover:text-slate-200 focus-visible:ring-slate-400' : 'text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400'}
           >
             Прескокни без поени
-          </button>
+          </Button>
         ) : (
           <div className={`w-full py-4 text-center rounded-xl text-sm font-semibold ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'}`}>
             Мора физички да пристигнеш до локацијата

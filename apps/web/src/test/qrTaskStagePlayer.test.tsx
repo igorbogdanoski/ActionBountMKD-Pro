@@ -42,6 +42,11 @@ describe('QrTaskStagePlayer', () => {
     expect(screen.queryByText('Задача')).toBeNull();
   });
 
+  it('announces scanner failures as actionable errors', () => {
+    render(<QrTaskStagePlayer stage={makeStage()} {...baseProps()} scanError="Камерата не е достапна." />);
+    expect(screen.getByRole('alert')).toHaveTextContent('Камерата не е достапна.');
+  });
+
   it('reveals the task after scanning, and disables submit until answered', () => {
     render(<QrTaskStagePlayer stage={makeStage()} {...baseProps()} qrTaskScanned />);
     expect(screen.getByText('Задача')).toBeTruthy();
@@ -73,6 +78,21 @@ describe('QrTaskStagePlayer', () => {
     );
     fireEvent.click(screen.getByText('Б'));
     expect(onAnswerChange).toHaveBeenCalledWith('Б');
+  });
+
+  it('exposes the selected multiple-choice option without enabling changes after feedback', () => {
+    render(
+      <QrTaskStagePlayer
+        stage={makeStage({ answerType: 'multiple_choice', options: ['А', 'Б'] })}
+        {...baseProps()}
+        qrTaskScanned
+        quizAnswer="Б"
+        quizFeedback="success"
+      />
+    );
+    expect(screen.getByRole('button', { name: /Б/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Б/ })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent(/Зачувано/);
   });
 
   it('shows a continue button instead of resubmit when an optional stage is answered wrong', () => {

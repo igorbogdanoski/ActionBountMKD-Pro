@@ -57,6 +57,7 @@ describe('FindSpotStagePlayer', () => {
     const onRetryGps = vi.fn();
     const onSkip = vi.fn();
     render(<FindSpotStagePlayer stage={makeStage({ requiredToAdvance: false })} {...baseProps()} gpsError="denied" onRetryGps={onRetryGps} onSkip={onSkip} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/Дозволи пристап до локацијата/);
     fireEvent.click(screen.getByRole('button', { name: /Обиди се повторно/ }));
     expect(onRetryGps).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole('button', { name: 'Прескокни без поени' }));

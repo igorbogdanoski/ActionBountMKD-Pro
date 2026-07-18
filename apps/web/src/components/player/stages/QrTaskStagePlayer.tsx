@@ -1,6 +1,7 @@
 import { Camera, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { QrTaskStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
+import { Button } from '../../ui/Button';
 
 interface Props {
   stage: QrTaskStage;
@@ -30,7 +31,7 @@ export function QrTaskStagePlayer({
         <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
 
         {scanError && (
-          <div className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold w-full mb-4 animate-pulse">
+          <div role="alert" className="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-bold w-full mb-4 animate-pulse">
             {scanError}
           </div>
         )}
@@ -71,20 +72,23 @@ export function QrTaskStagePlayer({
       {stage.answerType === 'multiple_choice' && (
         <div className="space-y-3 mb-4">
           {(stage.options || []).map((opt, i) => (
-            <button
+            <Button
               key={i}
+              aria-pressed={quizAnswer === opt}
               disabled={quizFeedback !== null}
               onClick={() => onAnswerChange(opt)}
-              className={`w-full p-4 rounded-xl text-left font-semibold transition-all border-2 ${
+              fullWidth
+              colorClassName={`border-2 focus-visible:ring-teal-500 ${
                 quizAnswer === opt
                   ? 'border-teal-500 bg-teal-500/10 text-teal-500 shadow-sm'
                   : isNightMode
                     ? 'border-slate-700 bg-slate-800 text-slate-300 hover:border-teal-400'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-teal-300'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              }`}
+              className="p-4 rounded-xl text-left justify-start"
             >
               <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>{opt}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -120,13 +124,13 @@ export function QrTaskStagePlayer({
       )}
 
       {quizFeedback === 'error' && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
+        <div role="alert" className="p-4 bg-red-50 text-red-600 rounded-xl flex items-center gap-2 mb-4 border border-red-100">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm font-semibold">Погрешен одговор, обиди се повторно!</span>
         </div>
       )}
       {quizFeedback === 'success' && (
-        <div className="p-4 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center gap-2 mb-4 border border-emerald-100">
+        <div role="status" className="p-4 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center gap-2 mb-4 border border-emerald-100">
           <CheckCircle2 className="w-6 h-6 flex-shrink-0" />
           <span className="font-bold text-lg">{autoGrade ? `Точно! +${stage.points}` : `Зачувано! +${stage.points}`}</span>
         </div>
@@ -134,22 +138,26 @@ export function QrTaskStagePlayer({
 
       <div className="mt-auto">
         {!stage.requiredToAdvance && quizFeedback === 'error' ? (
-          <button
-            type="button"
+          <Button
             onClick={onSkip}
-            className="w-full py-4 bg-slate-600 hover:bg-slate-500 text-white rounded-xl font-bold uppercase shadow-lg active:scale-95 transition-all"
+            fullWidth
+            size="lg"
+            colorClassName="bg-slate-600 text-white hover:bg-slate-500 focus-visible:ring-slate-500"
+            className="py-4 uppercase shadow-lg"
           >
             Продолжи →
-          </button>
+          </Button>
         ) : (
-          <button
-            type="button"
+          <Button
             onClick={onSubmit}
             disabled={!canSubmit || quizFeedback === 'success'}
-            className="w-full py-4 bg-teal-600 disabled:bg-slate-300 hover:bg-teal-700 text-white rounded-xl font-bold uppercase shadow-lg shadow-teal-600/20 active:scale-95 transition-all"
+            fullWidth
+            size="lg"
+            colorClassName="bg-teal-600 text-white hover:bg-teal-700 focus-visible:ring-teal-500"
+            className="py-4 uppercase shadow-lg shadow-teal-600/20"
           >
             Потврди
-          </button>
+          </Button>
         )}
       </div>
     </div>

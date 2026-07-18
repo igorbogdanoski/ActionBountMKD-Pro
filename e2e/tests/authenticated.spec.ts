@@ -177,6 +177,29 @@ test.describe('authenticated QA harness', () => {
     await settings.click();
     await expect(settings).toHaveAttribute('aria-pressed', 'false');
 
+    await page.getByRole('button', { name: 'Квиз', exact: true }).click();
+    const backToStages = page.getByRole('button', { name: 'Назад кон етапи' });
+    if (await backToStages.isVisible()) await backToStages.click();
+    let stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
+    await expect(stageSelectors).toHaveCount(1);
+    await expect(stageSelectors.first()).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Дуплирај етапа 1' }).click();
+    stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
+    await expect(stageSelectors).toHaveCount(2);
+    await expect(stageSelectors.nth(1)).toHaveAttribute('aria-pressed', 'true');
+    await stageSelectors.first().focus();
+    await page.keyboard.press('Enter');
+    if (await backToStages.isVisible()) await backToStages.click();
+    stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
+    await expect(stageSelectors.first()).toHaveAttribute('aria-pressed', 'true');
+
+    await page.getByRole('button', { name: 'Избриши етапа 2' }).click();
+    const deleteDialog = page.getByRole('dialog', { name: 'Избриши етапа?' });
+    await expect(deleteDialog).toBeVisible();
+    await deleteDialog.getByRole('button', { name: 'Избриши' }).click();
+    await expect(stageSelectors).toHaveCount(1);
+
     await page.getByRole('button', { name: 'Сподели квест' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();

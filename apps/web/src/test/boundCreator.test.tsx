@@ -129,7 +129,7 @@ describe('BoundCreator', () => {
     await screen.findByDisplayValue('Постоечка авантура');
     expect(screen.getByText('Етапи (1)')).toBeTruthy();
 
-    fireEvent.click(screen.getByTitle('Избриши'));
+    fireEvent.click(screen.getByRole('button', { name: 'Избриши етапа 1' }));
     const dialog = screen.getByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Избриши' }));
 

@@ -11,6 +11,7 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import type { Stage, StageType } from 'shared';
 import { Modal } from '../ui/Modal';
+import { Button } from '../ui/Button';
 
 // ─── Stage type config ────────────────────────────────────────────────────────
 
@@ -35,21 +36,23 @@ function InsertButton({ onInsert }: { onInsert: (type: StageType) => void }) {
   return (
     <div className="relative group flex items-center justify-center my-1">
       <div className="absolute inset-x-0 h-px bg-slate-700 group-hover:bg-indigo-500 transition-colors" />
-      <div className="relative opacity-0 group-hover:opacity-100 transition-opacity z-10">
+      <div className="relative z-10 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
         <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 shadow-lg">
           {(Object.keys(STAGE_TYPE_CONFIG) as StageType[]).map(type => {
             const cfg = STAGE_TYPE_CONFIG[type];
             const Icon = cfg.icon;
             return (
-              <button
+              <Button
                 key={type}
                 type="button"
-                title={cfg.label}
+                size="icon"
+                aria-label={`Вметни: ${cfg.label}`}
                 onClick={() => onInsert(type)}
-                className={`p-1.5 rounded-md ${cfg.bg} ${cfg.color} hover:scale-110 transition-transform`}
+                colorClassName={`${cfg.bg} ${cfg.color} hover:brightness-125 focus-visible:ring-indigo-500`}
+                className="p-1.5 transition-transform hover:scale-110"
               >
-                <Icon className="w-3.5 h-3.5" />
-              </button>
+                <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
             );
           })}
         </div>
@@ -88,17 +91,25 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group relative rounded-xl border-2 overflow-hidden transition-all cursor-pointer select-none ${
+      className={`group relative overflow-hidden rounded-xl border-2 transition-all select-none ${
         isDragging ? 'opacity-50 scale-95' : ''
       } ${
         isSelected
           ? 'border-indigo-500 bg-indigo-950/60 shadow-md shadow-indigo-500/10'
           : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
       }`}
-      onClick={onSelect}
     >
+      <Button
+        type="button"
+        size="icon"
+        aria-label={`Избери етапа ${index + 1}: ${stage.title.trim() || cfg.label}`}
+        aria-pressed={isSelected}
+        onClick={onSelect}
+        colorClassName="bg-transparent focus-visible:ring-indigo-400"
+        className="absolute inset-0 z-0 h-full w-full cursor-pointer rounded-xl p-0 focus-visible:ring-inset"
+      />
       {/* Thumbnail */}
-      <div className={`relative h-20 w-full flex items-center justify-center ${thumbnail ? 'bg-slate-950' : cfg.bg}`}>
+      <div className={`pointer-events-none relative z-[1] flex h-20 w-full items-center justify-center ${thumbnail ? 'bg-slate-950' : cfg.bg}`}>
         {thumbnail ? (
           <img src={thumbnail} alt="" className="w-full h-full object-cover" />
         ) : (
@@ -116,39 +127,43 @@ function SortableStageCard({ stage, index, isSelected, onSelect, onDuplicate, on
         <div
           {...attributes}
           {...listeners}
-          title="Повлечи за прередување"
-          className="absolute right-2 top-2 p-1 rounded bg-slate-900/70 text-slate-400 hover:text-slate-200 cursor-grab active:cursor-grabbing touch-none"
+          aria-label={`Пререди етапа ${index + 1}`}
+          className="pointer-events-auto absolute right-2 top-2 cursor-grab touch-none rounded bg-slate-900/70 p-1 text-slate-400 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 active:cursor-grabbing"
           onClick={e => e.stopPropagation()}
         >
-          <GripVertical className="w-3.5 h-3.5" />
+          <GripVertical className="h-3.5 w-3.5" aria-hidden="true" />
         </div>
 
         {/* Actions */}
         <div
-          className="absolute right-2 bottom-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="pointer-events-auto absolute bottom-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
           onClick={e => e.stopPropagation()}
         >
-          <button
+          <Button
             type="button"
-            title="Дупликат"
+            size="icon"
+            aria-label={`Дуплирај етапа ${index + 1}`}
             onClick={onDuplicate}
-            className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-indigo-400 hover:bg-slate-900 transition-colors"
+            colorClassName="bg-slate-900/70 text-slate-300 hover:bg-slate-900 hover:text-indigo-400 focus-visible:ring-indigo-400"
+            className="p-1.5"
           >
-            <Copy className="w-3.5 h-3.5" />
-          </button>
-          <button
+            <Copy className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
+          <Button
             type="button"
-            title="Избриши"
+            size="icon"
+            aria-label={`Избриши етапа ${index + 1}`}
             onClick={onRequestDelete}
-            className="p-1.5 rounded bg-slate-900/70 text-slate-300 hover:text-red-400 hover:bg-slate-900 transition-colors"
+            colorClassName="bg-slate-900/70 text-slate-300 hover:bg-slate-900 hover:text-rose-400 focus-visible:ring-rose-400"
+            className="p-1.5"
           >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+          </Button>
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="pointer-events-none relative z-[1] flex items-center gap-2 px-3 py-2">
         <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${cfg.bg}`}>
           <Icon className={`w-3.5 h-3.5 ${cfg.color}`} />
         </div>
@@ -175,6 +190,17 @@ interface StageListProps {
   onReorder: (oldIndex: number, newIndex: number) => void;
 }
 
+export function getStageReorderIndices(
+  stages: Stage[],
+  activeId: string | number,
+  overId: string | number | null,
+): [oldIndex: number, newIndex: number] | null {
+  if (overId === null || activeId === overId) return null;
+  const oldIndex = stages.findIndex(stage => stage.id === activeId);
+  const newIndex = stages.findIndex(stage => stage.id === overId);
+  return oldIndex === -1 || newIndex === -1 ? null : [oldIndex, newIndex];
+}
+
 export function StageList({
   stages, selectedId, onSelect, onAdd, onDuplicate, onDelete, onReorder,
 }: StageListProps) {
@@ -186,10 +212,8 @@ export function StageList({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = stages.findIndex(s => s.id === active.id);
-    const newIndex = stages.findIndex(s => s.id === over.id);
-    if (oldIndex !== -1 && newIndex !== -1) onReorder(oldIndex, newIndex);
+    const indices = getStageReorderIndices(stages, active.id, over?.id ?? null);
+    if (indices) onReorder(...indices);
   };
 
   const confirmDelete = () => {
@@ -208,15 +232,17 @@ export function StageList({
               const cfg = STAGE_TYPE_CONFIG[type];
               const Icon = cfg.icon;
               return (
-                <button
+                <Button
                   key={type}
                   type="button"
+                  size="sm"
                   onClick={() => onAdd(type, -1)}
-                  className={`flex items-center gap-2 p-2.5 rounded-lg border border-slate-700 hover:border-slate-500 ${cfg.bg} text-left transition-colors`}
+                  colorClassName={`${cfg.bg} text-slate-300 hover:border-slate-500 focus-visible:ring-indigo-500`}
+                  className="justify-start border border-slate-700 p-2.5 text-left"
+                  leftIcon={<Icon className={`h-4 w-4 shrink-0 ${cfg.color}`} aria-hidden="true" />}
                 >
-                  <Icon className={`w-4 h-4 ${cfg.color} shrink-0`} />
-                  <span className="text-xs font-medium text-slate-300">{cfg.label}</span>
-                </button>
+                  <span className="text-xs font-medium">{cfg.label}</span>
+                </Button>
               );
             })}
           </div>
@@ -257,25 +283,27 @@ export function StageList({
         size="sm"
         footer={
           <>
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={() => setDeleteTarget(null)}
-              className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
             >
               Откажи
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="danger"
+              size="sm"
               onClick={confirmDelete}
-              className="px-4 py-2 rounded-lg text-sm font-bold text-white bg-red-600 hover:bg-red-500 transition-colors"
             >
               Избриши
-            </button>
+            </Button>
           </>
         }
       >
         <p className="text-sm text-slate-600 dark:text-slate-300">
-          Дали сакаш да ја избришеш „{deleteTarget?.label}"? Ова не може да се врати.
+          Дали сакаш да ја избришеш „{deleteTarget?.label}“? Ова не може да се врати.
         </p>
       </Modal>
     </div>

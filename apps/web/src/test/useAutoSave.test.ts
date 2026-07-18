@@ -74,4 +74,46 @@ describe('useAutoSave', () => {
     await act(async () => { vi.advanceTimersByTime(5000); });
     expect(saveQuest).not.toHaveBeenCalled();
   });
+
+  it('suspends pending saves and waits for an in-flight save before destructive work continues', async () => {
+    let resolveSave!: () => void;
+    saveQuest.mockImplementation(() => new Promise<void>(resolve => { resolveSave = resolve; }));
+    const { result } = renderHook(() => useAutoSave(makeQuest(), false, vi.fn()));
+
+    let retryPromise!: Promise<void>;
+    act(() => { retryPromise = result.current.retry(); });
+    expect(saveQuest).toHaveBeenCalledOnce();
+
+    let suspended = false;
+    const suspendPromise = result.current.suspend().then(() => { suspended = true; });
+    await Promise.resolve();
+    expect(suspended).toBe(false);
+
+    resolveSave();
+    await act(async () => { await Promise.all([retryPromise, suspendPromise]); });
+    expect(suspended).toBe(true);
+
+    await act(async () => { await result.current.retry(); });
+    expect(saveQuest).toHaveBeenCalledOnce();
+  });
+
+  it('does not clear a newer dirty edit when an older in-flight snapshot finishes', async () => {
+    let resolveSave!: () => void;
+    saveQuest.mockImplementation(() => new Promise<void>(resolve => { resolveSave = resolve; }));
+    const onSaved = vi.fn();
+    const firstQuest = makeQuest({ title: 'Прва верзија', updatedAt: '2026-07-18T10:00:00.000Z' });
+    const { result, rerender } = renderHook(
+      ({ quest }) => useAutoSave(quest, true, onSaved),
+      { initialProps: { quest: firstQuest } },
+    );
+
+    let savePromise!: Promise<void>;
+    act(() => { savePromise = result.current.retry(); });
+    rerender({ quest: makeQuest({ title: 'Понова верзија', updatedAt: '2026-07-18T10:00:01.000Z' }) });
+    resolveSave();
+    await act(async () => { await savePromise; });
+
+    expect(saveQuest).toHaveBeenCalledWith(firstQuest);
+    expect(onSaved).not.toHaveBeenCalled();
+  });
 });

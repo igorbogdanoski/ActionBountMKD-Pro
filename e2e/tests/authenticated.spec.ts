@@ -190,6 +190,33 @@ test.describe('authenticated QA harness', () => {
     await expect(stageSelectors.nth(1)).toHaveAttribute('aria-pressed', 'true');
     await stageSelectors.first().focus();
     await page.keyboard.press('Enter');
+
+    await settings.click();
+    await expect(settings).toHaveAttribute('aria-pressed', 'true');
+    const tagInput = page.getByPlaceholder('npr. скопје, историја...');
+    await tagInput.fill('Скопје!');
+    await page.getByRole('button', { name: 'Додај таг' }).click();
+    const removeTag = page.getByRole('button', { name: 'Отстрани таг скопје' });
+    await expect(removeTag).toBeVisible();
+    await removeTag.click();
+    await expect(removeTag).toBeHidden();
+
+    await page.getByPlaceholder('Име на предмет').fill('Златен клуч');
+    await page.getByRole('button', { name: 'Додај предмет' }).click();
+    const removeItem = page.getByRole('button', { name: 'Отстрани предмет Златен клуч' });
+    await expect(removeItem).toBeVisible();
+    await removeItem.click();
+    await expect(removeItem).toBeHidden();
+
+    await page.getByRole('button', { name: 'Опасна зона' }).click();
+    await page.getByRole('button', { name: 'Избриши квест' }).click();
+    const questDeleteDialog = page.getByRole('dialog', { name: 'Избриши квест?' });
+    await expect(questDeleteDialog).toBeVisible();
+    await questDeleteDialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(questDeleteDialog).toBeHidden();
+    await settings.click();
+    await expect(settings).toHaveAttribute('aria-pressed', 'false');
+
     if (await backToStages.isVisible()) await backToStages.click();
     stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
     await expect(stageSelectors.first()).toHaveAttribute('aria-pressed', 'true');
@@ -210,7 +237,8 @@ test.describe('authenticated QA harness', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 
-    await title.fill('QA creator quest');
+    const currentTitle = await title.inputValue();
+    await title.fill(`${currentTitle || 'QA creator quest'} · manual`);
     await expect(save).toBeEnabled();
     await save.click();
     await expect(save).toBeDisabled();

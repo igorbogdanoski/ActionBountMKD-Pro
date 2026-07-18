@@ -25,7 +25,8 @@ vi.mock('../utils/firebase', () => ({ auth: {}, provider: {}, storage: {}, db: {
 
 const getQuestById = vi.hoisted(() => vi.fn());
 const saveQuest = vi.hoisted(() => vi.fn());
-vi.mock('../utils/storage', () => ({ getQuestById, saveQuest }));
+const deleteQuest = vi.hoisted(() => vi.fn());
+vi.mock('../utils/storage', () => ({ getQuestById, saveQuest, deleteQuest }));
 
 import { BoundCreator } from '../components/creator/BoundCreator';
 
@@ -49,6 +50,7 @@ beforeEach(() => {
   useParamsMock.mockReturnValue({ questId: undefined });
   getQuestById.mockReset();
   saveQuest.mockReset().mockResolvedValue(undefined);
+  deleteQuest.mockReset().mockResolvedValue(undefined);
 });
 
 describe('BoundCreator', () => {
@@ -134,6 +136,21 @@ describe('BoundCreator', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Избриши' }));
 
     expect(screen.getByText('Етапи (0)')).toBeTruthy();
+  });
+
+  it('deletes an existing quest through the settings danger-zone confirmation', async () => {
+    useParamsMock.mockReturnValue({ questId: 'q1' });
+    getQuestById.mockResolvedValue(existingQuest());
+    render(<BoundCreator />);
+    await screen.findByDisplayValue('Постоечка авантура');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Поставки на квестот' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Опасна зона' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Избриши квест' }));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Избриши засекогаш' }));
+
+    await waitFor(() => expect(deleteQuest).toHaveBeenCalledWith('q1'));
+    expect(navigateSpy).toHaveBeenCalledWith('/dashboard');
   });
 
   it('wires the visible auto-save error action to retry', async () => {

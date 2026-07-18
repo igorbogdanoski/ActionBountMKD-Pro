@@ -5,28 +5,34 @@ import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
 import { TrackUploader } from '../upload/TrackUploader';
 import { usePlan } from '../../hooks/usePlan';
-import { Lock } from 'lucide-react';
+import { Lock, Plus, Trash2, X } from 'lucide-react';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 
 interface Props {
   quest: Quest;
   onChange: <K extends keyof Quest>(key: K, value: Quest[K]) => void;
+  onDeleteQuest: () => Promise<void>;
 }
 
 const TABS = ['Профил', 'Педагогија', 'Карактеристики', 'Мапи', 'Опасна зона'];
 
-export function QuestSettingsPanel({ quest, onChange }: Props) {
+export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
   const [tab, setTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
   const [goalInput, setGoalInput] = useState('');
   const [inventoryName, setInventoryName] = useState('');
   const [inventoryIcon, setInventoryIcon] = useState('');
   const [inventoryMediaUrl, setInventoryMediaUrl] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
   const { planId } = usePlan();
   const canLeaderboard = planId === 'pro' || planId === 'enterprise';
   const cleanCertificate = planId !== 'free';
 
   const addTag = () => {
-    const t = tagInput.trim().toLowerCase().replace(/[^a-zа-шѓ0-9-_]/gi, '');
+    const t = tagInput.trim().toLowerCase().replace(/[^\p{L}\p{N}_-]/gu, '');
     if (!t) return;
     const tags = quest.tags ?? [];
     if (tags.length >= 10 || tags.includes(t)) { setTagInput(''); return; }
@@ -62,7 +68,7 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
     const id = name
       .toLowerCase()
       .normalize('NFKD')
-      .replace(/[^a-z0-9а-шѓжчќљњѕј_-]+/gi, '-')
+      .replace(/[^\p{L}\p{N}_-]+/gu, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 64) || `item-${Date.now()}`;
     const items = quest.inventoryItems ?? [];
@@ -73,6 +79,17 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
     setInventoryMediaUrl('');
   };
   const removeInventoryItem = (id: string) => onChange('inventoryItems', (quest.inventoryItems ?? []).filter(item => item.id !== id));
+
+  const confirmDeleteQuest = async () => {
+    setDeleting(true);
+    setDeleteError('');
+    try {
+      await onDeleteQuest();
+    } catch {
+      setDeleteError('Квестот не може да се избрише во моментов. Обидете се повторно.');
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -121,18 +138,20 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                       value={tagInput}
                       onChange={e => setTagInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-                    <button type="button" onClick={addTag}
-                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors shrink-0">
-                      +
-                    </button>
+                    <Button type="button" variant="app-primary" size="icon" aria-label="Додај таг"
+                      disabled={!tagInput.trim() || (quest.tags ?? []).length >= 10} onClick={addTag} className="shrink-0">
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </div>
                   {(quest.tags ?? []).length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {(quest.tags ?? []).map(t => (
                         <span key={t} className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/20 text-indigo-300 text-xs rounded-full">
                           #{t}
-                          <button type="button" onClick={() => removeTag(t)}
-                            className="hover:text-white leading-none">×</button>
+                          <Button type="button" variant="ghost" size="icon" aria-label={`Отстрани таг ${t}`}
+                            onClick={() => removeTag(t)} className="p-0 text-indigo-300 hover:text-white">
+                            <X className="h-3 w-3" aria-hidden="true" />
+                          </Button>
                         </span>
                       ))}
                     </div>
@@ -158,10 +177,10 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                       value={inventoryMediaUrl}
                       onChange={e => setInventoryMediaUrl(e.target.value)} />
                   </div>
-                  <button type="button" onClick={addInventoryItem}
-                    className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors">
+                  <Button type="button" variant="app-primary" size="sm" disabled={!inventoryName.trim()} onClick={addInventoryItem}
+                    leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}>
                     Додај предмет
-                  </button>
+                  </Button>
                   {(quest.inventoryItems ?? []).length > 0 && (
                     <div className="space-y-2">
                       {(quest.inventoryItems ?? []).map(item => (
@@ -170,7 +189,10 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                             <div className="text-sm font-semibold text-slate-200 truncate">{item.icon ? `${item.icon} ` : ''}{item.name}</div>
                             <div className="text-xs text-slate-500 truncate">{item.id}</div>
                           </div>
-                          <button type="button" onClick={() => removeInventoryItem(item.id)} className="text-slate-500 hover:text-rose-400">×</button>
+                          <Button type="button" variant="ghost" size="icon" aria-label={`Отстрани предмет ${item.name}`}
+                            onClick={() => removeInventoryItem(item.id)} className="shrink-0 p-1 text-slate-500 hover:text-rose-400">
+                            <X className="h-4 w-4" aria-hidden="true" />
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -216,10 +238,10 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                       value={goalInput} maxLength={MAX_LEARNING_GOAL_LENGTH}
                       onChange={e => setGoalInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addGoal(); } }} />
-                    <button type="button" onClick={addGoal}
-                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg font-semibold transition-colors shrink-0">
-                      +
-                    </button>
+                    <Button type="button" variant="app-primary" size="icon" aria-label="Додај цел на учење"
+                      disabled={!goalInput.trim() || learningGoals.length >= MAX_LEARNING_GOALS} onClick={addGoal} className="shrink-0">
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    </Button>
                   </div>
                   {learningGoals.length > 0 && (
                     <ol className="space-y-1.5">
@@ -227,8 +249,10 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
                         <li key={g} className="flex items-start gap-2 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2">
                           <span className="text-xs font-bold text-indigo-400 mt-0.5 shrink-0">{i + 1}.</span>
                           <span className="text-sm text-slate-200 flex-1 min-w-0 break-words">{g}</span>
-                          <button type="button" onClick={() => removeGoal(g)}
-                            className="text-slate-500 hover:text-rose-400 leading-none shrink-0">×</button>
+                          <Button type="button" variant="ghost" size="icon" aria-label={`Отстрани цел ${i + 1}`}
+                            onClick={() => removeGoal(g)} className="shrink-0 p-1 text-slate-500 hover:text-rose-400">
+                            <X className="h-4 w-4" aria-hidden="true" />
+                          </Button>
                         </li>
                       ))}
                     </ol>
@@ -340,16 +364,34 @@ export function QuestSettingsPanel({ quest, onChange }: Props) {
             <div className="space-y-3">
               <p className="text-xs text-red-400 font-semibold uppercase tracking-wider">Опасна зона</p>
               <div className="p-4 border border-red-500/20 rounded-xl space-y-3">
-                <button type="button"
-                  className="w-full text-left px-4 py-3 rounded-lg bg-red-500/5 hover:bg-red-500/10 text-red-400 text-sm font-medium transition-colors border border-red-500/20">
-                  🗑 Избриши квест
-                </button>
+                <Button type="button" variant="danger" fullWidth onClick={() => { setDeleteError(''); setDeleteOpen(true); }}
+                  className="justify-start border border-rose-500/30 shadow-none"
+                  leftIcon={<Trash2 className="h-4 w-4" aria-hidden="true" />}>
+                  Избриши квест
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => { if (!deleting) setDeleteOpen(false); }}
+        title="Избриши квест?"
+        size="sm"
+        footer={
+          <>
+            <Button type="button" variant="secondary" size="sm" disabled={deleting} onClick={() => setDeleteOpen(false)}>Откажи</Button>
+            <Button type="button" variant="danger" size="sm" loading={deleting} onClick={confirmDeleteQuest}>Избриши засекогаш</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Дали сигурно сакате да го избришете „{quest.title.trim() || 'Квест без наслов'}“? Оваа акција не може да се врати.
+        </p>
+        {deleteError && <p role="alert" className="mt-3 text-sm font-medium text-rose-600 dark:text-rose-400">{deleteError}</p>}
+      </Modal>
     </div>
   );
 }
-

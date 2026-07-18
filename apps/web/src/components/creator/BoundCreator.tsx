@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
-import { getQuestById, saveQuest } from '../../utils/storage';
+import { deleteQuest, getQuestById, saveQuest } from '../../utils/storage';
 import { trackEvent } from '../../utils/analytics';
 import { useQuestEditor } from './hooks/useQuestEditor';
 import { useAutoSave }    from './hooks/useAutoSave';
@@ -93,7 +93,13 @@ export function BoundCreator() {
   }, [questId]);
 
   // Auto-save with 2s debounce
-  const { lastSaved, saving, error: saveError, retry: retrySave } = useAutoSave(quest, isDirty, setClean);
+  const { lastSaved, saving, error: saveError, retry: retrySave, suspend: suspendAutoSave } = useAutoSave(quest, isDirty, setClean);
+
+  const handleDeleteQuest = async () => {
+    await suspendAutoSave();
+    if (questId) await deleteQuest(questId);
+    navigate('/dashboard');
+  };
 
   // Manual save
   const handleSave = async () => {
@@ -260,7 +266,7 @@ export function BoundCreator() {
             </Button>
           </div>
           {rightPanel === 'settings' ? (
-            <QuestSettingsPanel quest={quest} onChange={setField} />
+            <QuestSettingsPanel quest={quest} onChange={setField} onDeleteQuest={handleDeleteQuest} />
           ) : selectedStage ? (
             <StageEditor
               stage={selectedStage}

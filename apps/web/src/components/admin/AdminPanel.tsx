@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Check, X, Clock, ShieldAlert, RefreshCw, BookOpen, Star, Loader2, Sprout, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
 import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type PaymentRequest } from '../../utils/paymentRequests';
-import { getPendingTemplates, saveTemplate } from '../../utils/storage';
+import { getAdminTemplates, saveTemplate } from '../../utils/storage';
 import { runSeedTemplates, cleanupDuplicateTemplates } from '../../utils/seedTemplates';
 import { SEO } from '../SEO';
 import { Button } from '../ui/Button';
@@ -31,37 +31,53 @@ function TemplatesTab() {
   const [busy, setBusy] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
   const [seedLog, setSeedLog] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [confirmation, setConfirmation] = useState<
+    | { type: 'seed' }
+    | { type: 'cleanup' }
+    | { type: 'approve'; template: Template }
+    | { type: 'reject'; template: Template }
+    | null
+  >(null);
 
-  const loadTemplates = () => {
+  const loadTemplates = async () => {
     setLoading(true);
-    getPendingTemplates()
-      .then(setTemplates)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    setError(null);
+    try {
+      setTemplates(await getAdminTemplates());
+    } catch {
+      setError('Шаблоните не може да се вчитаат. Обиди се повторно.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { loadTemplates(); }, []);
+  useEffect(() => { void loadTemplates(); }, []);
 
   const handleSeed = async () => {
-    if (!window.confirm('Ова ќе додаде/освежи 15 стандардни шаблони во Firestore. Продолжи?')) return;
     setSeeding(true);
+    setError(null);
     setSeedLog([]);
     try {
       await runSeedTemplates(msg => setSeedLog(prev => [...prev, msg]));
-    } catch (e) {
-      setSeedLog(prev => [...prev, `⚠ Грешка: ${e}`]);
+      await loadTemplates();
+      setConfirmation(null);
+    } catch {
+      setError('Стандардните шаблони не може да се додадат или освежат. Провери го логот и обиди се повторно.');
     } finally {
       setSeeding(false);
     }
   };
 
   const handleCleanup = async () => {
-    if (!window.confirm('Ова ќе ги избрише старите дупликати на стандардните шаблони (по наслов). Продолжи?')) return;
     setSeeding(true);
+    setError(null);
     try {
       await cleanupDuplicateTemplates(msg => setSeedLog(prev => [...prev, msg]));
-    } catch (e) {
-      setSeedLog(prev => [...prev, `⚠ Грешка: ${e}`]);
+      await loadTemplates();
+      setConfirmation(null);
+    } catch {
+      setError('Дупликатите не може да се исчистат. Провери го логот и обиди се повторно.');
     } finally {
       setSeeding(false);
     }
@@ -69,26 +85,37 @@ function TemplatesTab() {
 
   const approve = async (tpl: Template) => {
     setBusy(tpl.id);
+    setError(null);
     try {
       await saveTemplate({ ...tpl, status: 'approved', isPublic: true });
       setTemplates(prev => prev.filter(t => t.id !== tpl.id));
+      setConfirmation(null);
+    } catch {
+      setError(`Шаблонот „${tpl.title}“ не може да се одобри. Обиди се повторно.`);
     } finally { setBusy(null); }
   };
 
   const reject = async (tpl: Template) => {
     setBusy(tpl.id);
+    setError(null);
     try {
       await saveTemplate({ ...tpl, status: 'rejected' });
       setTemplates(prev => prev.filter(t => t.id !== tpl.id));
+      setConfirmation(null);
+    } catch {
+      setError(`Шаблонот „${tpl.title}“ не може да се одбие. Обиди се повторно.`);
     } finally { setBusy(null); }
   };
 
   const toggleFeatured = async (tpl: Template) => {
     setBusy(tpl.id);
+    setError(null);
     try {
       const updated = { ...tpl, isFeatured: !tpl.isFeatured };
       await saveTemplate(updated);
       setTemplates(prev => prev.map(t => t.id === tpl.id ? updated : t));
+    } catch {
+      setError(`Featured статусот за „${tpl.title}“ не може да се промени. Обиди се повторно.`);
     } finally { setBusy(null); }
   };
 
@@ -113,24 +140,21 @@ function TemplatesTab() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleCleanup}
+            <Button
+              onClick={() => { setError(null); setConfirmation({ type: 'cleanup' }); }}
               disabled={seeding}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-200 text-xs font-bold transition-colors"
+              size="sm" colorClassName="bg-slate-700 text-slate-200 hover:bg-slate-600 focus-visible:ring-slate-400"
+              leftIcon={<X aria-hidden="true" className="w-3.5 h-3.5" />}
             >
-              <X className="w-3.5 h-3.5" />
               Исчисти дупликати
-            </button>
-            <button
-              type="button"
-              onClick={handleSeed}
+            </Button>
+            <Button
+              onClick={() => { setError(null); setConfirmation({ type: 'seed' }); }}
               disabled={seeding}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+              size="sm" variant="success" leftIcon={<Sprout aria-hidden="true" className="w-3.5 h-3.5" />}
             >
-              {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sprout className="w-3.5 h-3.5" />}
-              {seeding ? 'Се обработува...' : 'Seed шаблони'}
-            </button>
+              Seed шаблони
+            </Button>
           </div>
         </div>
         {seedLog.length > 0 && (
@@ -143,6 +167,12 @@ function TemplatesTab() {
           </div>
         )}
       </div>
+
+      {error && !confirmation && (
+        <div role="alert" className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-sm text-rose-300">
+          {error}
+        </div>
+      )}
 
       {/* Pending templates */}
       {loading ? (
@@ -178,43 +208,90 @@ function TemplatesTab() {
             </div>
           )}
           <div className="flex gap-2 pt-1 flex-wrap">
-            <button
-              type="button"
-              onClick={() => approve(tpl)}
+            <Button
+              aria-label={`Одобри и објави: ${tpl.title}`}
+              onClick={() => { setError(null); setConfirmation({ type: 'approve', template: tpl }); }}
               disabled={busy === tpl.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+              loading={busy === tpl.id} size="sm" variant="success"
+              leftIcon={<Check aria-hidden="true" className="w-3.5 h-3.5" />}
             >
-              {busy === tpl.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
               Одобри и објави
-            </button>
-            <button
-              type="button"
-              onClick={() => reject(tpl)}
+            </Button>
+            <Button
+              aria-label={`Одбиј: ${tpl.title}`}
+              onClick={() => { setError(null); setConfirmation({ type: 'reject', template: tpl }); }}
               disabled={busy === tpl.id}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+              size="sm" variant="danger" leftIcon={<X aria-hidden="true" className="w-3.5 h-3.5" />}
             >
-              <X className="w-3.5 h-3.5" /> Одбиј
-            </button>
+              Одбиј
+            </Button>
             {tpl.status === 'approved' && (
-              <button
-                type="button"
+              <Button
+                aria-pressed={Boolean(tpl.isFeatured)}
+                aria-label={`${tpl.isFeatured ? 'Отстрани' : 'Означи'} Featured: ${tpl.title}`}
                 onClick={() => toggleFeatured(tpl)}
                 disabled={busy === tpl.id}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                loading={busy === tpl.id} size="sm" leftIcon={<Star aria-hidden="true" className="w-3.5 h-3.5" />}
+                colorClassName={
                   tpl.isFeatured
-                    ? 'bg-yellow-600 hover:bg-yellow-500 text-white'
-                    : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
-                }`}
+                    ? 'bg-yellow-600 text-white hover:bg-yellow-500 focus-visible:ring-yellow-500'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600 focus-visible:ring-slate-400'
+                }
               >
-                <Star className="w-3.5 h-3.5" />
                 {tpl.isFeatured ? 'Отстрани Featured' : 'Означи Featured'}
-              </button>
+              </Button>
             )}
           </div>
         </div>
       ))}
       </div>
       )}
+      <Modal
+        open={confirmation !== null}
+        onClose={() => { if (!seeding && !busy) setConfirmation(null); }}
+        title={confirmation?.type === 'seed'
+          ? 'Додади стандардни шаблони?'
+          : confirmation?.type === 'cleanup'
+            ? 'Исчисти ги дупликатите?'
+            : confirmation?.type === 'approve'
+              ? 'Одобри и објави шаблон?'
+              : 'Одбиј шаблон?'}
+        size="sm"
+        footer={confirmation && (
+          <>
+            <Button variant="secondary" onClick={() => setConfirmation(null)} disabled={seeding || busy !== null}>Откажи</Button>
+            <Button
+              variant={confirmation.type === 'reject' || confirmation.type === 'cleanup' ? 'danger' : 'success'}
+              loading={seeding || (confirmation.type === 'approve' || confirmation.type === 'reject') && busy === confirmation.template.id}
+              onClick={() => {
+                if (confirmation.type === 'seed') void handleSeed();
+                else if (confirmation.type === 'cleanup') void handleCleanup();
+                else if (confirmation.type === 'approve') void approve(confirmation.template);
+                else void reject(confirmation.template);
+              }}
+            >
+              {confirmation.type === 'seed' ? 'Додади шаблони'
+                : confirmation.type === 'cleanup' ? 'Исчисти дупликати'
+                  : confirmation.type === 'approve' ? 'Одобри и објави' : 'Одбиј шаблон'}
+            </Button>
+          </>
+        )}
+      >
+        {confirmation && (
+          <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <p>
+              {confirmation.type === 'seed'
+                ? 'Ќе се додадат или освежат 15 стандардни образовни шаблони во Firestore. Операцијата е безбедна за повторување.'
+                : confirmation.type === 'cleanup'
+                  ? 'Старите дупликати на стандардните шаблони ќе бидат трајно избришани според наслов.'
+                  : confirmation.type === 'approve'
+                    ? `Шаблонот „${confirmation.template.title}“ ќе стане јавно достапен во библиотеката.`
+                    : `Шаблонот „${confirmation.template.title}“ ќе биде означен како одбиен.`}
+            </p>
+            {error && <p role="alert" className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-rose-600 dark:text-rose-300">{error}</p>}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

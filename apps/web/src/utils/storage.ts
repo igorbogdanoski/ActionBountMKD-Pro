@@ -141,6 +141,20 @@ export async function getPendingTemplates(): Promise<Template[]> {
   return results;
 }
 
+/** Admin moderation needs pending submissions plus already-approved templates
+ * whose Featured status can still be managed. Keep the public and pending-only
+ * queries unchanged for their narrower consumers. */
+export async function getAdminTemplates(): Promise<Template[]> {
+  const templates = collection(db, TEMPLATES);
+  const [pendingSnap, approvedSnap] = await Promise.all([
+    getDocs(query(templates, where('status', '==', 'pending'), limit(100))),
+    getDocs(query(templates, where('status', '==', 'approved'), limit(100))),
+  ]);
+  const results = [...pendingSnap.docs, ...approvedSnap.docs].map(d => d.data() as Template);
+  results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return results;
+}
+
 export async function saveTemplate(template: Template): Promise<void> {
   await setDoc(doc(db, TEMPLATES, template.id), {
     ...template,

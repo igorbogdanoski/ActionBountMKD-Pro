@@ -2,6 +2,16 @@ import type { UserProfile, UserSettings } from 'shared';
 
 const THEME_KEY = 'qa-auth-theme';
 
+let adminTemplates = [{
+  id: 'qa-template-pending', title: 'QA шаблон за проверка', authorName: 'QA Автор', subject: 'Математика', grade: 'VI',
+  difficulty: 'medium', stageCount: 3, estimatedMinutes: 30, description: 'Pending moderation template', tags: ['qa'],
+  status: 'pending', isPublic: false, createdAt: '2026-07-18T10:00:00.000Z', updatedAt: '2026-07-18T10:00:00.000Z',
+}, {
+  id: 'qa-template-approved', title: 'QA јавен шаблон', authorName: 'QA Автор', subject: 'Природни науки', grade: 'VII',
+  difficulty: 'easy', stageCount: 2, estimatedMinutes: 20, description: 'Approved featured template', tags: ['qa'],
+  status: 'approved', isPublic: true, isFeatured: true, createdAt: '2026-07-17T10:00:00.000Z', updatedAt: '2026-07-17T10:00:00.000Z',
+}];
+
 export async function getUserTheme() {
   return localStorage.getItem(THEME_KEY) === 'light' ? 'light' : 'dark';
 }
@@ -80,7 +90,10 @@ export async function gradeSubmission() {}
 export async function getPublicQuestResults() { return []; }
 export async function getPublicTemplates() { return []; }
 export async function getPendingTemplates() { return []; }
-export async function saveTemplate() {}
+export async function getAdminTemplates() { return adminTemplates; }
+export async function saveTemplate(template: (typeof adminTemplates)[number]) {
+  adminTemplates = adminTemplates.map(current => current.id === template.id ? { ...current, ...template } : current);
+}
 export async function deleteTemplate() {}
 export async function incrementTemplateUsage() {}
 export async function submitQuestFeedback() {}

@@ -364,4 +364,30 @@ test.describe('authenticated QA harness', () => {
     await expect(page.getByRole('button', { name: 'Сите' })).toHaveAttribute('aria-pressed', 'true');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('safely moderates templates and exposes reachable Featured state', async ({ page }) => {
+    await page.goto('/admin?qaAdmin=1&qaPlan=pro');
+    await page.getByRole('tab', { name: 'Шаблони' }).click();
+    await expect(page.getByText('QA шаблон за проверка')).toBeVisible();
+    await expect(page.getByText('QA јавен шаблон')).toBeVisible();
+
+    const featured = page.getByRole('button', { name: 'Отстрани Featured: QA јавен шаблон' });
+    await expect(featured).toHaveAttribute('aria-pressed', 'true');
+    await featured.click();
+    await expect(page.getByRole('button', { name: 'Означи Featured: QA јавен шаблон' })).toHaveAttribute('aria-pressed', 'false');
+
+    await page.getByRole('button', { name: 'Seed шаблони' }).click();
+    const seedDialog = page.getByRole('dialog', { name: 'Додади стандардни шаблони?' });
+    await expect(seedDialog).toBeVisible();
+    await seedDialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(seedDialog).toBeHidden();
+
+    await page.getByRole('button', { name: 'Одобри и објави: QA шаблон за проверка' }).click();
+    const approveDialog = page.getByRole('dialog', { name: 'Одобри и објави шаблон?' });
+    await expect(approveDialog).toContainText('QA шаблон за проверка');
+    expect(await approveDialog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
+    await approveDialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(approveDialog).toBeHidden();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

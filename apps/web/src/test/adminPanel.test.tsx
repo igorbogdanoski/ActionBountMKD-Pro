@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   getPaymentRequests: vi.fn(),
   approvePaymentRequest: vi.fn(),
   rejectPaymentRequest: vi.fn(),
-  getPendingTemplates: vi.fn(),
+  getAdminTemplates: vi.fn(),
   saveTemplate: vi.fn(),
   runSeedTemplates: vi.fn(),
   cleanupDuplicateTemplates: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock('../utils/paymentRequests', () => ({
   approvePaymentRequest: mocks.approvePaymentRequest,
   rejectPaymentRequest: mocks.rejectPaymentRequest,
 }));
-vi.mock('../utils/storage', () => ({ getPendingTemplates: mocks.getPendingTemplates, saveTemplate: mocks.saveTemplate }));
+vi.mock('../utils/storage', () => ({ getAdminTemplates: mocks.getAdminTemplates, saveTemplate: mocks.saveTemplate }));
 vi.mock('../utils/seedTemplates', () => ({
   runSeedTemplates: mocks.runSeedTemplates,
   cleanupDuplicateTemplates: mocks.cleanupDuplicateTemplates,
@@ -45,12 +45,21 @@ const request = {
   createdAt: '2026-07-18T10:00:00.000Z',
 };
 
+const pendingTemplate = {
+  id: 'template-1', title: 'Математичка авантура', authorName: 'Автор', subject: 'Математика', grade: 'VI',
+  difficulty: 'medium', stageCount: 3, estimatedMinutes: 30, description: 'Опис', tags: ['алгебра'], status: 'pending', isPublic: false,
+};
+
+const featuredTemplate = {
+  ...pendingTemplate, id: 'template-2', title: 'Јавен шаблон', status: 'approved', isPublic: true, isFeatured: true,
+};
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getPaymentRequests.mockResolvedValue([request]);
   mocks.approvePaymentRequest.mockResolvedValue(undefined);
   mocks.rejectPaymentRequest.mockResolvedValue(undefined);
-  mocks.getPendingTemplates.mockResolvedValue([]);
+  mocks.getAdminTemplates.mockResolvedValue([]);
 });
 
 describe('AdminPanel payment controls', () => {
@@ -110,5 +119,74 @@ describe('AdminPanel payment controls', () => {
     const dialog = screen.getByRole('dialog', { name: 'Одбиј плаќање?' });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Одбиј барање' }));
     await waitFor(() => expect(mocks.rejectPaymentRequest).toHaveBeenCalledWith('request-1'));
+  });
+});
+
+describe('AdminPanel template controls', () => {
+  beforeEach(() => {
+    mocks.getAdminTemplates.mockResolvedValue([pendingTemplate, featuredTemplate]);
+    mocks.saveTemplate.mockResolvedValue(undefined);
+    mocks.runSeedTemplates.mockResolvedValue(undefined);
+    mocks.cleanupDuplicateTemplates.mockResolvedValue(undefined);
+  });
+
+  async function openTemplates() {
+    render(<AdminPanel />);
+    fireEvent.click(screen.getByRole('tab', { name: 'Шаблони' }));
+    await screen.findByText('Математичка авантура');
+  }
+
+  it('seeds only after confirmation and renders progress messages', async () => {
+    mocks.runSeedTemplates.mockImplementation(async (onProgress: (message: string) => void) => { onProgress('✓ Додадени 15 шаблони'); });
+    await openTemplates();
+    fireEvent.click(screen.getByRole('button', { name: 'Seed шаблони' }));
+    expect(mocks.runSeedTemplates).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog', { name: 'Додади стандардни шаблони?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Додади шаблони' }));
+
+    await waitFor(() => expect(mocks.runSeedTemplates).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('✓ Додадени 15 шаблони')).toBeTruthy();
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+  });
+
+  it('keeps cleanup confirmation open with a visible failure alert', async () => {
+    mocks.cleanupDuplicateTemplates.mockRejectedValueOnce(new Error('offline'));
+    await openTemplates();
+    fireEvent.click(screen.getByRole('button', { name: 'Исчисти дупликати' }));
+    const dialog = screen.getByRole('dialog', { name: 'Исчисти ги дупликатите?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Исчисти дупликати' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/не може да се исчистат/);
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it('approves and publishes only after explicit confirmation', async () => {
+    await openTemplates();
+    fireEvent.click(screen.getByRole('button', { name: 'Одобри и објави: Математичка авантура' }));
+    expect(mocks.saveTemplate).not.toHaveBeenCalled();
+    const dialog = screen.getByRole('dialog', { name: 'Одобри и објави шаблон?' });
+    expect(dialog).toHaveTextContent('Математичка авантура');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Одобри и објави' }));
+    await waitFor(() => expect(mocks.saveTemplate).toHaveBeenCalledWith(expect.objectContaining({ id: 'template-1', status: 'approved', isPublic: true })));
+    await waitFor(() => expect(screen.queryByText('Математичка авантура')).toBeNull());
+  });
+
+  it('rejects only after confirmation and preserves the template on failure', async () => {
+    mocks.saveTemplate.mockRejectedValueOnce(new Error('offline'));
+    await openTemplates();
+    fireEvent.click(screen.getByRole('button', { name: 'Одбиј: Математичка авантура' }));
+    const dialog = screen.getByRole('dialog', { name: 'Одбиј шаблон?' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Одбиј шаблон' }));
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(/не може да се одбие/);
+    expect(screen.getByText('Математичка авантура')).toBeTruthy();
+  });
+
+  it('exposes Featured as a pressed toggle and reports persistence failure', async () => {
+    mocks.saveTemplate.mockRejectedValueOnce(new Error('offline'));
+    await openTemplates();
+    const featured = screen.getByRole('button', { name: 'Отстрани Featured: Јавен шаблон' });
+    expect(featured).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(featured);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Featured статусот/);
+    expect(featured).toHaveAttribute('aria-pressed', 'true');
   });
 });

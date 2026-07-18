@@ -50,8 +50,14 @@ const getQuestResults = vi.hoisted(() => vi.fn());
 const saveQuestResult = vi.hoisted(() => vi.fn());
 const submitQuestFeedback = vi.hoisted(() => vi.fn());
 const downloadCertificate = vi.hoisted(() => vi.fn());
+const cacheQuestLocally = vi.hoisted(() => vi.fn());
+const getCachedQuest = vi.hoisted(() => vi.fn());
+const isCachedLocally = vi.hoisted(() => vi.fn());
+const saveOfflineResult = vi.hoisted(() => vi.fn());
+const offlineQueueSize = vi.hoisted(() => vi.fn());
 vi.mock('../utils/storage', () => ({ getQuestById, getQuestResults, saveQuestResult, submitQuestFeedback }));
 vi.mock('../utils/certificate', () => ({ downloadCertificate }));
+vi.mock('../utils/offlineQueue', () => ({ cacheQuestLocally, getCachedQuest, isCachedLocally, saveOfflineResult, offlineQueueSize }));
 
 import { MobilePlayer } from '../components/player/MobilePlayer';
 
@@ -61,6 +67,11 @@ beforeEach(() => {
   saveQuestResult.mockReset();
   submitQuestFeedback.mockReset();
   downloadCertificate.mockReset();
+  cacheQuestLocally.mockReset();
+  getCachedQuest.mockReset().mockReturnValue(null);
+  isCachedLocally.mockReset().mockReturnValue(false);
+  saveOfflineResult.mockReset();
+  offlineQueueSize.mockReset().mockReturnValue(0);
   window.localStorage.clear();
 });
 
@@ -138,6 +149,19 @@ function surveyRubricQuest(): Quest {
     ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+  } as Quest;
+}
+
+function selectableInfoQuest(): Quest {
+  const quest = infoQuizQuest();
+  return {
+    ...quest,
+    id: 'quest-selectable',
+    sequence: 'selectable',
+    stages: [
+      { id: 'info-1', type: 'INFO', title: 'Почеток', description: 'Прва етапа', order: 0, mediaType: 'none' },
+      { id: 'info-2', type: 'INFO', title: 'Продолжение', description: 'Втора етапа', order: 1, mediaType: 'none' },
+    ],
   } as Quest;
 }
 
@@ -266,5 +290,46 @@ describe('MobilePlayer orchestration', () => {
     await waitFor(() => expect(downloadCertificate).toHaveBeenCalledTimes(2));
     expect(errorLog).toHaveBeenCalledWith('Certificate generation failed', expect.any(Error));
     errorLog.mockRestore();
+  });
+
+  it('opens semantic tournament/map overlays and replaces native exit confirmation', async () => {
+    renderPlayer(infoQuizQuest());
+    fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: 'Марко' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Турнир' }));
+    const tournament = screen.getByRole('dialog', { name: 'Турнир во живо' });
+    expect(tournament).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Затвори турнир' }));
+    expect(tournament).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Мапа во живо' }));
+    expect(screen.getByRole('dialog', { name: 'Мапа во живо' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Затвори карта' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Излез' }));
+    const exitDialog = screen.getByRole('dialog', { name: 'Напушти ја авантурата?' });
+    expect(exitDialog).toHaveTextContent(/незачуван напредок/);
+    fireEvent.click(screen.getByRole('button', { name: 'Продолжи со игра' }));
+    expect(exitDialog).not.toBeInTheDocument();
+  });
+
+  it('rolls back a failed offline cache attempt and exposes an error alert', async () => {
+    cacheQuestLocally.mockImplementationOnce(() => { throw new Error('quota'); });
+    renderPlayer(infoQuizQuest());
+    fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: 'Марко' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+    const offline = screen.getByRole('button', { name: 'Преземи за офлајн' });
+    fireEvent.click(offline);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/не може да се зачува офлајн/);
+    expect(screen.getByRole('button', { name: 'Преземи за офлајн' })).toBeEnabled();
+  });
+
+  it('names selectable stages with their completion and availability state', async () => {
+    renderPlayer(selectableInfoQuest());
+    fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: 'Марко' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Разбрав, понатаму' }));
+    expect(await screen.findByRole('button', { name: 'Почеток: Завршено' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Продолжение: Достапно за игра' })).toBeEnabled();
   });
 });

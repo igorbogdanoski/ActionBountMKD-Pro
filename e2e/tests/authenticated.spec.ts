@@ -413,4 +413,32 @@ test.describe('authenticated QA harness', () => {
     await expect(page.getByRole('button', { name: 'Врати се назад' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('operates the active player HUD and safely cancels exit without overflow', async ({ page }) => {
+    await page.goto('/play/qa-player-quest');
+    const onboardingDismiss = page.getByRole('button', { name: 'Сфатив' });
+    if (await onboardingDismiss.isVisible()) await onboardingDismiss.click();
+    await page.getByPlaceholder('Внесете го вашето име...').fill('QA Ученик');
+    await page.getByRole('button', { name: 'Започни Авантура' }).click();
+
+    await page.getByRole('button', { name: 'Турнир' }).click();
+    const tournament = page.getByRole('dialog', { name: 'Турнир во живо' });
+    await expect(tournament).toBeVisible();
+    await tournament.getByRole('button', { name: 'Затвори турнир' }).click();
+    await expect(tournament).toBeHidden();
+
+    await page.getByRole('button', { name: 'Мапа во живо' }).click();
+    const liveMap = page.getByRole('dialog', { name: 'Мапа во живо' });
+    await expect(liveMap).toBeVisible();
+    await liveMap.getByRole('button', { name: 'Затвори карта' }).click();
+    await expect(liveMap).toBeHidden();
+
+    await page.getByRole('button', { name: 'Излез' }).click();
+    const exitDialog = page.getByRole('dialog', { name: 'Напушти ја авантурата?' });
+    await expect(exitDialog).toBeVisible();
+    await exitDialog.getByRole('button', { name: 'Продолжи со игра' }).click();
+    await expect(exitDialog).toBeHidden();
+    await expect(page).toHaveURL(/\/play\/qa-player-quest$/);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

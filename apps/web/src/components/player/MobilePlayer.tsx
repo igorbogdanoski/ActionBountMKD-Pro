@@ -5,7 +5,7 @@ import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../utils/firebase';
-import { MapPin, CheckCircle2, ChevronRight, AlertCircle, RefreshCw, X, Moon, Sun, Trophy, Cloud, CloudOff, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
+import { MapPin, CheckCircle2, ChevronRight, AlertCircle, X, Moon, Sun, Trophy, Cloud, CloudOff, Navigation, WifiOff, Award, Lightbulb } from 'lucide-react';
 import { getQuestById, getQuestResults, saveQuestResult as saveQuestResultOnline, submitQuestFeedback } from '../../utils/storage';
 import { DEMO_QUEST, DEMO_QUEST_ID } from '../../data/demoQuest';
 import {
@@ -36,6 +36,7 @@ import { milestoneEncouragement, progressPercent } from '../../utils/encourageme
 import { shouldShowOnboarding, PLAYER_ONBOARDING_TIPS, ONBOARDING_STORAGE_KEY } from '../../utils/onboarding';
 import { computeAchievements } from '../../utils/achievements';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 
 interface MobilePlayerProps {
   questId: string;
@@ -131,7 +132,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const quizAnswerRecordsRef = useRef<QuizAnswerRecord[]>([]);
 
   const [teamCode, setTeamCode] = useState('');
-  const [toasts, setToasts] = useState<{id: string, text: string}[]>([]);
+  const [toasts, setToasts] = useState<{id: string, text: string, tone?: 'success' | 'error'}[]>([]);
   const prevPointsRef = useRef(0);
   const prevCompletedRef = useRef(0);
   const unlockedAchievementIdsRef = useRef<Set<string>>(new Set());
@@ -151,6 +152,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Certificate generation
   const [generatingCert, setGeneratingCert] = useState(false);
   const [certificateError, setCertificateError] = useState<string | null>(null);
+  const [exitConfirmOpen, setExitConfirmOpen] = useState(false);
 
   // Timer — must be at top, BEFORE any useEffect to keep hook order stable
   const [timeLeft, setTimeLeft]     = useState<number | null>(null);
@@ -570,6 +572,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       const id = Math.random().toString();
       setToasts(prev => [...prev, { id, text: '☁ Квестот е зачуван за офлајн играње!' }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+    } catch {
+      setIsQuestCached(false);
+      const id = Math.random().toString();
+      setToasts(prev => [...prev, { id, text: 'Квестот не може да се зачува офлајн. Обиди се повторно.', tone: 'error' }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
     } finally {
       setCaching(false);
     }
@@ -579,7 +586,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     if (!sessionCode || !sessionPlayerId || sendingSos || !isSessionActive) return;
     if (!('geolocation' in navigator)) {
       const id = Math.random().toString();
-      setToasts(prev => [...prev, { id, text: '🆘 GPS не е достапен на овој уред.' }]);
+      setToasts(prev => [...prev, { id, text: '🆘 GPS не е достапен на овој уред.', tone: 'error' }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
       return;
     }
@@ -601,14 +608,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           })
           .catch(() => {
             const id = Math.random().toString();
-            setToasts(prev => [...prev, { id, text: 'Не успеа испраќањето на SOS. Обиди се повторно.' }]);
+            setToasts(prev => [...prev, { id, text: 'Не успеа испраќањето на SOS. Обиди се повторно.', tone: 'error' }]);
             setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
           })
           .finally(() => setSendingSos(false));
       },
       () => {
         const id = Math.random().toString();
-        setToasts(prev => [...prev, { id, text: 'Не може да се земе моменталната GPS локација.' }]);
+        setToasts(prev => [...prev, { id, text: 'Не може да се земе моменталната GPS локација.', tone: 'error' }]);
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
         setSendingSos(false);
       },
@@ -816,9 +823,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   };
 
   const handleExit = () => {
-     if (window.confirm('Сигурно сакате да ја напуштите авантурата? Вашиот напредок ќе биде изгубен.')) {
-        navigate('/');
-     }
+    setExitConfirmOpen(true);
   };
 
   if (!quest) {
@@ -939,9 +944,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-100 text-slate-800'} font-sans shadow-2xl relative transition-colors`}>
         <div className={`px-6 py-4 flex items-center justify-between shadow-sm z-50 ${isNightMode ? 'bg-slate-800' : 'bg-white'}`}>
            <h2 className="font-bold text-lg">Избери следна етапа</h2>
-           <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-700 text-yellow-400' : 'bg-slate-100 text-slate-500'}`}>
-             {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-           </button>
+           <Button aria-label={isNightMode ? 'Вклучи светла тема' : 'Вклучи темна тема'} aria-pressed={isNightMode}
+             onClick={() => setIsNightMode(!isNightMode)} size="icon" className="rounded-full"
+             colorClassName={isNightMode ? 'bg-slate-700 text-yellow-400 hover:bg-slate-600 focus-visible:ring-yellow-500' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 focus-visible:ring-slate-400'}>
+             {isNightMode ? <Sun aria-hidden="true" className="w-5 h-5" /> : <Moon aria-hidden="true" className="w-5 h-5" />}
+           </Button>
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {stages.map((s, index) => {
@@ -949,19 +956,20 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             const isAccessible = canAccessStage(s, collectedItemIds);
             const requiredItem = inventoryItems.find(item => item.id === s.requiresItemId);
             return (
-              <button
+              <Button
                 key={s.id}
+                aria-label={`${s.title || `Етапа ${index + 1}`}: ${isCompleted ? 'Завршено' : isAccessible ? 'Достапно за игра' : 'Заклучено'}`}
                 disabled={isCompleted || !isAccessible}
                 onClick={() => {
                   setCurrentStageIndex(index);
                   setIsSelectingStage(false);
                   setStageStartMark(Date.now());
                 }}
-                className={`w-full text-left p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                fullWidth colorClassName={`border-2 focus-visible:ring-indigo-500 ${
                   isCompleted 
                     ? (isNightMode ? 'bg-slate-800/50 border-emerald-500/30 opacity-70' : 'bg-emerald-50 border-emerald-200 opacity-70')
                     : (isNightMode ? 'bg-slate-800 border-slate-700 hover:border-indigo-500' : 'bg-white border-slate-200 hover:border-indigo-400 shadow-sm')
-                }`}
+                }`} className="text-left p-4 rounded-2xl items-center justify-between"
               >
                 <div>
                   <h3 className={`font-bold ${isCompleted ? 'text-emerald-500' : (isNightMode ? 'text-slate-200' : 'text-slate-800')}`}>
@@ -974,7 +982,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                 {isCompleted && <CheckCircle2 className="w-6 h-6 text-emerald-500" />}
                 {!isCompleted && isAccessible && <ChevronRight className="w-5 h-5 text-slate-400" />}
                 {!isCompleted && !isAccessible && <span className="text-xs font-bold text-amber-500">Заклучено</span>}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -1370,12 +1378,13 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         <div className="flex-1 flex flex-col">
           <div className="flex items-center gap-2">
             {quest?.sequence === 'fixed' && completedStageIds.includes(stages[currentStageIndex - 1]?.id) && (
-               <button 
+               <Button
                  onClick={() => setCurrentStageIndex(i => i - 1)}
-                 className="text-[10px] font-bold text-indigo-300 hover:text-indigo-100 transition-colors uppercase tracking-wider"
+                 variant="ghost" size="sm" colorClassName="text-indigo-300 hover:text-indigo-100 focus-visible:ring-indigo-300"
+                 className="p-0 text-[10px] uppercase tracking-wider"
                >
                  ← Назад
-               </button>
+               </Button>
             )}
             <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider line-clamp-1">{teamCode ? `${playerName} (${teamCode})` : playerName}</span>
           </div>
@@ -1390,16 +1399,15 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
         </div>
         <div className="flex items-center gap-3 border-l border-indigo-800 pl-4 ml-2">
           {sessionCode && isSessionActive && !isFinished && (
-            <button
-              type="button"
+            <Button
               aria-label="Испрати SOS"
               onClick={handleSos}
-              disabled={sendingSos}
-              className="text-rose-400 hover:text-rose-300 disabled:opacity-50 transition-colors"
+              loading={sendingSos} size="icon" className="p-0"
+              colorClassName="text-rose-400 hover:text-rose-300 focus-visible:ring-rose-400"
               title="Испрати SOS"
             >
-              <AlertCircle className={`w-5 h-5 ${sendingSos ? 'animate-pulse' : ''}`} />
-            </button>
+              <AlertCircle aria-hidden="true" className="w-5 h-5" />
+            </Button>
           )}
           {!isOnline && <WifiOff className="w-4 h-4 text-rose-500" aria-label="Офлајн" />}
           {isOnline && stages && Object.keys(cachedStages).length < stages.length && (
@@ -1407,32 +1415,30 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               <CloudOff className="w-4 h-4 text-amber-400" />
             </div>
           )}
-          <button type="button" aria-label="Мапа во живо" onClick={() => setShowLiveMap(true)} className="text-emerald-400 hover:text-emerald-300 transition-colors">
-            <MapPin className="w-5 h-5" />
-          </button>
-          <button type="button" aria-label="Турнир" onClick={() => setShowTournament(true)} className="text-amber-400 hover:text-amber-300 transition-colors">
-            <Trophy className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
+          <Button aria-label="Мапа во живо" onClick={() => setShowLiveMap(true)} size="icon" className="p-0" colorClassName="text-emerald-400 hover:text-emerald-300 focus-visible:ring-emerald-400">
+            <MapPin aria-hidden="true" className="w-5 h-5" />
+          </Button>
+          <Button aria-label="Турнир" onClick={() => setShowTournament(true)} size="icon" className="p-0" colorClassName="text-amber-400 hover:text-amber-300 focus-visible:ring-amber-400">
+            <Trophy aria-hidden="true" className="w-5 h-5" />
+          </Button>
+          <Button
             aria-label={isQuestCached ? 'Квестот е зачуван офлајн' : 'Преземи за офлајн'}
             onClick={downloadForOffline}
-            disabled={caching || isQuestCached}
+            loading={caching} disabled={isQuestCached}
             title={isQuestCached ? 'Квестот е достапен офлајн' : 'Зачувај за офлајн'}
-            className="text-slate-300 hover:text-white transition-colors disabled:opacity-40"
+            size="icon" className="p-0" colorClassName="text-slate-300 hover:text-white focus-visible:ring-slate-300"
           >
             {isQuestCached
-              ? <Cloud className="w-5 h-5 text-emerald-400" />
-              : caching
-                ? <RefreshCw className="w-5 h-5 animate-spin" />
-                : <CloudOff className="w-5 h-5" />}
-          </button>
-          <button type="button" aria-label="Смени тема" onClick={() => setIsNightMode(!isNightMode)} className="text-slate-300 hover:text-white transition-colors">
-            {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          <button type="button" aria-label="Излез" onClick={handleExit} className="text-slate-300 hover:text-white transition-colors">
-            <X className="w-6 h-6" />
-          </button>
+              ? <Cloud aria-hidden="true" className="w-5 h-5 text-emerald-400" />
+              : <CloudOff aria-hidden="true" className="w-5 h-5" />}
+          </Button>
+          <Button aria-label={isNightMode ? 'Вклучи светла тема' : 'Вклучи темна тема'} aria-pressed={isNightMode}
+            onClick={() => setIsNightMode(!isNightMode)} size="icon" className="p-0" colorClassName="text-slate-300 hover:text-white focus-visible:ring-slate-300">
+            {isNightMode ? <Sun aria-hidden="true" className="w-5 h-5" /> : <Moon aria-hidden="true" className="w-5 h-5" />}
+          </Button>
+          <Button aria-label="Излез" onClick={handleExit} size="icon" className="p-0" colorClassName="text-slate-300 hover:text-white focus-visible:ring-slate-300">
+            <X aria-hidden="true" className="w-6 h-6" />
+          </Button>
         </div>
         {/* Progress Bar */}
         <div
@@ -1472,12 +1478,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       <AnimatePresence>
         {showTournament && (
           <motion.div 
+            role="dialog" aria-modal="true" aria-label="Турнир во живо"
             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
             className={`absolute z-50 inset-x-0 bottom-0 top-16 ${isNightMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'} border-t shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col`}
           >
             <div className={`p-4 border-b flex justify-between items-center ${isNightMode ? 'border-slate-800' : 'border-slate-200'}`}>
               <h2 className="text-xl font-bold flex items-center gap-2"><Trophy className="text-amber-500 w-6 h-6" /> Турнир во живо</h2>
-              <button type="button" aria-label="Затвори турнир" onClick={() => setShowTournament(false)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800' : 'bg-slate-200'}`}><X className="w-5 h-5" /></button>
+              <Button aria-label="Затвори турнир" onClick={() => setShowTournament(false)} size="icon" className="rounded-full"
+                colorClassName={isNightMode ? 'bg-slate-800 text-slate-200 hover:bg-slate-700 focus-visible:ring-slate-400' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 focus-visible:ring-slate-400'}><X aria-hidden="true" className="w-5 h-5" /></Button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
                {sessionCode && sessionPlayers.length > 0 ? (
@@ -1515,12 +1523,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       <AnimatePresence>
         {showLiveMap && (
           <motion.div 
+            role="dialog" aria-modal="true" aria-label="Мапа во живо"
             initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }}
             className={`absolute z-[60] inset-x-0 bottom-0 top-16 ${isNightMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'} border-t shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col`}
           >
             <div className={`p-4 border-b flex justify-between items-center ${isNightMode ? 'border-slate-800' : 'border-slate-200'} bg-slate-900 absolute top-0 inset-x-0 z-10 text-white shadow-xl bg-opacity-90 backdrop-blur-sm`}>
               <h2 className="text-xl font-bold flex items-center gap-2"><MapPin className="text-emerald-500 w-6 h-6" /> Мапа во живо</h2>
-              <button type="button" aria-label="Затвори карта" onClick={() => setShowLiveMap(false)} className="p-2 rounded-full bg-slate-800 hover:bg-slate-700"><X className="w-5 h-5" /></button>
+              <Button aria-label="Затвори карта" onClick={() => setShowLiveMap(false)} size="icon" className="rounded-full"
+                colorClassName="bg-slate-800 text-white hover:bg-slate-700 focus-visible:ring-slate-400"><X aria-hidden="true" className="w-5 h-5" /></Button>
             </div>
             <div className="flex-1 w-full h-full relative">
                <MapContainer 
@@ -1573,13 +1583,13 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                    : 'Потребен е предмет за да се отвори оваа етапа.'}
                </p>
                {quest?.sequence === 'selectable' ? (
-                 <button onClick={() => setIsSelectingStage(true)} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl transition-all">
+                 <Button onClick={() => setIsSelectingStage(true)} fullWidth size="lg" variant="app-primary" className="py-4 uppercase shadow-xl">
                    Избери друга етапа
-                 </button>
+                 </Button>
                ) : (
-                 <button onClick={handleExit} className="w-full py-4 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold uppercase shadow-xl transition-all">
+                 <Button onClick={handleExit} fullWidth size="lg" colorClassName="bg-slate-700 text-white hover:bg-slate-600 focus-visible:ring-slate-400" className="py-4 uppercase shadow-xl">
                    Излези од авантурата
-                 </button>
+                 </Button>
                )}
              </div>
           ) : timeExpired && stage.type !== 'QUIZ' ? (
@@ -1587,13 +1597,28 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                <AlertCircle className="w-16 h-16 text-red-500 mb-4" />
                <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>Времето истече!</h2>
                <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-8`}>Не успеавте да ја завршите етапата навреме.</p>
-               <button onClick={() => { setTimeExpired(false); handleNextStage(); }} className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold uppercase shadow-xl transition-all">
+               <Button onClick={() => { setTimeExpired(false); handleNextStage(); }} fullWidth size="lg" variant="app-primary" className="py-4 uppercase shadow-xl">
                  Продолжи понатаму
-               </button>
+               </Button>
              </div>
           ) : renderStageContent()}
         </motion.div>
       </AnimatePresence>
+
+      <Modal
+        open={exitConfirmOpen}
+        onClose={() => setExitConfirmOpen(false)}
+        title="Напушти ја авантурата?"
+        size="sm"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={() => setExitConfirmOpen(false)}>Продолжи со игра</Button>
+            <Button variant="danger" onClick={() => navigate('/')}>Напушти</Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">Тековниот незачуван напредок ќе биде изгубен. Ова дејство не може да се врати.</p>
+      </Modal>
 
       {/* Toasts */}
       <div className="absolute top-24 left-1/2 -translate-x-1/2 flex flex-col gap-2 z-[60] pointer-events-none w-full px-4 items-center">
@@ -1601,10 +1626,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           {toasts.map(toast => (
             <motion.div
               key={toast.id}
+              role={toast.tone === 'error' ? 'alert' : 'status'}
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-emerald-500 text-white font-bold py-3 px-6 rounded-xl shadow-xl text-center shadow-emerald-500/20 border-2 border-emerald-400 w-auto"
+              className={`${toast.tone === 'error' ? 'bg-rose-600 border-rose-400 shadow-rose-500/20' : 'bg-emerald-500 border-emerald-400 shadow-emerald-500/20'} text-white font-bold py-3 px-6 rounded-xl shadow-xl text-center border-2 w-auto`}
             >
               {toast.text}
             </motion.div>

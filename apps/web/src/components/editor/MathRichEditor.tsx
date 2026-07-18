@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { Button } from '../ui/Button';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -137,7 +138,8 @@ export function MathRichEditor({ value, onChange, placeholder, rows = 4, label, 
     requestAnimationFrame(() => { ta.focus(); ta.setSelectionRange(pos, pos); });
   };
 
-  const toolbarCls = 'px-2 py-1.5 rounded text-xs font-bold text-slate-300 hover:bg-slate-700 hover:text-white transition-colors border border-slate-700 hover:border-slate-500';
+  const toolbarColor = 'text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 hover:border-slate-500 focus-visible:ring-slate-400';
+  const toolbarCls = 'px-2 py-1.5 rounded';
   const inputCls   = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500 transition-colors resize-none font-mono';
 
   return (
@@ -150,52 +152,62 @@ export function MathRichEditor({ value, onChange, placeholder, rows = 4, label, 
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-800 border border-slate-700 rounded-t-lg border-b-0">
-        <button type="button" onClick={wrapBold}   className={toolbarCls} title="Bold (**текст**)"><strong>B</strong></button>
-        <button type="button" onClick={wrapItalic} className={toolbarCls} title="Italic (*текст*)"><em>I</em></button>
+        <Button onClick={wrapBold} variant="ghost" size="sm" colorClassName={toolbarColor} className={toolbarCls} aria-label="Задебелен текст" title="Bold (**текст**)"><strong>B</strong></Button>
+        <Button onClick={wrapItalic} variant="ghost" size="sm" colorClassName={toolbarColor} className={toolbarCls} aria-label="Закосен текст" title="Italic (*текст*)"><em>I</em></Button>
         <div className="w-px h-5 bg-slate-700 mx-1" />
-        <button type="button" onClick={wrapInlineMath} className={`${toolbarCls} text-amber-400 border-amber-500/30`} title="Inline math $formula$">
+        <Button onClick={wrapInlineMath} variant="ghost" size="sm" colorClassName="text-amber-400 hover:bg-slate-700 hover:text-amber-300 border border-amber-500/30 focus-visible:ring-amber-500" className={toolbarCls} aria-label="Вметни вградена математичка формула" title="Inline math $formula$">
           $…$
-        </button>
-        <button type="button" onClick={wrapBlockMath}  className={`${toolbarCls} text-amber-400 border-amber-500/30`} title="Block math $$formula$$">
+        </Button>
+        <Button onClick={wrapBlockMath} variant="ghost" size="sm" colorClassName="text-amber-400 hover:bg-slate-700 hover:text-amber-300 border border-amber-500/30 focus-visible:ring-amber-500" className={toolbarCls} aria-label="Вметни блок математичка формула" title="Block math $$formula$$">
           $$…$$
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
           onClick={() => setShowSymbols(p => !p)}
-          className={`${toolbarCls} ${showSymbols ? 'bg-amber-500/20 text-amber-400 border-amber-500/40' : ''}`}
+          aria-expanded={showSymbols}
+          aria-controls="math-symbol-picker"
+          variant="ghost"
+          size="sm"
+          colorClassName={showSymbols ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 focus-visible:ring-amber-500' : toolbarColor}
+          className={toolbarCls}
           title="Математички симболи"
         >
           Σ π √
-        </button>
+        </Button>
         <div className="flex-1" />
         {hasmath(value) && (
-          <button
-            type="button"
+          <Button
             onClick={() => setShowPreview(p => !p)}
-            className={`${toolbarCls} text-xs ${showPreview ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40' : ''}`}
+            aria-expanded={showPreview}
+            aria-controls="math-preview"
+            variant="ghost"
+            size="sm"
+            colorClassName={showPreview ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 focus-visible:ring-indigo-500' : toolbarColor}
+            className={toolbarCls}
           >
             {showPreview ? 'Сокриј преглед' : 'Преглед'}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Symbol picker */}
       {showSymbols && (
-        <div className="bg-slate-800 border border-slate-700 border-t-0 rounded-none p-3 space-y-3">
+        <div id="math-symbol-picker" className="bg-slate-800 border border-slate-700 border-t-0 rounded-none p-3 space-y-3">
           {SYMBOL_GROUPS.map(group => (
             <div key={group.label}>
               <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">{group.label}</p>
               <div className="flex flex-wrap gap-1.5">
                 {group.symbols.map(sym => (
-                  <button
+                  <Button
                     key={sym.insert}
-                    type="button"
                     onClick={() => insertSymbol(sym.insert)}
-                    className="px-2.5 py-1.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-mono transition-colors border border-slate-600 hover:border-amber-500/50"
+                    aria-label={`Вметни ${sym.display}: ${sym.insert}`}
+                    size="sm"
+                    colorClassName="bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 hover:border-amber-500/50 focus-visible:ring-amber-500"
+                    className="px-2.5 py-1.5 rounded font-mono"
                     title={sym.insert}
                   >
                     {sym.display}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -218,7 +230,7 @@ export function MathRichEditor({ value, onChange, placeholder, rows = 4, label, 
 
       {/* KaTeX Preview */}
       {showPreview && hasmath(value) && (
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-4">
+        <div id="math-preview" className="bg-slate-900 border border-slate-700 rounded-lg p-4">
           <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Преглед</p>
           <div
             className="text-slate-200 text-sm leading-relaxed [&_.katex-block]:my-3 [&_.katex-block]:text-center"

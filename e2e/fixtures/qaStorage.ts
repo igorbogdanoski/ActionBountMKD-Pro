@@ -55,6 +55,21 @@ export async function getQuests() {
 }
 export async function getPublicQuests() { return []; }
 export async function getQuestById(id?: string) {
+  if (id === 'qa-player-quest') {
+    return {
+      id,
+      creatorId: 'qa-teacher-001',
+      title: 'QA player авантура',
+      description: 'Browser verification player quest',
+      visibility: 'secret',
+      playMode: 'singleplayer',
+      sequenceType: 'fixed',
+      certificateEnabled: false,
+      stages: [{ id: 'qa-info-stage', type: 'INFO', title: 'Добредојде', description: 'Едноетапна проверка', order: 0, mediaType: 'none' }],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  }
   if (id !== 'qa-host-quest') return null;
   return {
     id,

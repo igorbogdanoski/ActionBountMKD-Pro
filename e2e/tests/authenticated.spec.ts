@@ -390,4 +390,27 @@ test.describe('authenticated QA harness', () => {
     await expect(approveDialog).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('completes the player entry and finish controls without overflow', async ({ page }) => {
+    await page.goto('/play/qa-player-quest');
+    const start = page.getByRole('button', { name: 'Започни Авантура' });
+    await expect(start).toBeDisabled();
+    const theme = page.getByRole('button', { name: 'Вклучи темна тема' });
+    await expect(theme).toHaveAttribute('aria-pressed', 'false');
+    await theme.click();
+    await expect(page.getByRole('button', { name: 'Вклучи светла тема' })).toHaveAttribute('aria-pressed', 'true');
+    const onboardingDismiss = page.getByRole('button', { name: 'Сфатив' });
+    if (await onboardingDismiss.isVisible()) await onboardingDismiss.click();
+    await page.getByPlaceholder('Внесете го вашето име...').fill('QA Ученик');
+    await start.click();
+    await page.getByRole('button', { name: 'Разбрав, понатаму' }).click();
+
+    await expect(page.getByText('Честитки, QA Ученик!')).toBeVisible();
+    const feedback = page.getByPlaceholder('Споделете впечаток за авантурата...');
+    await feedback.fill('Одлична QA авантура.');
+    await page.getByRole('button', { name: 'Испрати коментар' }).click();
+    await expect(page.getByText('Хвала за повратната информација!')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Врати се назад' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

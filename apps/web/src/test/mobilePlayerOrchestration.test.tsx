@@ -4,7 +4,7 @@
 // completing a simple quest end to end — plus the rubric-grade lookup added
 // on the finish screen (students previously never saw a teacher's grade).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import type { ReactNode } from 'react';
@@ -49,7 +49,9 @@ const getQuestById = vi.hoisted(() => vi.fn());
 const getQuestResults = vi.hoisted(() => vi.fn());
 const saveQuestResult = vi.hoisted(() => vi.fn());
 const submitQuestFeedback = vi.hoisted(() => vi.fn());
+const downloadCertificate = vi.hoisted(() => vi.fn());
 vi.mock('../utils/storage', () => ({ getQuestById, getQuestResults, saveQuestResult, submitQuestFeedback }));
+vi.mock('../utils/certificate', () => ({ downloadCertificate }));
 
 import { MobilePlayer } from '../components/player/MobilePlayer';
 
@@ -58,6 +60,7 @@ beforeEach(() => {
   getQuestResults.mockReset().mockResolvedValue([]);
   saveQuestResult.mockReset();
   submitQuestFeedback.mockReset();
+  downloadCertificate.mockReset();
   window.localStorage.clear();
 });
 
@@ -138,7 +141,28 @@ function surveyRubricQuest(): Quest {
   } as Quest;
 }
 
+async function finishInfoQuiz(name = 'Марко') {
+  fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: name } });
+  fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+  fireEvent.click(await screen.findByText('Разбрав, понатаму'));
+  fireEvent.click(await screen.findByText('4'));
+  fireEvent.click(screen.getByText('Потврди'));
+  await screen.findByText(`Честитки, ${name}!`, undefined, { timeout: 3000 });
+}
+
 describe('MobilePlayer orchestration', () => {
+  it('uses semantic entry controls and persists onboarding dismissal', () => {
+    renderPlayer(infoQuizQuest());
+    const start = screen.getByRole('button', { name: 'Започни Авантура' });
+    expect(start).toBeDisabled();
+    const theme = screen.getByRole('button', { name: 'Вклучи темна тема' });
+    expect(theme).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(theme);
+    expect(screen.getByRole('button', { name: 'Вклучи светла тема' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Сфатив' }));
+    expect(window.localStorage.getItem('av_player_onboarded')).toBe('1');
+  });
+
   it('completes a simple INFO -> QUIZ quest and reaches the finish screen with the right points', async () => {
     renderPlayer(infoQuizQuest());
 
@@ -200,5 +224,47 @@ describe('MobilePlayer orchestration', () => {
 
     expect(await screen.findByText('8 поени')).toBeTruthy();
     expect(screen.getByText('Одлична рефлексија!')).toBeTruthy();
+  });
+
+  it('offers a working retry after grade lookup failure', async () => {
+    getQuestResults.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
+    renderPlayer(surveyRubricQuest());
+    fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: 'Ана' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+    fireEvent.change(await screen.findByPlaceholderText('Вашето мислење овде...'), { target: { value: 'Одговор за оценување.' } });
+    fireEvent.click(screen.getByText('Испрати за оценување'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Провери ја мојата оценка' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Не успеавме/);
+    fireEvent.click(screen.getByRole('button', { name: 'Обиди се повторно' }));
+    expect(await screen.findByText('Сè уште не е оценето.')).toBeTruthy();
+    expect(getQuestResults).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps feedback available and reports an error until a retry succeeds', async () => {
+    submitQuestFeedback.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
+    renderPlayer(infoQuizQuest());
+    await finishInfoQuiz();
+    const feedback = screen.getByPlaceholderText('Споделете впечаток за авантурата...');
+    fireEvent.change(feedback, { target: { value: 'Одлична авантура!' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Испрати коментар' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Коментарот не може/);
+    expect(feedback).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Испрати коментар' }));
+    expect(await screen.findByText('Хвала за повратната информација!')).toBeTruthy();
+    expect(submitQuestFeedback).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports certificate generation failure and permits a successful retry', async () => {
+    const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+    downloadCertificate.mockRejectedValueOnce(new Error('render failed')).mockResolvedValueOnce(undefined);
+    const quest = { ...infoQuizQuest(), certificateEnabled: true } as Quest;
+    renderPlayer(quest);
+    await finishInfoQuiz();
+    fireEvent.click(screen.getByRole('button', { name: 'Преземи сертификат' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/Сертификатот не може/);
+    fireEvent.click(screen.getByRole('button', { name: 'Преземи сертификат' }));
+    await waitFor(() => expect(downloadCertificate).toHaveBeenCalledTimes(2));
+    expect(errorLog).toHaveBeenCalledWith('Certificate generation failed', expect.any(Error));
+    errorLog.mockRestore();
   });
 });

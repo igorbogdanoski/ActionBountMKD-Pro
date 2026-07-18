@@ -35,6 +35,7 @@ import { clearCollectedItemIds, loadCollectedItemIds, saveCollectedItemIds } fro
 import { milestoneEncouragement, progressPercent } from '../../utils/encouragement';
 import { shouldShowOnboarding, PLAYER_ONBOARDING_TIPS, ONBOARDING_STORAGE_KEY } from '../../utils/onboarding';
 import { computeAchievements } from '../../utils/achievements';
+import { Button } from '../ui/Button';
 
 interface MobilePlayerProps {
   questId: string;
@@ -140,6 +141,8 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   // Feedback — must be at top, never after early returns
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackSubmitting, setFeedbackSubmitting] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
 
   // Rubric grade lookup — must be at top, never after early returns
   const [gradeCheckStatus, setGradeCheckStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
@@ -147,6 +150,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
   // Certificate generation
   const [generatingCert, setGeneratingCert] = useState(false);
+  const [certificateError, setCertificateError] = useState<string | null>(null);
 
   // Timer — must be at top, BEFORE any useEffect to keep hook order stable
   const [timeLeft, setTimeLeft]     = useState<number | null>(null);
@@ -853,12 +857,15 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           />
         )}
         <div className="absolute top-4 right-4 flex items-center gap-4 z-50">
-          <button onClick={() => setIsNightMode(!isNightMode)} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-yellow-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
-             {isNightMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-          <button type="button" aria-label="Напушти авантура" onClick={() => navigate('/')} className={`p-2 rounded-full ${isNightMode ? 'bg-slate-800 text-slate-400' : 'bg-white text-slate-500'} shadow-md transition-colors`}>
-             <X className="w-5 h-5" />
-          </button>
+          <Button aria-label={isNightMode ? 'Вклучи светла тема' : 'Вклучи темна тема'} aria-pressed={isNightMode}
+            onClick={() => setIsNightMode(!isNightMode)} size="icon" className="rounded-full shadow-md"
+            colorClassName={isNightMode ? 'bg-slate-800 text-yellow-400 hover:bg-slate-700 focus-visible:ring-yellow-500' : 'bg-white text-slate-500 hover:bg-slate-100 focus-visible:ring-slate-400'}>
+             {isNightMode ? <Sun aria-hidden="true" className="w-5 h-5" /> : <Moon aria-hidden="true" className="w-5 h-5" />}
+          </Button>
+          <Button aria-label="Напушти авантура" onClick={() => navigate('/')} size="icon" className="rounded-full shadow-md"
+            colorClassName={isNightMode ? 'bg-slate-800 text-slate-400 hover:bg-slate-700 focus-visible:ring-slate-400' : 'bg-white text-slate-500 hover:bg-slate-100 focus-visible:ring-slate-400'}>
+             <X aria-hidden="true" className="w-5 h-5" />
+          </Button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <div className="w-24 h-24 bg-emerald-500 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/30 mb-8 transform rotate-3">
@@ -877,16 +884,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                 <span className={`flex items-center gap-2 text-sm font-bold ${isNightMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
                   <Lightbulb className="w-4 h-4" /> Како се игра
                 </span>
-                <button
-                  type="button"
+                <Button
                   onClick={() => {
                     try { window.localStorage.setItem(ONBOARDING_STORAGE_KEY, '1'); } catch { /* ignore */ }
                     setShowOnboarding(false);
                   }}
-                  className={`text-xs font-semibold ${isNightMode ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'} transition-colors`}
+                  variant="ghost" size="sm" colorClassName={isNightMode ? 'text-slate-400 hover:text-slate-200 focus-visible:ring-slate-400' : 'text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400'}
+                  className="px-2 py-1"
                 >
                   Сфатив
-                </button>
+                </Button>
               </div>
               <ul className="space-y-2.5">
                 {PLAYER_ONBOARDING_TIPS.map((tip) => (
@@ -914,13 +921,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             }`}
           />
           
-          <button 
+          <Button
             onClick={() => setHasStarted(true)} 
             disabled={!playerName.trim()}
-            className="w-full py-4 bg-slate-900 disabled:bg-slate-300 dark:disabled:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 rounded-xl font-bold uppercase tracking-wider shadow-2xl active:scale-95 transition-all outline-none"
+            fullWidth size="lg" colorClassName="bg-slate-900 text-white hover:bg-slate-800 dark:bg-emerald-600 dark:hover:bg-emerald-500 focus-visible:ring-emerald-500"
+            className="py-4 uppercase tracking-wider shadow-2xl active:scale-95"
           >
             Започни Авантура
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -977,9 +985,17 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
 
   const handleFeedbackSubmit = async () => {
-    if (!feedbackText.trim()) return;
-    await submitQuestFeedback(questId, playerName, feedbackText, points);
-    setFeedbackSubmitted(true);
+    if (!feedbackText.trim() || feedbackSubmitting) return;
+    setFeedbackSubmitting(true);
+    setFeedbackError(null);
+    try {
+      await submitQuestFeedback(questId, playerName, feedbackText, points);
+      setFeedbackSubmitted(true);
+    } catch {
+      setFeedbackError('Коментарот не може да се испрати. Обиди се повторно.');
+    } finally {
+      setFeedbackSubmitting(false);
+    }
   };
 
   const handleCheckGrade = async () => {
@@ -997,6 +1013,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
   const handleDownloadCertificate = async () => {
     if (generatingCert) return;
     setGeneratingCert(true);
+    setCertificateError(null);
     try {
       const maxScore = stages.reduce((sum, s) => sum + (s.points || 0), 0);
       const { downloadCertificate } = await import('../../utils/certificate');
@@ -1010,6 +1027,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
       });
     } catch (e) {
       console.error('Certificate generation failed', e);
+      setCertificateError('Сертификатот не може да се генерира. Обиди се повторно.');
     } finally {
       setGeneratingCert(false);
     }
@@ -1079,12 +1097,12 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-3`}>Оценка од наставникот</p>
 
               {gradeCheckStatus === 'idle' && (
-                <button
+                <Button
                   onClick={handleCheckGrade}
-                  className={`w-full py-2.5 rounded-xl font-bold text-sm transition-colors ${isNightMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                  fullWidth colorClassName={isNightMode ? 'bg-slate-700 text-slate-200 hover:bg-slate-600 focus-visible:ring-slate-400' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 focus-visible:ring-slate-400'}
                 >
                   Провери ја мојата оценка
-                </button>
+                </Button>
               )}
 
               {gradeCheckStatus === 'loading' && (
@@ -1092,7 +1110,10 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
               )}
 
               {gradeCheckStatus === 'error' && (
-                <p className="text-sm text-red-500">Не успеавме да ја вчитаме оценката. Обиди се повторно.</p>
+                <div className="space-y-2">
+                  <p role="alert" className="text-sm text-red-500">Не успеавме да ја вчитаме оценката. Обиди се повторно.</p>
+                  <Button onClick={handleCheckGrade} fullWidth variant="secondary" size="sm">Обиди се повторно</Button>
+                </div>
               )}
 
               {gradeCheckStatus === 'done' && (
@@ -1129,13 +1150,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                 placeholder="Споделете впечаток за авантурата..."
                 className={`w-full p-3 rounded-xl border outline-none resize-none h-24 ${isNightMode ? 'bg-slate-800 border-slate-700 text-slate-200 focus:border-indigo-500' : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-500'}`}
               />
-              <button 
+              <Button
                 onClick={handleFeedbackSubmit}
-                disabled={!feedbackText.trim()}
-                className="w-full py-3 bg-indigo-600 disabled:bg-slate-500 text-white rounded-xl font-bold transition-all text-sm"
+                disabled={!feedbackText.trim()} loading={feedbackSubmitting}
+                fullWidth variant="app-primary"
               >
                 Испрати коментар
-              </button>
+              </Button>
+              {feedbackError && <p role="alert" className="text-sm text-rose-500">{feedbackError}</p>}
             </div>
           ) : (
             <div className="mb-6 p-4 rounded-xl bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
@@ -1144,19 +1166,19 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           )}
 
           {(quest?.certificateEnabled ?? true) && (
-            <button
+            <Button
               onClick={handleDownloadCertificate}
-              disabled={generatingCert}
-              className="w-full mb-3 px-6 py-3.5 font-bold rounded-xl transition-all bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white flex items-center justify-center gap-2 shadow-lg"
+              loading={generatingCert} fullWidth size="lg" variant="primary" className="mb-3 shadow-lg"
+              leftIcon={<Award aria-hidden="true" className="w-5 h-5" />}
             >
-              <Award className="w-5 h-5" />
-              {generatingCert ? 'Се генерира…' : 'Преземи сертификат'}
-            </button>
+              Преземи сертификат
+            </Button>
           )}
+          {certificateError && <p role="alert" className="mb-3 text-sm text-rose-500">{certificateError}</p>}
 
-          <button onClick={() => navigate('/')} className={`px-6 py-3 font-bold rounded-xl transition-colors ${isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700' : 'bg-slate-200 text-slate-700 hover:bg-slate-300'}`}>
+          <Button onClick={() => navigate('/')} colorClassName={isNightMode ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 focus-visible:ring-slate-400' : 'bg-slate-200 text-slate-700 hover:bg-slate-300 focus-visible:ring-slate-400'}>
             Врати се назад
-          </button>
+          </Button>
         </div>
       </div>
     );

@@ -180,6 +180,10 @@ test.describe('authenticated QA harness', () => {
     await page.getByRole('button', { name: 'Сподели квест' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
+    await expect(dialog.getByTitle('Линк за игра')).toHaveValue(/\/play\/[^/]+$/);
+    await dialog.getByRole('button', { name: 'Копирај' }).click();
+    await expect(dialog.getByRole('button', { name: 'Копирано' })).toBeVisible();
+    expect(await dialog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 

@@ -127,7 +127,7 @@ Batch-от е затворен само кога:
 
 ### H4 — Card semantic audit и миграција
 
-- [ ] Инвентар и класификација: semantic card / interactive surface / shell / overlay / modal / media frame.
+- [x] Инвентар и класификација: semantic card / interactive surface / shell / overlay / modal / media frame (`docs/H4_CARD_SEMANTIC_INVENTORY.md`).
 - [ ] Едноставни informational cards.
 - [ ] Dashboard cards.
 - [ ] Creator dark cards со `tone="dark"`.
@@ -235,4 +235,4 @@ Batch-от е затворен само кога:
 
 ## Следна акција
 
-Започни H4 само со read-only Card semantic inventory и класификација: semantic card / interactive surface / shell / overlay / modal / media frame. Од inventory-то дефинирај го првиот мал batch (најмногу 10 production фајла) од едноставни informational cards; не прави механичка замена и не мешај dashboard/creator/player surfaces. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Изврши H4a: мигрирај ги само Landing `Testimonial`, `Step` и `Audience` informational cards во shared `Card`. Зачувај ги точните light palette, spacing, border/shadow и Audience hover contracts; не допирај FAQ, adventure tiles, banners или media/device frames. Додај render contracts и desktop/mobile Landing browser QA. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

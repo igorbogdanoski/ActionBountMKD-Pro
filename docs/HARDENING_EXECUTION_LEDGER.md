@@ -94,7 +94,7 @@ Batch-от е затворен само кога:
 - [ ] H3c Creator shell и modals.
   - [x] H3c-1 BoundCreator header/shell.
   - [x] H3c-2 ShareModal.
-  - [ ] H3c-3 StageList.
+  - [x] H3c-3 StageList.
   - [ ] H3c-4 QuestSettingsPanel.
   - [ ] H3c-5 FindSpotPlannerPanel.
 - [ ] H3d Creator stage editors.
@@ -190,7 +190,8 @@ Batch-от е затворен само кога:
 | 2026-07-17 | H3b-5 ResultsDashboard controls + exports | `d1878f4` | PASS | 522/522 PASS; 6 focused contracts | PASS | Сите 6 control patterns мигрирани; semantic tablist, Pro fetch gate, weak-spot navigation, rubric review, disabled empty exports и CSV object-URL cleanup. Desktop/mobile tab/export state и zero overflow; browser matrix 17 PASS со 3 намерни skips; production build PASS; H3b complete. |
 | 2026-07-17 | H3c-1 BoundCreator shell controls | `a3eca51` | PASS | 526/526 PASS; 9 focused BoundCreator contracts | PASS | Сите 6 shell controls мигрирани; dashboard route, settings pressed state, Share modal, manual save и auto-save retry wiring. Desktop/mobile creator shell, save lifecycle и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 | 2026-07-18 | H3c-2 ShareModal copy controls + feedback | `920a1e8` | PASS | 529/529 PASS; 7 focused ShareModal contracts | PASS | Двата copy controls мигрирани во заеднички Button-backed flow; успех само по потврден Clipboard запис, visible/accessibility feedback при одбивање и timer cleanup. Desktop/mobile copy success, semantic link value и zero modal overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
+| 2026-07-18 | H3c-3 StageList controls + accessible lifecycle | `e6c3974` | PASS | 533/533 PASS; 9 focused StageList contracts | PASS | Сите raw controls мигрирани; semantic pressed stage selection, keyboard-visible insert/card actions, precise labels, safe delete modal и валидирани reorder indices. Desktop/mobile add, duplicate, Enter selection, confirm delete и zero overflow; browser matrix 19 PASS со 3 намерни skips; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H3c-3 StageList, потоа H3c-4 QuestSettingsPanel, во мали и независни batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H3c-4 QuestSettingsPanel, потоа H3c-5 FindSpotPlannerPanel, во мали и независни batches. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

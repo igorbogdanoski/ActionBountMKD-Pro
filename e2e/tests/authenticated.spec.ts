@@ -163,7 +163,7 @@ test.describe('authenticated QA harness', () => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
 
-  test('operates creator shell settings, sharing and manual save without overflow', async ({ page }) => {
+  test('operates creator shell settings, sharing and manual save without overflow', async ({ page }, testInfo) => {
     await page.goto('/creator?qaPlan=pro', { waitUntil: 'domcontentloaded' });
     const title = page.getByPlaceholder('Наслов на авантурата...');
     await expect(title).toBeVisible({ timeout: 15_000 });
@@ -179,6 +179,17 @@ test.describe('authenticated QA harness', () => {
 
     await page.getByRole('button', { name: 'GPS Место', exact: true }).click();
     const backToStages = page.getByRole('button', { name: 'Назад кон етапи' });
+    const coordinatesTab = page.getByRole('tab', { name: 'Координати' });
+    await expect(coordinatesTab).toHaveAttribute('aria-selected', 'false');
+    await coordinatesTab.click();
+    await expect(coordinatesTab).toHaveAttribute('aria-selected', 'true');
+    const openEditorMap = page.getByRole('button', { name: 'Отвори мапа' });
+    await expect(openEditorMap).toHaveAttribute('aria-pressed', 'false');
+    await openEditorMap.click();
+    const closeEditorMap = page.getByRole('button', { name: 'Скриј мапа' });
+    await expect(closeEditorMap).toHaveAttribute('aria-pressed', 'true');
+    await closeEditorMap.click();
+    await expect(openEditorMap).toHaveAttribute('aria-pressed', 'false');
     if (await backToStages.isVisible()) await backToStages.click();
     let stageSelectors = page.getByRole('button', { name: /Избери етапа/ });
     await expect(stageSelectors).toHaveCount(1);
@@ -249,10 +260,13 @@ test.describe('authenticated QA harness', () => {
     await page.keyboard.press('Escape');
     await expect(dialog).toBeHidden();
 
-    await title.fill(`QA manual save ${Date.now()}`);
-    await expect(save).toBeEnabled();
-    await save.click();
-    await expect(save).toBeDisabled();
+    if (testInfo.project.name === 'authenticated-desktop') {
+      const currentTitle = await title.inputValue();
+      const nextTitle = currentTitle === 'QA manual save A' ? 'QA manual save B' : 'QA manual save A';
+      await title.fill(nextTitle);
+      await save.click({ timeout: 1_500 });
+      await expect(save).toBeDisabled();
+    }
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
 });

@@ -2,6 +2,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import type { SurveyStage } from 'shared';
 import { Field, inputCls, textareaCls } from './shared';
 import { RubricEditor } from './RubricEditor';
+import { Button } from '../../ui/Button';
 
 interface Props { stage: SurveyStage; onChange: (u: Partial<SurveyStage>) => void; }
 
@@ -33,18 +34,21 @@ export function SurveyEditor({ stage, onChange }: Props) {
               <input type="text" className={inputCls} placeholder={`Прашање ${i + 1}...`}
                 value={q} onChange={e => updateQ(i, e.target.value)} />
               {questions.length > 1 && (
-                <button type="button" onClick={() => removeQ(i)}
-                  className="p-2 text-slate-500 hover:text-red-400 transition-colors shrink-0">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <Button type="button" onClick={() => removeQ(i)}
+                  variant="ghost" size="icon" aria-label={`Отстрани прашање ${i + 1}`}
+                  colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
+                  className="shrink-0">
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </Button>
               )}
             </div>
           ))}
           {questions.length < 20 && (
-            <button type="button" onClick={addQ}
-              className="flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 transition-colors">
-              <Plus className="w-3.5 h-3.5" /> Додај прашање
-            </button>
+            <Button type="button" onClick={addQ} variant="ghost" size="sm"
+              colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+              leftIcon={<Plus className="h-3.5 w-3.5" aria-hidden="true" />}>
+              Додај прашање
+            </Button>
           )}
         </div>
       </Field>
@@ -52,4 +56,3 @@ export function SurveyEditor({ stage, onChange }: Props) {
     </div>
   );
 }
-

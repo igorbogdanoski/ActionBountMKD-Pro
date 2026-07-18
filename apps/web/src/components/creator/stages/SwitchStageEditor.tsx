@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Plus, Trash2, GitBranch } from 'lucide-react';
 import { Tabs, Field, Toggle, inputCls } from './shared';
 import type { SwitchStage, SwitchCondition, Stage, InventoryItem } from 'shared';
+import { Button } from '../../ui/Button';
 
 interface Props {
   stage: SwitchStage;
@@ -68,13 +69,16 @@ export function SwitchStageEditor({ stage, allStages, inventoryItems, onChange }
                     Услов {idx + 1}
                   </span>
                   {stage.conditions.length > 1 && (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => removeCondition(cond.id)}
-                      className="text-slate-500 hover:text-rose-400 transition-colors"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Отстрани услов ${idx + 1}`}
+                      colorClassName="text-slate-500 hover:text-rose-400 focus-visible:ring-rose-400"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Button>
                   )}
                 </div>
 
@@ -144,14 +148,16 @@ export function SwitchStageEditor({ stage, allStages, inventoryItems, onChange }
               </div>
             ))}
 
-            <button
+            <Button
               type="button"
               onClick={addCondition}
-              className="flex items-center gap-2 text-sm text-indigo-400 hover:text-indigo-300 transition-colors font-medium"
+              variant="ghost"
+              size="sm"
+              colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+              leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
             >
-              <Plus className="w-4 h-4" />
               Додај услов
-            </button>
+            </Button>
           </div>
 
           <Field label="Стандардна етапа (ако ниеден услов не се совпадне)">
@@ -184,4 +190,3 @@ export function SwitchStageEditor({ stage, allStages, inventoryItems, onChange }
     </div>
   );
 }
-

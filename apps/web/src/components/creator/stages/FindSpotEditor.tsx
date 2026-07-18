@@ -2,6 +2,7 @@ import { useState, lazy, Suspense } from 'react';
 import { AlertTriangle, MapPin, Loader2, Map } from 'lucide-react';
 import type { FindSpotStage } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './shared';
+import { Button } from '../../ui/Button';
 
 const MapSelector = lazy(() =>
   import('../../MapSelector').then(m => ({ default: m.MapSelector }))
@@ -87,29 +88,27 @@ export function FindSpotEditor({ stage, onChange }: Props) {
 
           {/* Action buttons */}
           <div className="flex gap-2">
-            <button
+            <Button
               type="button"
               onClick={getMyLocation}
-              disabled={gpsLoading}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold transition-colors"
+              loading={gpsLoading}
+              variant="app-primary"
+              fullWidth
+              leftIcon={<MapPin className="h-4 w-4" aria-hidden="true" />}
+              className="flex-1 rounded-lg"
             >
-              {gpsLoading
-                ? <><Loader2 className="w-4 h-4 animate-spin" /> Земање локација...</>
-                : <><MapPin className="w-4 h-4" /> Земи ја мојата локација</>
-              }
-            </button>
-            <button
+              {gpsLoading ? 'Земање локација...' : 'Земи ја мојата локација'}
+            </Button>
+            <Button
               type="button"
               onClick={() => setShowMap(v => !v)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                showMap
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-              }`}
+              variant={showMap ? 'success' : 'secondary'}
+              aria-pressed={showMap}
+              leftIcon={<Map className="h-4 w-4" aria-hidden="true" />}
+              className="rounded-lg"
             >
-              <Map className="w-4 h-4" />
               {showMap ? 'Скриј мапа' : 'Отвори мапа'}
-            </button>
+            </Button>
           </div>
 
           {/* Interactive map */}

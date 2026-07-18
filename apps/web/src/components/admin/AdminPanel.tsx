@@ -6,6 +6,8 @@ import { getPaymentRequests, approvePaymentRequest, rejectPaymentRequest, type P
 import { getPendingTemplates, saveTemplate } from '../../utils/storage';
 import { runSeedTemplates, cleanupDuplicateTemplates } from '../../utils/seedTemplates';
 import { SEO } from '../SEO';
+import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
 import type { PlanId, Template } from 'shared';
 
 const STATUS_LABELS: Record<PaymentRequest['status'], { label: string; cls: string }> = {
@@ -223,14 +225,19 @@ export function AdminPanel() {
   const [requests, setRequests] = useState<PaymentRequest[]>([]);
   const [loading, setLoading]   = useState(true);
   const [busy, setBusy]         = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
   const [filter, setFilter]     = useState<PaymentRequest['status'] | 'all'>('pending');
   const [activeTab, setActiveTab] = useState<'payments' | 'templates'>('payments');
+  const [decision, setDecision] = useState<{ type: 'approve' | 'reject'; request: PaymentRequest } | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getPaymentRequests(filter === 'all' ? undefined : filter);
       setRequests(data);
+    } catch {
+      setError('Барањата за плаќање не може да се вчитаат. Обиди се повторно.');
     } finally {
       setLoading(false);
     }
@@ -240,9 +247,13 @@ export function AdminPanel() {
 
   const approve = async (req: PaymentRequest) => {
     setBusy(req.id);
+    setError(null);
     try {
       await approvePaymentRequest(req.id, req.userId, req.planId as PlanId);
       await load();
+      setDecision(null);
+    } catch {
+      setError(`Барањето од ${req.displayName} не може да се одобри. Провери дали веќе е обработено.`);
     } finally {
       setBusy(null);
     }
@@ -250,9 +261,13 @@ export function AdminPanel() {
 
   const reject = async (req: PaymentRequest) => {
     setBusy(req.id);
+    setError(null);
     try {
       await rejectPaymentRequest(req.id);
       await load();
+      setDecision(null);
+    } catch {
+      setError(`Барањето од ${req.displayName} не може да се одбие. Обиди се повторно.`);
     } finally {
       setBusy(null);
     }
@@ -283,41 +298,42 @@ export function AdminPanel() {
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button
-                type="button"
+              <Button
                 onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700"
+                size="sm" colorClassName="bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white focus-visible:ring-slate-400"
+                leftIcon={<ArrowLeft aria-hidden="true" className="w-3.5 h-3.5" />}
               >
-                <ArrowLeft className="w-3.5 h-3.5" /> Назад
-              </button>
+                Назад
+              </Button>
               <h1 className="text-xl font-bold">Admin панел</h1>
             </div>
             {activeTab === 'payments' && (
-              <button
-                type="button"
+              <Button
                 onClick={load}
-                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700"
+                loading={loading} size="sm" colorClassName="bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-white focus-visible:ring-slate-400"
+                leftIcon={<RefreshCw aria-hidden="true" className="w-3.5 h-3.5" />}
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Освежи
-              </button>
+                Освежи
+              </Button>
             )}
           </div>
 
           {/* Main tabs */}
-          <div className="flex gap-2 border-b border-slate-800 pb-0">
+          <div role="tablist" aria-label="Admin секции" className="flex gap-2 border-b border-slate-800 pb-0">
             {([['payments', 'Плаќања'], ['templates', 'Шаблони']] as const).map(([tab, label]) => (
-              <button
+              <Button
                 key={tab}
-                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 text-sm font-semibold border-b-2 transition-colors -mb-px ${
+                size="sm" colorClassName={`bg-transparent focus-visible:ring-indigo-500 ${
                   activeTab === tab
                     ? 'border-indigo-500 text-indigo-400'
                     : 'border-transparent text-slate-400 hover:text-slate-200'
-                }`}
+                }`} className="rounded-none border-b-2 -mb-px px-4 py-2"
               >
                 {label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -325,22 +341,28 @@ export function AdminPanel() {
 
           {activeTab === 'payments' && <>
           {/* Filter tabs */}
-          <div className="flex gap-2">
+          <div className="flex gap-2" aria-label="Филтер на плаќања">
             {(['pending', 'approved', 'rejected', 'all'] as const).map(s => (
-              <button
+              <Button
                 key={s}
-                type="button"
+                aria-pressed={filter === s}
                 onClick={() => setFilter(s)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                size="sm" colorClassName={
                   filter === s
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
-                }`}
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:ring-indigo-500'
+                    : 'bg-slate-800 text-slate-400 hover:text-white focus-visible:ring-slate-400'
+                }
               >
                 {s === 'all' ? 'Сите' : STATUS_LABELS[s].label}
-              </button>
+              </Button>
             ))}
           </div>
+
+          {error && !decision && (
+            <div role="alert" className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-sm text-rose-300">
+              {error}
+            </div>
+          )}
 
           {/* List */}
           {loading ? (
@@ -383,22 +405,20 @@ export function AdminPanel() {
 
                     {req.status === 'pending' && (
                       <div className="flex gap-2 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => approve(req)}
+                        <Button
+                          onClick={() => { setError(null); setDecision({ type: 'approve', request: req }); }}
                           disabled={busy === req.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+                          size="sm" variant="success" leftIcon={<Check aria-hidden="true" className="w-3.5 h-3.5" />}
                         >
-                          <Check className="w-3.5 h-3.5" /> Одобри ({req.planId})
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => reject(req)}
+                          Одобри ({req.planId})
+                        </Button>
+                        <Button
+                          onClick={() => { setError(null); setDecision({ type: 'reject', request: req }); }}
                           disabled={busy === req.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-bold transition-colors"
+                          size="sm" variant="danger" leftIcon={<X aria-hidden="true" className="w-3.5 h-3.5" />}
                         >
-                          <X className="w-3.5 h-3.5" /> Одбиј
-                        </button>
+                          Одбиј
+                        </Button>
                       </div>
                     )}
                   </div>
@@ -409,7 +429,36 @@ export function AdminPanel() {
           </>}
         </div>
       </div>
+      <Modal
+        open={decision !== null}
+        onClose={() => { if (!busy) setDecision(null); }}
+        title={decision?.type === 'approve' ? 'Одобри плаќање?' : 'Одбиј плаќање?'}
+        size="sm"
+        footer={decision && (
+          <>
+            <Button variant="secondary" onClick={() => setDecision(null)} disabled={busy !== null}>Откажи</Button>
+            <Button
+              variant={decision.type === 'approve' ? 'success' : 'danger'}
+              loading={busy === decision.request.id}
+              onClick={() => void (decision.type === 'approve' ? approve(decision.request) : reject(decision.request))}
+            >
+              {decision.type === 'approve' ? `Одобри ${decision.request.planId}` : 'Одбиј барање'}
+            </Button>
+          </>
+        )}
+      >
+        {decision && (
+          <div className="space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <p>
+              {decision.type === 'approve'
+                ? `Планот на ${decision.request.displayName} ќе биде променет во ${decision.request.planId}, а барањето ќе биде означено како одобрено.`
+                : `Барањето од ${decision.request.displayName} ќе биде означено како одбиено.`}
+            </p>
+            <p className="font-mono text-xs text-slate-500">Трансакција: {decision.request.transactionRef}</p>
+            {error && <p role="alert" className="rounded-lg bg-rose-500/10 border border-rose-500/30 px-3 py-2 text-rose-600 dark:text-rose-300">{error}</p>}
+          </div>
+        )}
+      </Modal>
     </>
   );
 }
-

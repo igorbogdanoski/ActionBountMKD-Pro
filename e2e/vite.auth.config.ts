@@ -10,10 +10,12 @@ const authModule = path.resolve(webRoot, 'src/utils/AuthContext.tsx');
 const storageModule = path.resolve(webRoot, 'src/utils/storage.ts');
 const firebaseModule = path.resolve(webRoot, 'src/utils/firebase.ts');
 const sessionStorageModule = path.resolve(webRoot, 'src/utils/sessionStorage.ts');
+const paymentRequestsModule = path.resolve(webRoot, 'src/utils/paymentRequests.ts');
 const authMock = path.resolve(here, 'fixtures/qaAuthContext.tsx');
 const storageMock = path.resolve(here, 'fixtures/qaStorage.ts');
 const firebaseMock = path.resolve(here, 'fixtures/qaFirebase.ts');
 const sessionStorageMock = path.resolve(here, 'fixtures/qaSessionStorage.ts');
+const paymentRequestsMock = path.resolve(here, 'fixtures/qaPaymentRequests.ts');
 
 function normalize(id: string) {
   return path.normalize(id.split('?')[0]);
@@ -37,6 +39,7 @@ function authenticatedQaMocks(): Plugin {
       if (id === normalize(storageModule)) return storageMock;
       if (id === normalize(firebaseModule)) return firebaseMock;
       if (id === normalize(sessionStorageModule)) return sessionStorageMock;
+      if (id === normalize(paymentRequestsModule)) return paymentRequestsMock;
       return null;
     },
   };

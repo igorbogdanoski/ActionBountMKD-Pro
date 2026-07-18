@@ -342,4 +342,26 @@ test.describe('authenticated QA harness', () => {
     await expect(dialog).toBeHidden();
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
+
+  test('uses semantic admin payment controls and confirms financial decisions', async ({ page }) => {
+    await page.goto('/admin?qaAdmin=1&qaPlan=pro');
+    const paymentTab = page.getByRole('tab', { name: 'Плаќања' });
+    const templatesTab = page.getByRole('tab', { name: 'Шаблони' });
+    await expect(paymentTab).toHaveAttribute('aria-selected', 'true');
+    await expect(templatesTab).toHaveAttribute('aria-selected', 'false');
+    await expect(page.getByRole('button', { name: 'Чека' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByText('QA Наставник')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Одобри (pro)' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Одобри плаќање?' });
+    await expect(dialog).toContainText('QA-BANK-001');
+    expect(await dialog.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
+    await dialog.getByRole('button', { name: 'Откажи' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(page.getByText('QA Наставник')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Сите' }).click();
+    await expect(page.getByRole('button', { name: 'Сите' })).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
 });

@@ -139,10 +139,11 @@ Batch-от е затворен само кога:
 - [x] Creator/admin dark cards со `tone="dark"`.
   - [x] H4d-1 Admin template-moderation и payment-request record cards.
   - [x] H4d-2 Creator/admin completion audit: преостанатите surfaces се action/log/alert, media fallback, empty/help, draggable/editable, paywall/danger, preview или editor/form shells и намерно не се Card кандидати.
-- [ ] Player/session surfaces, последни.
+- [x] Player/session surfaces, последни.
   - [x] H4e-1 Player read-only informational cards: INFO description, TOURNAMENT team task и shared rubric preview.
-  - [ ] H4e-2 Player/session completion audit и преостанати valid content-card кандидати.
-- [ ] Проширување на Card API само за повторлив semantic pattern.
+  - [x] H4e-2 Player finish-summary cards: points, achievements и collected inventory.
+  - [x] H4e-3 Player/session completion audit: сите преостанати wrappers имаат shell, interaction, lifecycle, overlay, alert или media/device semantics.
+- [x] Card API completion audit: не е потребно проширување; нема нов повторлив semantic pattern.
 
 ### H5 — Мали product-completeness задачи
 
@@ -250,7 +251,9 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H4d-1 Admin moderation record cards | `f84e802` | PASS | 604/604 PASS; 10 focused Admin contracts | PASS | Template-moderation и payment-request records се мигрирани во shared hard-dark `Card` со зачувани `slate-900`, `slate-800` border, compact `rounded-xl`, padding и no-shadow contract. Wrapper-ите остануваат non-interactive, а confirmation, moderation, Featured и financial actions остануваат експлицитни Button/Modal lifecycle-и. Desktop/mobile Admin contracts 4/4 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4d-2 Creator/admin completion audit | `b2ff6de` | PASS | 604/604 PASS (carried verified baseline; documentation-only audit) | PASS (no visual changes) | Exhaustive semantic audit потврди дека нема преостанат valid non-interactive content-card candidate. Admin seed/action/log/error states и Creator media fallbacks, empty/help states, draggable/editable rows, paywall/danger notices, previews и editor/form shells остануваат во своите специјализирани contracts; Card API не се проширува. H4d complete. |
 | 2026-07-23 | H4e-1 Player informational cards | `95f8608` | PASS | 606/606 PASS; 21 focused player contracts | PASS | INFO description, TOURNAMENT team task и shared rubric preview се мигрирани во `Card` како read-only informational surfaces. Exact light/night palette, padding, borders и shadow contracts се зачувани со експлицитни overrides; media, scanner, answer-selector и live-control surfaces не се допрени. Desktop/mobile INFO lifecycle 2/2 PASS со zero overflow; production build PASS. |
+| 2026-07-23 | H4e-2 Player finish-summary cards | `8a5c835` | PASS | 606/606 PASS; 10 focused MobilePlayer contracts | PASS | Finish-screen points, achievements и collected-inventory summaries се мигрирани во shared `Card`, со зачувани light/night palette, compact padding, small shadow и points `rounded-3xl` contract. Teacher-grade, feedback и certificate lifecycle panels не се допрени. Desktop/mobile finish lifecycle 2/2 PASS со zero overflow; production build PASS. |
+| 2026-07-23 | H4e-3 Player/session completion audit + H4 closure | `ac733c7` | PASS | 606/606 PASS (carried verified baseline; documentation-only audit) | PASS (no visual changes) | Exhaustive audit ги класифицира преостанатите MobilePlayer, stage-player, JoinSession и LiveSessionHost wrappers како application/game shells, interactive navigation/forms, async lifecycle panels, overlays/dialogs, alerts/status UI или media/device frames. Нема преостанат valid content-card candidate и Card API не бара проширување. H4 complete. |
 
 ## Следна акција
 
-Продолжи со H4e-2 player/session completion audit. Провери ги преостанатите `MobilePlayer`, stage-player и `LiveSessionHost` card-like wrappers; мигрирај само вистински non-interactive content-card contracts. Shell/overlay/media/scanner рамки, answer selectors, leaderboard rows, alerts, onboarding/finish forms и real-time control panels мора документарно да се исклучат. Потоа затвори H4 со completion audit и потврди дали Card API останува без проширување. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+H4 е целосно затворен. Продолжи со H5 product-completeness по ред: прво changelog route/page/navigation entry, потоа преостанатите LandingPage literals во `mk.json`/`en.json`, и на крај translation parity test. Секој H5 batch мора да има focused tests, цел Vitest suite, production build и релевантен desktop/mobile browser gate. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

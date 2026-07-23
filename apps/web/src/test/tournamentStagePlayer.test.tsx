@@ -41,4 +41,15 @@ describe('TournamentStagePlayer', () => {
     fireEvent.click(screen.getByRole('button', { name: /Турнирот заврши/ }));
     expect(onFinish).toHaveBeenCalledOnce();
   });
+
+  it('keeps the shared task card palettes', () => {
+    const stage = makeStage({ taskDescription: 'Team task' });
+    const { rerender } = render(
+      <TournamentStagePlayer stage={stage} isNightMode={false} onFinish={vi.fn()} />
+    );
+    expect(screen.getByTestId('tournament-task-card').className).toContain('!bg-orange-50');
+
+    rerender(<TournamentStagePlayer stage={stage} isNightMode onFinish={vi.fn()} />);
+    expect(screen.getByTestId('tournament-task-card').className).toContain('!bg-slate-800');
+  });
 });

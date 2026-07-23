@@ -2,6 +2,7 @@ import { Trophy } from 'lucide-react';
 import type { TournamentStage } from 'shared';
 import { MathRenderer } from '../../editor/MathRenderer';
 import { Button } from '../../ui/Button';
+import { Card } from '../../ui/Card';
 
 interface Props {
   stage: TournamentStage;
@@ -18,10 +19,14 @@ export function TournamentStagePlayer({ stage, isNightMode, onFinish }: Props) {
       <h2 className={`text-2xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-3`}>{stage.title}</h2>
       <MathRenderer text={stage.description} className={`${isNightMode ? 'text-slate-400' : 'text-slate-600'} mb-4`} />
       {stage.taskDescription && (
-        <div className={`w-full p-4 rounded-2xl border mb-6 text-left ${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-orange-50 border-orange-200'}`}>
+        <Card
+          padded={false}
+          data-testid="tournament-task-card"
+          className={`w-full !shadow-none p-4 mb-6 text-left ${isNightMode ? '!bg-slate-800 !border-slate-700' : '!bg-orange-50 !border-orange-200'}`}
+        >
           <p className="text-sm font-semibold text-orange-500 mb-1">Задача за тимовите:</p>
           <MathRenderer text={stage.taskDescription} className={`text-sm ${isNightMode ? 'text-slate-300' : 'text-slate-700'}`} />
-        </div>
+        </Card>
       )}
       {stage.teamCount && stage.teamCount > 0 && (
         <p className={`text-xs ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-8`}>

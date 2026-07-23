@@ -1,4 +1,5 @@
 import type { Rubric } from 'shared';
+import { Card } from '../../ui/Card';
 
 interface Props {
   rubric: Rubric | undefined;
@@ -10,7 +11,11 @@ interface Props {
 export function RubricPreview({ rubric, isNightMode }: Props) {
   if (!rubric?.criteria?.length) return null;
   return (
-    <div className={`w-full max-w-sm mx-auto mb-6 rounded-2xl border p-4 text-left ${isNightMode ? 'bg-slate-800/60 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
+    <Card
+      padded={false}
+      data-testid="rubric-preview-card"
+      className={`w-full max-w-sm mx-auto mb-6 !shadow-none p-4 text-left ${isNightMode ? '!bg-slate-800/60 !border-slate-700' : '!bg-slate-50 !border-slate-200'}`}
+    >
       <p className={`text-xs font-bold uppercase tracking-wider mb-3 ${isNightMode ? 'text-slate-400' : 'text-slate-500'}`}>📋 Како се оценува</p>
       <div className="space-y-3">
         {rubric.criteria.map(c => (
@@ -26,6 +31,6 @@ export function RubricPreview({ rubric, isNightMode }: Props) {
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

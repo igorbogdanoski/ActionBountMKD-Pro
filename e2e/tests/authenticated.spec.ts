@@ -494,6 +494,9 @@ test.describe('authenticated QA harness', () => {
     if (await onboardingDismiss.isVisible()) await onboardingDismiss.click();
     await page.getByPlaceholder('Внесете го вашето име...').fill('QA Ученик');
     await start.click();
+    const infoCard = page.getByTestId('info-description-card');
+    await expect(infoCard).toHaveClass(/!bg-slate-800/);
+    expect(await infoCard.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
     await page.getByRole('button', { name: 'Разбрав, понатаму' }).click();
 
     await expect(page.getByText('Честитки, QA Ученик!')).toBeVisible();

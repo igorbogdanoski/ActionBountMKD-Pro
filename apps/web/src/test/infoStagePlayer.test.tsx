@@ -25,6 +25,16 @@ describe('InfoStagePlayer', () => {
     expect(onContinue).toHaveBeenCalledOnce();
   });
 
+  it('keeps the shared description card palettes', () => {
+    const { rerender } = render(
+      <InfoStagePlayer stage={makeStage()} isNightMode={false} onContinue={vi.fn()} />
+    );
+    expect(screen.getByTestId('info-description-card').className).toContain('!bg-white');
+
+    rerender(<InfoStagePlayer stage={makeStage()} isNightMode onContinue={vi.fn()} />);
+    expect(screen.getByTestId('info-description-card').className).toContain('!bg-slate-800');
+  });
+
   it('renders an image when mediaUrl is a non-YouTube URL', () => {
     render(<InfoStagePlayer stage={makeStage({ mediaUrl: 'https://example.com/photo.jpg' })} isNightMode={false} onContinue={vi.fn()} />);
     const img = screen.getByAltText('Мултимедија') as HTMLImageElement;

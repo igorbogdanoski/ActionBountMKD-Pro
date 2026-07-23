@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName, bestResultForStudent } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName, bestResultForStudent, createAttemptId } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -644,6 +644,7 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
 
     const result = {
       questId,
+      attemptId: createAttemptId(),
       ...(rosterStudentId ? { studentId: rosterStudentId } : {}),
       playerName,
       points: finalPoints,

@@ -1,3 +1,4 @@
+import { createAttemptId } from 'shared';
 import type { QuestResult } from 'shared';
 import { saveQuestResult } from './storage';
 import { clearOfflineQueue, getOfflineQueue, replaceOfflineQueue } from './offlineQueue';
@@ -12,8 +13,11 @@ export async function syncOfflineQueue(): Promise<number> {
   if (syncInFlight) return syncInFlight;
 
   syncInFlight = (async () => {
-    const queue = getOfflineQueue();
+    const queue = getOfflineQueue().map(result => (
+      result.attemptId ? result : { ...result, attemptId: createAttemptId() }
+    ));
     if (!queue.length) return 0;
+    replaceOfflineQueue(queue);
 
     let synced = 0;
     const failed: PendingResult[] = [];

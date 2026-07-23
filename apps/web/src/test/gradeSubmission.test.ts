@@ -12,7 +12,15 @@ const fs = vi.hoisted(() => {
   return {
     store,
     reset: () => store.clear(),
-    doc: (_db: unknown, coll: string, id: string) => ({ path: `${coll}/${id}` }),
+    collection: (_db: unknown, coll: string) => ({ path: coll }),
+    doc: (first: unknown, coll?: string, id?: string) => (
+      id
+        ? { path: `${coll}/${id}`, id }
+        : { path: `${(first as { path: string }).path}/generated-result`, id: 'generated-result' }
+    ),
+    setDoc: async (ref: { path: string }, value: Record<string, unknown>) => {
+      store.set(ref.path, clone(value));
+    },
     updateDoc: async (ref: { path: string }, patch: Record<string, unknown>) => {
       store.set(ref.path, { ...(store.get(ref.path) ?? {}), ...clone(patch) });
     },
@@ -21,11 +29,11 @@ const fs = vi.hoisted(() => {
 
 vi.mock('../utils/firebase', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
-  collection: vi.fn(),
+  collection: fs.collection,
   doc: fs.doc,
   getDocs: vi.fn(),
   getDoc: vi.fn(),
-  setDoc: vi.fn(),
+  setDoc: fs.setDoc,
   updateDoc: fs.updateDoc,
   deleteDoc: vi.fn(),
   query: vi.fn(),
@@ -36,7 +44,7 @@ vi.mock('firebase/firestore', () => ({
   increment: vi.fn(),
 }));
 
-import { gradeSubmission } from '../utils/storage';
+import { gradeSubmission, saveQuestResult } from '../utils/storage';
 
 beforeEach(() => fs.reset());
 
@@ -95,5 +103,23 @@ describe('gradeSubmission', () => {
 
     const saved = fs.store.get('quest_results/r1');
     expect(Object.keys(saved ?? {}).sort()).toEqual(['grades', 'points']);
+  });
+});
+
+describe('saveQuestResult attempt identity', () => {
+  it('uses attemptId as the deterministic Firestore document id', async () => {
+    const id = await saveQuestResult({
+      questId: 'q1',
+      attemptId: 'attempt-123',
+      playerName: 'Ана',
+      points: 50,
+      completedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(id).toBe('attempt-123');
+    expect(fs.store.get('quest_results/attempt-123')).toMatchObject({
+      id: 'attempt-123',
+      attemptId: 'attempt-123',
+    });
   });
 });

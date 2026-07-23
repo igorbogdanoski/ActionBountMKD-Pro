@@ -57,6 +57,9 @@ service cloud.firestore {
     function isValidResult(data) {
       return data.keys().hasAll(['questId', 'playerName', 'points', 'completedAt'])
         && data.questId is string
+        && (!('attemptId' in data) || (data.attemptId is string
+          && data.attemptId.size() >= 1
+          && data.attemptId.size() <= 128))
         && (!('studentId' in data) || (data.studentId is string
           && data.studentId.size() >= 1
           && data.studentId.size() <= 128))
@@ -120,8 +123,9 @@ service cloud.firestore {
 
       // Only the quest owner may grade a submission (rubric review screen),
       // and only by touching grades/points — everything else is immutable.
-      allow update: if ownsQuest(resource.data.questId)
-                    && isValidGradeUpdate(resource.data, request.resource.data);
+      allow update: if request.resource.data == resource.data
+                    || (ownsQuest(resource.data.questId)
+                      && isValidGradeUpdate(resource.data, request.resource.data));
 
       allow delete: if false;
     }

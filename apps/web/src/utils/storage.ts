@@ -74,7 +74,9 @@ export async function deleteQuest(id: string): Promise<void> {
 // ─── QUEST RESULTS ────────────────────────────────────────────────────────────
 
 export async function saveQuestResult(result: Omit<QuestResult, 'id'>): Promise<string> {
-  const ref = doc(collection(db, RESULTS));
+  const ref = result.attemptId
+    ? doc(db, RESULTS, result.attemptId)
+    : doc(collection(db, RESULTS));
   const full: QuestResult = { ...result, id: ref.id };
   await setDoc(ref, full);
   return ref.id;

@@ -1,11 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
+import { createAttemptId } from 'shared';
 import { db } from './firebase';
 
 const QUEUE_KEY = 'mobile_offline_results';
 
 export interface PendingResult {
   questId: string;
+  attemptId?: string;
   playerName: string;
   userId: string | null;
   points: number;
@@ -46,15 +48,18 @@ export async function syncOfflineQueue(): Promise<number> {
   if (syncInFlight) return syncInFlight;
 
   syncInFlight = (async () => {
-    const queue = await getOfflineQueue();
+    const queue = (await getOfflineQueue()).map(result => (
+      result.attemptId ? result : { ...result, attemptId: createAttemptId() }
+    ));
     if (!queue.length) return 0;
+    await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
 
     let synced = 0;
     const failed: PendingResult[] = [];
 
     for (const result of queue) {
       try {
-        await addDoc(collection(db, 'quest_results'), result);
+        await setDoc(doc(db, 'quest_results', result.attemptId!), result);
         synced++;
       } catch {
         failed.push(result);

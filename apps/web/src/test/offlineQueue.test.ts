@@ -102,6 +102,22 @@ describe('syncOfflineQueue', () => {
     }));
   });
 
+  it('upgrades a legacy queued result with a stable attempt id before retrying', async () => {
+    saveOfflineResult(makeResult(40));
+    saveQuestResultMock.mockRejectedValueOnce(new Error('offline'));
+
+    await syncOfflineQueue();
+    const firstAttemptId = getOfflineQueue()[0].attemptId;
+    expect(firstAttemptId).toEqual(expect.any(String));
+
+    saveQuestResultMock.mockResolvedValueOnce('saved');
+    await syncOfflineQueue();
+
+    expect(saveQuestResultMock).toHaveBeenLastCalledWith(expect.objectContaining({
+      attemptId: firstAttemptId,
+    }));
+  });
+
   it('keeps failed results in the queue and reports synced count', async () => {
     saveQuestResultMock
       .mockResolvedValueOnce('ok')

@@ -5,13 +5,13 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Quest } from 'shared';
-import { canAccessStage, collectGrantedItem, evaluateSwitchTarget } from 'shared';
+import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, createAttemptId } from 'shared';
 import { db } from '../../utils/firebase';
 import { useAuth } from '../../utils/AuthContext';
 import { completedKey, progressKey } from '../../utils/adventureProgress';
@@ -250,8 +250,10 @@ export default function QuestPlayerScreen() {
     setIsFinished(true);
     await AsyncStorage.removeItem(progressKey(id as string));
     await AsyncStorage.setItem(completedKey(id as string), new Date().toISOString());
+    const attemptId = createAttemptId();
     const result = {
       questId: id as string,
+      attemptId,
       playerName,
       userId: user?.uid || null,
       points: finalPoints,
@@ -260,7 +262,7 @@ export default function QuestPlayerScreen() {
       completedAt: new Date().toISOString(),
     };
     try {
-      await addDoc(collection(db, 'quest_results'), result);
+      await setDoc(doc(db, 'quest_results', attemptId), result);
     } catch (e) {
       console.warn('Save result failed, queueing for retry:', e);
       await saveOfflineResult(result);

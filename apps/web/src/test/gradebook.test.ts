@@ -5,6 +5,7 @@ import {
   bestResultForName,
   bestResultForStudent,
   buildClassGradebook,
+  numberQuestAttempts,
 } from 'shared';
 import type { QuestResult, Stage } from 'shared';
 
@@ -77,6 +78,22 @@ describe('bestResultForStudent', () => {
     ];
 
     expect(bestResultForStudent(results, { id: 's1', name: 'ана' })?.points).toBe(90);
+  });
+});
+
+describe('numberQuestAttempts', () => {
+  it('derives deterministic attempt numbers for new and legacy results', () => {
+    const attempts = numberQuestAttempts([
+      result({ id: 'legacy-b', completedAt: '2026-01-02T00:00:00.000Z' }),
+      result({ id: 'legacy-a', completedAt: '2026-01-01T00:00:00.000Z' }),
+      result({ id: 'r3', attemptId: 'attempt-c', completedAt: '2026-01-02T00:00:00.000Z' }),
+    ]);
+
+    expect(attempts.map(item => [item.result.id, item.attemptNumber])).toEqual([
+      ['legacy-a', 1],
+      ['r3', 2],
+      ['legacy-b', 3],
+    ]);
   });
 });
 

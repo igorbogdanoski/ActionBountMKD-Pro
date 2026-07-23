@@ -203,6 +203,7 @@ describe('MobilePlayer orchestration', () => {
 
     await waitFor(() => expect(saveQuestResult).toHaveBeenCalledWith(expect.objectContaining({
       questId: 'quest-1',
+      attemptId: expect.any(String),
       studentId: 'student-1',
       playerName: 'Ана',
     })), { timeout: 3000 });

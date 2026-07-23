@@ -470,6 +470,8 @@ export interface QuizAnswerRecord {
 export interface QuestResult {
   id: string;
   questId: string;
+  /** Client-generated idempotency key; legacy results may not have one. */
+  attemptId?: string;
   /** Stable class-roster identity when the player was launched as a roster student. */
   studentId?: string;
   playerName: string;
@@ -480,6 +482,28 @@ export interface QuestResult {
   submissions?: StageSubmission[];
   grades?: RubricGrade[];
   quizAnswers?: QuizAnswerRecord[];
+}
+
+export interface NumberedQuestResult {
+  result: QuestResult;
+  attemptNumber: number;
+}
+
+export function createAttemptId(): string {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) return randomUuid;
+  return `attempt-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/** Derive display attempt numbers without a race-prone stored counter. */
+export function numberQuestAttempts(results: QuestResult[]): NumberedQuestResult[] {
+  return [...results]
+    .sort((left, right) => {
+      const byTime = Date.parse(left.completedAt) - Date.parse(right.completedAt);
+      if (byTime !== 0) return byTime;
+      return (left.attemptId ?? left.id).localeCompare(right.attemptId ?? right.id);
+    })
+    .map((result, index) => ({ result, attemptNumber: index + 1 }));
 }
 
 // ─── GRADEBOOK (Phase 7D-4) ───────────────────────────────────────────────────

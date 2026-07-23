@@ -89,6 +89,7 @@ export const PlayerNameSchema = z
 
 export const QuestResultSchema = z.object({
   questId:     z.string().min(1).max(128),
+  attemptId:   z.string().min(1).max(128).optional(),
   studentId:   z.string().min(1).max(128).optional(),
   playerName:  PlayerNameSchema,
   points:      z.number().min(0).max(1_000_000),

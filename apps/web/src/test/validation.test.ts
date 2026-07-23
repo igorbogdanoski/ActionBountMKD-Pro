@@ -166,6 +166,12 @@ describe('QuestResultSchema', () => {
     expect(QuestResultSchema.safeParse({ ...valid, studentId: 'x'.repeat(129) }).success).toBe(false);
   });
 
+  it('accepts an optional bounded attempt id', () => {
+    expect(QuestResultSchema.safeParse({ ...valid, attemptId: 'attempt-123' }).success).toBe(true);
+    expect(QuestResultSchema.safeParse({ ...valid, attemptId: '' }).success).toBe(false);
+    expect(QuestResultSchema.safeParse({ ...valid, attemptId: 'x'.repeat(129) }).success).toBe(false);
+  });
+
   it('rejects negative points', () => {
     expect(QuestResultSchema.safeParse({ ...valid, points: -1 }).success).toBe(false);
   });

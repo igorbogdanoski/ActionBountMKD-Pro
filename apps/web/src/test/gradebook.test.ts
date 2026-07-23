@@ -81,6 +81,15 @@ describe('bestResultForStudent', () => {
 
     expect(bestResultForStudent(results, { id: 's1', name: 'ана' })?.points).toBe(90);
   });
+
+  it('keeps a renamed student linked by stable id, independent of display name', () => {
+    const results = [
+      result({ id: 'before-rename', studentId: 's1', playerName: 'Ана', points: 70 }),
+      result({ id: 'other-student', studentId: 's2', playerName: 'Ана Петрова', points: 100 }),
+    ];
+
+    expect(bestResultForStudent(results, { id: 's1', name: 'Ана Петрова' })?.id).toBe('before-rename');
+  });
 });
 
 describe('numberQuestAttempts', () => {
@@ -134,6 +143,34 @@ describe('result selection policy', () => {
     expect(selectResultForStudent(duplicateNames, { id: 's1', name: 'Ана' }, 'best')?.id).toBe('legacy');
     expect(selectResultForStudent(duplicateNames, { id: 's2', name: 'Ана' }, 'best')?.id).toBe('s2-high');
     expect(bestResultForName(duplicateNames, 'Ана')?.id).toBe('legacy');
+  });
+
+  it('keeps guest lookup separate from roster attempts and selects guest attempts by policy', () => {
+    const mixedAttempts = [
+      result({ id: 'guest-first', playerName: 'Гостин', points: 20, completedAt: '2026-01-01T10:00:00.000Z' }),
+      result({ id: 'roster-high', studentId: 's1', playerName: 'Гостин', points: 100, completedAt: '2026-01-02T10:00:00.000Z' }),
+      result({ id: 'guest-best', playerName: ' гостин ', points: 60, completedAt: '2026-01-03T10:00:00.000Z' }),
+    ];
+
+    expect(bestResultForName(mixedAttempts, 'ГОСТИН')?.id).toBe('guest-best');
+    expect(selectResultForStudent(mixedAttempts, { id: 's1', name: 'Гостин' }, 'best')?.id).toBe('roster-high');
+  });
+
+  it('applies approval policy only within the requested stable student attempts', () => {
+    const mixedAttempts = [
+      result({ id: 's1-unapproved', studentId: 's1', playerName: 'Ана', points: 100 }),
+      result({
+        id: 's1-approved', studentId: 's1', playerName: 'Сега Ана П.', points: 70,
+        approvedAt: '2026-01-05T10:00:00.000Z', approvedBy: 'teacher-1',
+      }),
+      result({
+        id: 's2-approved', studentId: 's2', playerName: 'Ана', points: 99,
+        approvedAt: '2026-01-06T10:00:00.000Z', approvedBy: 'teacher-1',
+      }),
+    ];
+
+    expect(selectResultForStudent(mixedAttempts, { id: 's1', name: 'Ана П.' }, 'teacher-approved')?.id)
+      .toBe('s1-approved');
   });
 
   it('applies an explicit policy to gradebook cells', () => {

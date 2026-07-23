@@ -136,9 +136,9 @@ Batch-от е затворен само кога:
   - [x] H4c-2 `ResultsDashboard` stage-drop и question-accuracy analysis cards.
   - [x] H4c-3 `PlanUsageWidget` stateful informational card.
   - [x] H4c-4 Dashboard completion audit: interactive tiles, filters/forms, chart/table shells, banners/modals и grading rows се намерно исклучени.
-- [ ] Creator/admin dark cards со `tone="dark"`.
+- [x] Creator/admin dark cards со `tone="dark"`.
   - [x] H4d-1 Admin template-moderation и payment-request record cards.
-  - [ ] H4d-2 Creator/admin completion audit и преостанати valid content-card кандидати.
+  - [x] H4d-2 Creator/admin completion audit: преостанатите surfaces се action/log/alert, media fallback, empty/help, draggable/editable, paywall/danger, preview или editor/form shells и намерно не се Card кандидати.
 - [ ] Player/session surfaces, последни.
 - [ ] Проширување на Card API само за повторлив semantic pattern.
 
@@ -246,7 +246,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H4c-2 Results analysis cards | `e3e8a4c` | PASS | 603/603 PASS; 8 focused Results contracts | PASS | Per-stage funnel rows и per-question accuracy panels се мигрирани во shared hard-dark `Card`; compact `rounded-xl`, no-shadow contract и rose big-drop warning state се зачувани. Chart/table shells, weak-spot navigation buttons, grading rows, paywall/empty states и icon frames се semantic review-ирани и намерно исклучени. Desktop/mobile Results contract 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4c-3 Plan usage card + dashboard audit | `55d25d1` | PASS | 604/604 PASS; 4 focused plan/review contracts | PASS | `PlanUsageWidget` е мигриран во shared hard-dark `Card` со зачувани normal/warning/exhausted palette состојби, responsive layout, plan badge и upgrade action; usage bar доби explicit progressbar semantics, а unlimited plan намерно нема progressbar. Dashboard completion audit ги исклучува interactive quest/template tiles, filters/forms, chart/table shells, banners/modals, grading lifecycle rows и decorative frames. Desktop/mobile upgrade/card contract 2/2 PASS; production build PASS. |
 | 2026-07-23 | H4d-1 Admin moderation record cards | `f84e802` | PASS | 604/604 PASS; 10 focused Admin contracts | PASS | Template-moderation и payment-request records се мигрирани во shared hard-dark `Card` со зачувани `slate-900`, `slate-800` border, compact `rounded-xl`, padding и no-shadow contract. Wrapper-ите остануваат non-interactive, а confirmation, moderation, Featured и financial actions остануваат експлицитни Button/Modal lifecycle-и. Desktop/mobile Admin contracts 4/4 PASS со zero overflow; production build PASS. |
+| 2026-07-23 | H4d-2 Creator/admin completion audit | `b2ff6de` | PASS | 604/604 PASS (carried verified baseline; documentation-only audit) | PASS (no visual changes) | Exhaustive semantic audit потврди дека нема преостанат valid non-interactive content-card candidate. Admin seed/action/log/error states и Creator media fallbacks, empty/help states, draggable/editable rows, paywall/danger notices, previews и editor/form shells остануваат во своите специјализирани contracts; Card API не се проширува. H4d complete. |
 
 ## Следна акција
 
-Продолжи со H4d-2 creator/admin completion audit. Creator candidate-ите досега се empty hints, map/media fallbacks, editable inventory/goals, paywall/danger notices, editor/form shells, draggable surfaces или interactive selectors и не смеат механички да се мигрираат. Провери ги преостанатите Admin seed/action panel и transient states; мигрирај само ако остане вистински non-interactive content-card contract, инаку документарно затвори H4d и премини на player/session surfaces. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H4e player/session surfaces, последни во H4. Почни со најмалиот state-specific informational group и прво направи semantic inventory; не мигрирај shell/overlay/media рамки, interactive stage tiles или real-time control surfaces. Зачувај ги viewport, game-state и live-session contracts, а Card API прошири го само ако се потврди повторлив semantic pattern. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

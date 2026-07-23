@@ -124,6 +124,54 @@ describe('H3b ClassGroups controls', () => {
     });
   });
 
+  it('disables the mastery export until an assigned quest has stable objectives', async () => {
+    getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-1'] }]);
+    render(<ClassGroups />);
+    await screen.findByRole('button', { name: /6-Б/ });
+
+    expect(screen.getByTitle('Избери авантура за извештај за совладаност')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Извези совладаност на цели/ })).toBeDisabled();
+  });
+
+  it("exports a CSV mastery report reflecting each student's resolved best attempt", async () => {
+    const objectiveQuest = {
+      id: 'quest-2',
+      title: 'Мастери квест',
+      stages: [
+        { id: 's1', type: 'INFO', title: 'Прва', description: '', order: 0, objectiveRef: 'objective-1' },
+        { id: 's2', type: 'INFO', title: 'Втора', description: '', order: 1, objectiveRef: 'objective-1' },
+      ],
+      pedagogy: { learningObjectives: [{ id: 'objective-1', label: 'Прва цел' }] },
+    } as unknown as Quest;
+    getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-2'] }]);
+    getQuests.mockResolvedValue([objectiveQuest]);
+    getQuestResults.mockResolvedValue([
+      {
+        id: 'r1', questId: 'quest-2', studentId: 'student-1', playerName: 'Ana', points: 10,
+        completedAt: '2026-07-18T00:00:00.000Z', stageDurations: [{ stageId: 's1', durationSec: 5 }],
+      },
+    ]);
+    let capturedBlob: Blob | undefined;
+    vi.spyOn(URL, 'createObjectURL').mockImplementation(blob => {
+      capturedBlob = blob as Blob;
+      return 'blob:mastery';
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+    render(<ClassGroups />);
+    await screen.findByRole('button', { name: /6-Б/ });
+
+    fireEvent.change(screen.getByTitle('Избери авантура за извештај за совладаност'), { target: { value: 'quest-2' } });
+    fireEvent.click(screen.getByRole('button', { name: /Извези совладаност на цели/ }));
+
+    await waitFor(() => expect(click).toHaveBeenCalledOnce());
+    const text = await capturedBlob!.text();
+    expect(text).toContain('Прва цел');
+    expect(text).toContain('Ana');
+    expect(text).toContain('50%');
+    click.mockRestore();
+  });
+
   it('reports an empty certificate cohort in-app without invoking a native alert', async () => {
     getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-1'] }]);
     render(<ClassGroups />);

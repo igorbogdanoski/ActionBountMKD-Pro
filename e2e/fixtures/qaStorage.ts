@@ -47,8 +47,11 @@ export async function getQuests() {
     playMode: 'singleplayer',
     sequenceType: 'fixed',
     stages: params.has('qaResults')
-      ? [{ id: 'qa-stage-1', type: 'INFO', title: 'QA етапа', description: 'Browser stage', order: 0 }]
+      ? [{ id: 'qa-stage-1', type: 'INFO', title: 'QA етапа', description: 'Browser stage', order: 0, objectiveRef: 'qa-objective-1' }]
       : [],
+    pedagogy: params.has('qaResults')
+      ? { learningObjectives: [{ id: 'qa-objective-1', label: 'QA наставна цел' }] }
+      : undefined,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   }];

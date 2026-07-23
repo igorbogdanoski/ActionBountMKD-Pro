@@ -9,12 +9,13 @@ import {
   isStudentNameTaken,
   groupAssignedCount,
   buildClassGradebook,
+  buildObjectiveMasteryReport,
   questMaxScore,
   bestResultForStudent,
 } from 'shared';
 import type { ClassGroup, GroupStudent, Quest, QuestResult } from 'shared';
 import { downloadClassCertificates, type CertificateData } from '../../utils/certificate';
-import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap, Download, Award, Link2 } from 'lucide-react';
+import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap, Download, Award, Link2, Target } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { buildRosterLaunchUrl } from '../../lib/rosterLaunch';
@@ -38,7 +39,8 @@ export function ClassGroups() {
   const [studentInput, setStudentInput] = useState('');
   const [certQuestId, setCertQuestId] = useState<string>('');
   const [launchQuestId, setLaunchQuestId] = useState<string>('');
-  const [busy, setBusy] = useState<'' | 'csv' | 'cert'>('');
+  const [masteryQuestId, setMasteryQuestId] = useState<string>('');
+  const [busy, setBusy] = useState<'' | 'csv' | 'cert' | 'mastery'>('');
   const [certificateNotice, setCertificateNotice] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
@@ -58,6 +60,15 @@ export function ClassGroups() {
 
   const selected = useMemo(() => groups.find(g => g.id === selectedId) ?? null, [groups, selectedId]);
   const questTitle = (id: string) => quests.find(q => q.id === id)?.title ?? 'Избришана авантура';
+
+  // Only assigned quests with at least one stable objective can produce a
+  // meaningful mastery report — quests without objectives would export empty columns.
+  const masteryQuestOptions = useMemo(
+    () => (selected?.assignedQuestIds ?? [])
+      .map(id => quests.find(q => q.id === id))
+      .filter((q): q is Quest => Boolean(q?.pedagogy?.learningObjectives?.length)),
+    [selected, quests],
+  );
 
   const persist = (updated: ClassGroup) => {
     const stamped = { ...updated, updatedAt: nowIso() };
@@ -191,6 +202,40 @@ export function ClassGroups() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const exportObjectiveMastery = async () => {
+    if (!selected || !masteryQuestId || selected.students.length === 0) return;
+    const quest = quests.find(q => q.id === masteryQuestId);
+    const objectives = quest?.pedagogy?.learningObjectives ?? [];
+    if (!quest || objectives.length === 0) return;
+    setBusy('mastery');
+    try {
+      const results = await getQuestResults(masteryQuestId);
+      const report = buildObjectiveMasteryReport(selected.students, objectives, quest.stages, results);
+      const csvCell = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      const header = ['Ученик', ...objectives.map(o => o.label)].map(csvCell).join(',');
+      const body = report.map(row => [
+        csvCell(row.studentName),
+        ...row.objectives.map(o => (o.masteryRatio === null ? '' : `${Math.round(o.masteryRatio * 100)}%`)),
+      ].join(','));
+      const meta = [
+        ['Класа:', csvCell(selected.name)].join(','),
+        ['Авантура:', csvCell(quest.title)].join(','),
+      ];
+      const content = '\uFEFF' + [...meta, '', header, ...body].join('\n');
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `sovladanost_${selected.name.replace(/\s+/g, '_')}_${quest.title.replace(/\s+/g, '_')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } finally {
+      setBusy('');
+    }
   };
 
   const generateCertificates = async () => {
@@ -448,6 +493,33 @@ export function ClassGroups() {
                 <span className="text-xs text-slate-500">
                   Поени по ученик за сите доделени авантури (стабилно ID, со fallback за стари резултати).
                 </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">
+                <select
+                  title="Избери авантура за извештај за совладаност"
+                  value={masteryQuestId}
+                  onChange={event => setMasteryQuestId(event.target.value)}
+                  disabled={masteryQuestOptions.length === 0}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 sm:max-w-xs w-full disabled:opacity-50"
+                >
+                  <option value="">
+                    {masteryQuestOptions.length === 0 ? 'Нема доделени авантури со наставни цели' : 'Избери авантура за совладаност…'}
+                  </option>
+                  {masteryQuestOptions.map(q => (
+                    <option key={q.id} value={q.id}>{q.title}</option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  onClick={exportObjectiveMastery}
+                  disabled={busy !== '' || !masteryQuestId || selected.students.length === 0}
+                  loading={busy === 'mastery'}
+                  colorClassName="bg-violet-600 hover:bg-violet-500 text-white focus-visible:ring-violet-500"
+                  className="!py-2 !rounded-lg !font-semibold shrink-0"
+                >
+                  {busy !== 'mastery' && <Target className="w-4 h-4" />} {busy === 'mastery' ? 'Извезувам…' : 'Извези совладаност на цели (CSV)'}
+                </Button>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">

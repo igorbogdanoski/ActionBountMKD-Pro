@@ -102,3 +102,35 @@ Valid hard-dark content-card contracts:
 | Switch guidance panel | Instructional notice | Contextual editor guidance, не standalone card |
 
 H4d не бара дополнително `Card` API проширување. Механичка миграција на овие surfaces би ги замаглила нивните вистински semantics.
+
+## H4e player/session completion audit — 2026-07-23
+
+Valid player content-card contracts:
+
+- INFO stage description — мигриран во H4e-1.
+- TOURNAMENT team task — мигриран во H4e-1.
+- Shared rubric preview — мигриран во H4e-1.
+- Finish-screen points, achievements и collected-inventory summaries — мигрирани во H4e-2.
+
+Преостанатите player/session candidate surfaces се проверени и намерно исклучени:
+
+| Surface | Класификација | Причина за исклучување |
+|---|---|---|
+| Player root, loading skeleton и active HUD | Application/game shell | Viewport, loading и live game-state contract |
+| Entry onboarding tips | Expandable onboarding region | Disclosure state и dismissal lifecycle |
+| Selectable stage rows и Switch paths | Interactive navigation | Selection, lock/completion и routing state |
+| Teacher-grade finish panel и grade rows | Async lifecycle panel | Check/loading/error/retry/graded states |
+| Feedback и certificate sections | Form/action lifecycle | Submission, loading, success и retry behavior |
+| Tournament/leaderboard/map drawers | Overlay/dialog | Focus, dismissal, live data и z-index contract |
+| Timer, inventory strip, toast и feedback messages | Status/transient UI | Progress, alert/status или ephemeral feedback semantics |
+| Quiz/QR answers и ordering/matching rows | Interactive form controls | Selection, validation, lock и reorder contracts |
+| Mission/QR upload zones | Upload/device input | File capture, upload progress и error lifecycle |
+| FindSpot location panel | Device-assisted control panel | GPS permission, distance и arrival lifecycle |
+| QR/scanner, map, image, video и audio wrappers | Media/device frame | Exact dimensions, clipping и third-party runtime contract |
+| JoinSession content | Session-entry form | Code/name validation и submit lifecycle |
+| LiveSessionHost create/join panels | Session-control shell | Mode selection, create/copy/start/finish controls |
+| Live leaderboard и player rows | Real-time control surface | Ranking updates и per-player moderation actions |
+| Live map panel | Real-time map shell | Map viewport, player markers и SOS overlays |
+| SOS panel и session errors | Alert | Urgent action and `role="alert"` feedback contract |
+
+H4e не бара нов `Card` tone, variant или API prop. Сите преостанати card-like wrappers имаат поспецифичен semantic contract и остануваат надвор од shared `Card`.

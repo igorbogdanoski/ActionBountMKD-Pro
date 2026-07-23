@@ -708,6 +708,73 @@ export function buildClassGradebook(
   });
 }
 
+// ─── OBJECTIVE MASTERY (Phase H7-4) ───────────────────────────────────────────
+
+export interface ObjectiveMastery {
+  objective: LearningObjective;
+  mappedStageCount: number;
+  reachedStageCount: number;
+  /** null when the objective has no mapped stages — mastery is undefined, not zero. */
+  masteryRatio: number | null;
+}
+
+export interface QuestObjectiveMastery {
+  objectives: ObjectiveMastery[];
+}
+
+/**
+ * Per-student objective mastery from a single resolved attempt. Mastery is the
+ * share of an objective's mapped stages the student reached (present in
+ * `stageDurations`) — a cross-stage-type completion signal, not per-answer
+ * correctness. Pure; reuses `computeObjectiveCoverage`'s stable-id mapping.
+ */
+export function computeObjectiveMastery(
+  objectives: LearningObjective[],
+  stages: BaseStage[],
+  result: Pick<QuestResult, 'stageDurations'> | null | undefined,
+): QuestObjectiveMastery {
+  const reachedStageIds = new Set((result?.stageDurations ?? []).map(d => d.stageId));
+  const coverage = computeObjectiveCoverage(objectives, stages);
+  return {
+    objectives: coverage.objectives.map(item => {
+      const reachedStageCount = item.stageIds.filter(id => reachedStageIds.has(id)).length;
+      return {
+        objective: item.objective,
+        mappedStageCount: item.mappedStageCount,
+        reachedStageCount,
+        masteryRatio: item.mappedStageCount > 0 ? reachedStageCount / item.mappedStageCount : null,
+      };
+    }),
+  };
+}
+
+export interface StudentObjectiveMastery {
+  studentId: string;
+  studentName: string;
+  objectives: ObjectiveMastery[];
+}
+
+/**
+ * Per-roster-student objective mastery for one quest, using the same stable-ID-first
+ * / legacy-name-fallback attempt resolution as `buildClassGradebook`. Pure.
+ */
+export function buildObjectiveMasteryReport(
+  students: Pick<GroupStudent, 'id' | 'name'>[],
+  objectives: LearningObjective[],
+  stages: BaseStage[],
+  results: QuestResult[],
+  policy: ResultSelectionPolicy = DEFAULT_RESULT_SELECTION_POLICY,
+): StudentObjectiveMastery[] {
+  return students.map(student => {
+    const selected = selectResultForStudent(results, student, policy);
+    return {
+      studentId: student.id,
+      studentName: student.name,
+      objectives: computeObjectiveMastery(objectives, stages, selected).objectives,
+    };
+  });
+}
+
 // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────────
 
 export interface QuestFeedback {

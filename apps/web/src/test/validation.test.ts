@@ -10,6 +10,7 @@ import {
   QuizStageSchema,
   SurveyStageSchema,
   ScanCodeStageSchema,
+  LearningObjectivesSchema,
 } from '../lib/validation';
 
 // ─── Quest Meta ───────────────────────────────────────────────────────────────
@@ -57,6 +58,26 @@ describe('QuestMetaSchema', () => {
       sequence: 'fixed',
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe('LearningObjectivesSchema', () => {
+  it('accepts bounded stable ids and duplicate display labels', () => {
+    expect(LearningObjectivesSchema.safeParse([
+      { id: 'objective-1', label: 'Објаснува постапка' },
+      { id: 'objective-2', label: 'Објаснува постапка' },
+    ]).success).toBe(true);
+  });
+
+  it('rejects duplicate ids, empty ids and oversized collections', () => {
+    expect(LearningObjectivesSchema.safeParse([
+      { id: 'same', label: 'Прва' },
+      { id: 'same', label: 'Втора' },
+    ]).success).toBe(false);
+    expect(LearningObjectivesSchema.safeParse([{ id: '', label: 'Цел' }]).success).toBe(false);
+    expect(LearningObjectivesSchema.safeParse(
+      Array.from({ length: 13 }, (_, index) => ({ id: `o-${index}`, label: `Цел ${index}` })),
+    ).success).toBe(false);
   });
 });
 

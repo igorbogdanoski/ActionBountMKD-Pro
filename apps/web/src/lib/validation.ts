@@ -16,6 +16,27 @@ export const QuestMetaSchema = z.object({
   sequence:    z.enum(['fixed', 'random', 'selectable']),
 });
 
+export const LearningObjectiveSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  label: safeString(200),
+});
+
+export const LearningObjectivesSchema = z.array(LearningObjectiveSchema)
+  .max(12)
+  .superRefine((objectives, context) => {
+    const ids = new Set<string>();
+    objectives.forEach((objective, index) => {
+      if (ids.has(objective.id)) {
+        context.addIssue({
+          code: 'custom',
+          path: [index, 'id'],
+          message: 'Objective IDs must be unique',
+        });
+      }
+      ids.add(objective.id);
+    });
+  });
+
 export const InventoryItemSchema = z.object({
   id: z.string().min(1).max(64),
   name: safeString(80),
@@ -30,6 +51,7 @@ export const StageBaseSchema = z.object({
   audioUrl:    z.string().url().max(500).optional().or(z.literal('')),
   grantsItemId: z.string().max(64).optional().or(z.literal('')),
   requiresItemId: z.string().max(64).optional().or(z.literal('')),
+  objectiveRef: z.string().trim().min(1).max(64).optional(),
 });
 
 export const QuizStageSchema = StageBaseSchema.extend({

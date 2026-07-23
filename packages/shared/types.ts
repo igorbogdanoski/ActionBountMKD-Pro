@@ -95,15 +95,24 @@ export const EDUCATION_GRADES: EducationGrade[] = [
 ];
 
 /** Pedagogical metadata that turns a quest into a real teaching unit. */
+export interface LearningObjective {
+  /** Stable opaque identity; labels may be renamed without breaking mappings. */
+  id: string;
+  label: string;
+}
+
 export interface QuestPedagogy {
   subject?: EducationSubject;
   grade?: EducationGrade;
   curriculumRef?: string;     // курикулумска тема/стандард, напр. „МАТ-6.3“
   learningGoals?: string[];   // цели на учење (макс 12, секоја до 200 знаци)
+  /** Stable objective model; learningGoals remains readable for legacy quests. */
+  learningObjectives?: LearningObjective[];
 }
 
 export const MAX_LEARNING_GOALS = 12;
 export const MAX_LEARNING_GOAL_LENGTH = 200;
+export const MAX_OBJECTIVE_ID_LENGTH = 64;
 
 /** Filter by pedagogical subject / grade. Empty fields mean "no constraint". Pure. */
 export interface PedagogyFilter {
@@ -280,6 +289,74 @@ export interface BaseStage {
   requiresItemId?: string;
   isIntro?: boolean;   // special non-scoring intro stage
   isOutro?: boolean;   // special non-scoring outro stage
+  /** Stable reference to QuestPedagogy.learningObjectives[].id. */
+  objectiveRef?: string;
+}
+
+export interface ObjectiveCoverage {
+  objective: LearningObjective;
+  stageIds: string[];
+  mappedStageCount: number;
+  mappedPoints: number;
+}
+
+export interface QuestObjectiveCoverage {
+  objectives: ObjectiveCoverage[];
+  unmappedStageIds: string[];
+  missingObjectiveRefs: string[];
+}
+
+/**
+ * Aggregate stage coverage by stable objective id. Labels are display-only:
+ * renamed or duplicate labels never change mappings. Unknown references are
+ * reported instead of silently counted, and legacy unmapped stages remain valid.
+ */
+export function computeObjectiveCoverage(
+  objectives: LearningObjective[],
+  stages: BaseStage[],
+): QuestObjectiveCoverage {
+  const objectiveById = new Map<string, LearningObjective>();
+  for (const objective of objectives) {
+    if (!objectiveById.has(objective.id)) objectiveById.set(objective.id, objective);
+  }
+
+  const stageIdsByObjective = new Map<string, string[]>();
+  const pointsByObjective = new Map<string, number>();
+  const unmappedStageIds: string[] = [];
+  const missingObjectiveRefs = new Set<string>();
+
+  for (const stage of stages) {
+    if (!stage.objectiveRef) {
+      unmappedStageIds.push(stage.id);
+      continue;
+    }
+    if (!objectiveById.has(stage.objectiveRef)) {
+      missingObjectiveRefs.add(stage.objectiveRef);
+      continue;
+    }
+    stageIdsByObjective.set(stage.objectiveRef, [
+      ...(stageIdsByObjective.get(stage.objectiveRef) ?? []),
+      stage.id,
+    ]);
+    pointsByObjective.set(
+      stage.objectiveRef,
+      (pointsByObjective.get(stage.objectiveRef) ?? 0) + (stage.points ?? 0),
+    );
+  }
+
+  return {
+    objectives: [...objectiveById.values()].map(objective => {
+      const stageIds = stageIdsByObjective.get(objective.id) ?? [];
+      return {
+        objective,
+        stageIds,
+        mappedStageCount: stageIds.length,
+        mappedPoints: pointsByObjective.get(objective.id) ?? 0,
+      };
+    }),
+    unmappedStageIds,
+    missingObjectiveRefs: [...missingObjectiveRefs],
+  };
 }
 
 export interface InfoStage extends BaseStage {

@@ -45,6 +45,18 @@ function existingQuest(): Quest {
   } as Quest;
 }
 
+function objectiveQuest(): Quest {
+  return {
+    ...existingQuest(),
+    pedagogy: {
+      learningObjectives: [
+        { id: 'objective-1', label: 'Применува стабилна цел' },
+        { id: 'objective-2', label: 'Објаснува резултат' },
+      ],
+    },
+  };
+}
+
 beforeEach(() => {
   navigateSpy.mockReset();
   useParamsMock.mockReturnValue({ questId: undefined });
@@ -111,6 +123,24 @@ describe('BoundCreator', () => {
     expect(await screen.findByDisplayValue('Постоечка авантура')).toBeTruthy();
     expect(screen.getByText('Етапи (1)')).toBeTruthy();
     expect(getQuestById).toHaveBeenCalledWith('q1');
+  });
+
+  it('maps the selected stage to a stable objective id', async () => {
+    useParamsMock.mockReturnValue({ questId: 'q1' });
+    getQuestById.mockResolvedValue(objectiveQuest());
+    render(<BoundCreator />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Избери етапа 1: Прва етапа' }));
+    const objectiveSelect = await screen.findByRole('combobox', { name: 'Наставна цел за етапата' });
+    fireEvent.change(objectiveSelect, { target: { value: 'objective-2' } });
+
+    expect(screen.getByText('● Незачувано')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Зачувај/ }));
+    await waitFor(() => expect(saveQuest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stages: [expect.objectContaining({ id: 's1', objectiveRef: 'objective-2' })],
+      }),
+    ));
   });
 
   it('adding a stage from the empty state selects it and opens the stage editor', () => {

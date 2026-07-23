@@ -1,4 +1,4 @@
-import type { Stage, InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, QrTaskStage, SurveyStage, TournamentStage, SwitchStage, InventoryItem } from 'shared';
+import type { Stage, InfoStage, QuizStage, MissionStage, FindSpotStage, ScanCodeStage, QrTaskStage, SurveyStage, TournamentStage, SwitchStage, InventoryItem, LearningObjective } from 'shared';
 import { STAGE_TYPE_CONFIG } from './StageList';
 import { InfoStageEditor }    from './stages/InfoStageEditor';
 import { QuizStageEditor }    from './stages/QuizStageEditor';
@@ -15,10 +15,11 @@ interface Props {
   stage: Stage;
   allStages: Stage[];
   inventoryItems: InventoryItem[];
+  learningObjectives: LearningObjective[];
   onChange: (updates: Partial<Stage>) => void;
 }
 
-export function StageEditor({ stage, allStages, inventoryItems, onChange }: Props) {
+export function StageEditor({ stage, allStages, inventoryItems, learningObjectives, onChange }: Props) {
   const cfg = STAGE_TYPE_CONFIG[stage.type];
   const Icon = cfg.icon;
 
@@ -39,6 +40,27 @@ export function StageEditor({ stage, allStages, inventoryItems, onChange }: Prop
 
       {/* Editor content */}
       <div className="flex-1 overflow-y-auto p-6">
+        <div className="mb-6 pb-6 border-b border-slate-800">
+          <Field
+            label="Наставна цел"
+            hint={learningObjectives.length > 0
+              ? 'Мапирањето користи стабилен ID и останува валидно ако целта се преименува.'
+              : 'Додајте стабилни наставни цели во Поставки → Педагогија.'}
+          >
+            <select
+              className={inputCls}
+              aria-label="Наставна цел за етапата"
+              value={stage.objectiveRef ?? ''}
+              onChange={event => onChange({ objectiveRef: event.target.value || undefined })}
+              disabled={learningObjectives.length === 0}
+            >
+              <option value="">— Без мапирана цел —</option>
+              {learningObjectives.map(objective => (
+                <option key={objective.id} value={objective.id}>{objective.label}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
         {stage.type === 'INFO'       && <InfoStageEditor    stage={stage as InfoStage}       onChange={u => onChange(u)} />}
         {stage.type === 'QUIZ'       && <QuizStageEditor    stage={stage as QuizStage}       onChange={u => onChange(u)} />}
         {stage.type === 'MISSION'    && <MissionStageEditor stage={stage as MissionStage}    onChange={u => onChange(u)} />}

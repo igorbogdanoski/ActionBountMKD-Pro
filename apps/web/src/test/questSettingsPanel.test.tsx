@@ -81,6 +81,66 @@ describe('QuestSettingsPanel controls', () => {
     expect(onChange).toHaveBeenCalledWith('pedagogy', undefined);
   });
 
+  it('creates and renames stable objectives without changing their ids', () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <QuestSettingsPanel quest={makeQuest()} onChange={onChange} onDeleteQuest={vi.fn().mockResolvedValue(undefined)} />,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
+    fireEvent.change(screen.getByPlaceholderText(/Применува Питагорова/), { target: { value: 'Решава триаголник' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Додај стабилна наставна цел' }));
+
+    expect(onChange).toHaveBeenCalledWith('pedagogy', {
+      learningObjectives: [expect.objectContaining({
+        id: expect.stringMatching(/^objective-/),
+        label: 'Решава триаголник',
+      })],
+    });
+
+    onChange.mockClear();
+    rerender(
+      <QuestSettingsPanel
+        quest={makeQuest({ pedagogy: { learningObjectives: [{ id: 'objective-1', label: 'Стара етикета' }] } })}
+        onChange={onChange}
+        onDeleteQuest={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Име на стабилна цел 1' }), {
+      target: { value: 'Нова етикета' },
+    });
+    expect(onChange).toHaveBeenCalledWith('pedagogy', {
+      learningObjectives: [{ id: 'objective-1', label: 'Нова етикета' }],
+    });
+  });
+
+  it('lists affected stages before deleting an objective and safely unmaps them', () => {
+    const onChange = vi.fn();
+    const quest = makeQuest({
+      pedagogy: {
+        learningGoals: ['Legacy цел'],
+        learningObjectives: [{ id: 'objective-1', label: 'Мапирана цел' }],
+      },
+      stages: [
+        { id: 's1', type: 'INFO', title: 'Прва етапа', description: '', order: 0, objectiveRef: 'objective-1' },
+        { id: 's2', type: 'INFO', title: 'Втора етапа', description: '', order: 1 },
+      ],
+    });
+    renderPanel(quest, onChange);
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Избриши стабилна цел 1' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Избриши наставна цел?' });
+    expect(within(dialog).getByText('Прва етапа')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Втора етапа')).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Избриши и отстрани мапирања' }));
+
+    expect(onChange).toHaveBeenCalledWith('pedagogy', { learningGoals: ['Legacy цел'] });
+    expect(onChange).toHaveBeenCalledWith('stages', [
+      expect.objectContaining({ id: 's1', objectiveRef: undefined }),
+      expect.objectContaining({ id: 's2' }),
+    ]);
+  });
+
   it('gates the public leaderboard control by plan', () => {
     planState.planId = 'free';
     const { rerender } = renderPanel();

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Quest, QuestCategory, QuestPedagogy, EducationSubject, EducationGrade } from 'shared';
+import type { Quest, QuestCategory, QuestPedagogy, EducationSubject, EducationGrade, LearningObjective } from 'shared';
 import { QUEST_CATEGORY_LABELS, EDUCATION_SUBJECTS, EDUCATION_GRADES, MAX_LEARNING_GOALS, MAX_LEARNING_GOAL_LENGTH } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
@@ -21,6 +21,8 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
   const [tab, setTab] = useState(0);
   const [tagInput, setTagInput] = useState('');
   const [goalInput, setGoalInput] = useState('');
+  const [objectiveInput, setObjectiveInput] = useState('');
+  const [pendingObjectiveDeleteId, setPendingObjectiveDeleteId] = useState<string | null>(null);
   const [inventoryName, setInventoryName] = useState('');
   const [inventoryIcon, setInventoryIcon] = useState('');
   const [inventoryMediaUrl, setInventoryMediaUrl] = useState('');
@@ -52,6 +54,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
     onChange('pedagogy', Object.keys(next).length ? next : undefined);
   };
   const learningGoals = pedagogy.learningGoals ?? [];
+  const learningObjectives = pedagogy.learningObjectives ?? [];
   const addGoal = () => {
     const g = goalInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
     if (!g) return;
@@ -60,6 +63,48 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
     setGoalInput('');
   };
   const removeGoal = (g: string) => updatePedagogy({ learningGoals: learningGoals.filter(x => x !== g) });
+
+  const addObjective = () => {
+    const label = objectiveInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
+    if (!label || learningObjectives.length >= MAX_LEARNING_GOALS) return;
+    const randomPart = globalThis.crypto?.randomUUID?.()
+      ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+    const objective: LearningObjective = {
+      id: `objective-${randomPart}`.slice(0, 64),
+      label,
+    };
+    updatePedagogy({ learningObjectives: [...learningObjectives, objective] });
+    setObjectiveInput('');
+  };
+
+  const renameObjective = (id: string, label: string) => {
+    const nextLabel = label.slice(0, MAX_LEARNING_GOAL_LENGTH);
+    updatePedagogy({
+      learningObjectives: learningObjectives.map(objective => (
+        objective.id === id ? { ...objective, label: nextLabel } : objective
+      )),
+    });
+  };
+
+  const pendingObjective = learningObjectives.find(objective => objective.id === pendingObjectiveDeleteId);
+  const affectedObjectiveStages = pendingObjectiveDeleteId
+    ? quest.stages.filter(stage => stage.objectiveRef === pendingObjectiveDeleteId)
+    : [];
+
+  const confirmDeleteObjective = () => {
+    if (!pendingObjectiveDeleteId) return;
+    updatePedagogy({
+      learningObjectives: learningObjectives.filter(objective => objective.id !== pendingObjectiveDeleteId),
+    });
+    if (affectedObjectiveStages.length > 0) {
+      onChange('stages', quest.stages.map(stage => (
+        stage.objectiveRef === pendingObjectiveDeleteId
+          ? { ...stage, objectiveRef: undefined }
+          : stage
+      )));
+    }
+    setPendingObjectiveDeleteId(null);
+  };
 
   const addInventoryItem = () => {
     const name = inventoryName.trim();
@@ -231,6 +276,67 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                   value={pedagogy.curriculumRef ?? ''} maxLength={120}
                   onChange={e => updatePedagogy({ curriculumRef: e.target.value || undefined })} />
               </Field>
+              <Field label="Стабилни наставни цели" hint={`Се мапираат кон етапи преку стабилен ID. Максимум ${MAX_LEARNING_GOALS}.`}>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      className={inputCls}
+                      placeholder="напр. Применува Питагорова теорема"
+                      value={objectiveInput}
+                      maxLength={MAX_LEARNING_GOAL_LENGTH}
+                      onChange={event => setObjectiveInput(event.target.value)}
+                      onKeyDown={event => {
+                        if (event.key === 'Enter') {
+                          event.preventDefault();
+                          addObjective();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="app-primary"
+                      size="icon"
+                      aria-label="Додај стабилна наставна цел"
+                      disabled={!objectiveInput.trim() || learningObjectives.length >= MAX_LEARNING_GOALS}
+                      onClick={addObjective}
+                      className="shrink-0"
+                    >
+                      <Plus className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                  {learningObjectives.length > 0 && (
+                    <div className="space-y-2">
+                      {learningObjectives.map((objective, index) => (
+                        <div key={objective.id} className="rounded-xl border border-slate-700 bg-slate-800/50 p-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-indigo-400 shrink-0">{index + 1}.</span>
+                            <input
+                              type="text"
+                              className={inputCls}
+                              aria-label={`Име на стабилна цел ${index + 1}`}
+                              value={objective.label}
+                              maxLength={MAX_LEARNING_GOAL_LENGTH}
+                              onChange={event => renameObjective(objective.id, event.target.value)}
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Избриши стабилна цел ${index + 1}`}
+                              onClick={() => setPendingObjectiveDeleteId(objective.id)}
+                              className="shrink-0 p-1 text-slate-500 hover:text-rose-400"
+                            >
+                              <Trash2 className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                          </div>
+                          <p className="mt-1 text-[11px] text-slate-500 truncate">ID: {objective.id}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Field>
               <Field label="Цели на учење" hint={`Што ќе научат учениците. Максимум ${MAX_LEARNING_GOALS}, притисни Enter за додавање`}>
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -374,6 +480,35 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
           )}
         </div>
       </div>
+
+      <Modal
+        open={Boolean(pendingObjective)}
+        onClose={() => setPendingObjectiveDeleteId(null)}
+        title="Избриши наставна цел?"
+        size="sm"
+        footer={
+          <>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setPendingObjectiveDeleteId(null)}>Откажи</Button>
+            <Button type="button" variant="danger" size="sm" onClick={confirmDeleteObjective}>Избриши и отстрани мапирања</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Целта „{pendingObjective?.label}“ ќе биде избришана.
+        </p>
+        {affectedObjectiveStages.length > 0 ? (
+          <div className="mt-3">
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-300">
+              Ќе се отстрани мапирањето од {affectedObjectiveStages.length} етапи:
+            </p>
+            <ul className="mt-2 list-disc pl-5 text-sm text-slate-600 dark:text-slate-300">
+              {affectedObjectiveStages.map(stage => <li key={stage.id}>{stage.title || 'Без наслов'}</li>)}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">Ниту една етапа не е мапирана кон оваа цел.</p>
+        )}
+      </Modal>
 
       <Modal
         open={deleteOpen}

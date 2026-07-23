@@ -272,6 +272,7 @@ export function BoundCreator() {
               stage={selectedStage}
               allStages={quest.stages}
               inventoryItems={quest.inventoryItems ?? []}
+              learningObjectives={quest.pedagogy?.learningObjectives ?? []}
               onChange={updates => updateStage(selectedStage.id, updates)}
             />
           ) : (

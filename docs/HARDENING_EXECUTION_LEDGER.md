@@ -149,7 +149,7 @@ Batch-от е затворен само кога:
 
 - [x] Changelog route, page и navigation entry.
 - [x] Преостанатите LandingPage user-facing literals во `mk.json`/`en.json`.
-- [ ] Translation parity test.
+- [x] Translation parity test.
 
 ### H6 — Стабилен student identity и attempts
 
@@ -255,7 +255,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H4e-3 Player/session completion audit + H4 closure | `ac733c7` | PASS | 606/606 PASS (carried verified baseline; documentation-only audit) | PASS (no visual changes) | Exhaustive audit ги класифицира преостанатите MobilePlayer, stage-player, JoinSession и LiveSessionHost wrappers како application/game shells, interactive navigation/forms, async lifecycle panels, overlays/dialogs, alerts/status UI или media/device frames. Нема преостанат valid content-card candidate и Card API не бара проширување. H4 complete. |
 | 2026-07-23 | H5-1 Public changelog | `99b39ac` | PASS | 608/608 PASS; 6 focused changelog/sitemap contracts | PASS | Додадена е lazy-loaded public `/changelog` страница со SEO metadata, три dated release sections, shared Footer navigation entry и sitemap source-of-truth/static XML entry. Desktop/mobile production-preview contract 2/2 PASS со реалниот локален VITE config, zero overflow и zero console/page/request errors; production build PASS. |
 | 2026-07-23 | H5-2 LandingPage localization | `72977b9` | PASS | 611/611 PASS; 3 focused Landing translation contracts | PASS | Featured adventures блокот и language-group label се целосно префрлени во `mk.json`/`en.json`; testimonial initials сега се изведуваат од локализираните записи. Македонскиот copy, navigation и visual hierarchy се зачувани. Desktop/mobile MK→EN production-preview contract 2/2 PASS со zero overflow и zero runtime/console errors; production build PASS. |
+| 2026-07-23 | H5-3 Translation parity + H5 closure | `291c8bc` | PASS | 612/612 PASS; 1 focused parity contract | N/A (test-only) | Рекурзивниот locale contract ги споредува missing/extra keys, value kinds, array lengths и element structures, како и interpolation placeholder sets помеѓу `mk.json` и `en.json`. Тековните trees се целосно усогласени; production build PASS. H5 complete. |
 
 ## Следна акција
 
-Продолжи со H5-3: додади translation parity test што рекурзивно ги споредува `mk.json` и `en.json`, ги пријавува missing/extra keys и проверува parity на interpolation placeholders и структурите на arrays/objects. Потоа изврши focused test, цел Vitest suite и production build; browser gate е потребен само ако parity работата открие и поправи runtime copy/UI дефект. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H6-1: направи read-only inventory на `QuestResult`, session/roster player identity, result writes, analytics reads и Firestore rules/indexes. Дефинирај backward-compatible schema за optional stable `studentId`, без да се нарушат guest/public flows или старите резултати; имплементацијата мора да почне со focused storage/rules contracts пред UI промени. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

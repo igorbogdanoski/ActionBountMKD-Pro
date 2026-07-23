@@ -90,6 +90,18 @@ describe('syncOfflineQueue', () => {
     expect(offlineQueueSize()).toBe(0);
   });
 
+  it('preserves stable student identity through offline replay', async () => {
+    saveQuestResultMock.mockResolvedValue('new-id');
+    saveOfflineResult({ ...makeResult(30), studentId: 'student-1' });
+
+    await syncOfflineQueue();
+
+    expect(saveQuestResultMock).toHaveBeenCalledWith(expect.objectContaining({
+      studentId: 'student-1',
+      playerName: 'Тестер',
+    }));
+  });
+
   it('keeps failed results in the queue and reports synced count', async () => {
     saveQuestResultMock
       .mockResolvedValueOnce('ok')

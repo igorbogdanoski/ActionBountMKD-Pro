@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName } from 'shared';
+import { Quest, Stage, Coordinates, QrTaskStage, MissionStage, SurveyStage, SessionPlayer, StageSubmission, QuizAnswerRecord, RubricGrade, questMaxScore, isMatchingCorrect, isOrderingCorrect, bestResultForName, bestResultForStudent } from 'shared';
 import { MapContainer, TileLayer, Marker, Circle, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -43,6 +43,8 @@ interface MobilePlayerProps {
   questId: string;
   questProp?: Quest;
   isPreview?: boolean;
+  rosterStudentId?: string;
+  rosterStudentName?: string;
   // ─── Real-time session (Phase 5A) ───
   sessionCode?: string;       // when set, progress is reported to the live session
   sessionPlayerId?: string;   // anonymous player id within the session
@@ -65,11 +67,11 @@ function getDistance(coord1: Coordinates, coord2: Coordinates): number {
   return R * c;
 }
 
-export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
+export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, rosterStudentName, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
   const [quest, setQuest] = useState<Quest | null>(questProp || null);
   const [hasStarted, setHasStarted] = useState(!!sessionCode);
   const [showOnboarding, setShowOnboarding] = useState(() => !sessionCode && shouldShowOnboarding(typeof window !== 'undefined' ? window.localStorage : null));
-  const [playerName, setPlayerName] = useState(sessionPlayerName ?? '');
+  const [playerName, setPlayerName] = useState(rosterStudentName ?? sessionPlayerName ?? '');
   const [currentStageIndex, setCurrentStageIndex] = useState(0);
   const [points, setPoints] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -642,6 +644,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
 
     const result = {
       questId,
+      ...(rosterStudentId ? { studentId: rosterStudentId } : {}),
       playerName,
       points: finalPoints,
       completedAt: new Date().toISOString(),
@@ -919,6 +922,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             type="text" 
             placeholder="Внесете го вашето име..." 
             value={playerName}
+            readOnly={Boolean(rosterStudentId)}
             onChange={(e) => setPlayerName(e.target.value)}
             className={`w-full text-center text-lg py-4 rounded-xl mb-6 font-bold outline-none border-2 transition-all ${
               isNightMode 
@@ -1011,7 +1015,9 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
     setGradeCheckStatus('loading');
     try {
       const results = await getQuestResults(questId);
-      const best = bestResultForName(results, playerName);
+      const best = rosterStudentId
+        ? bestResultForStudent(results, { id: rosterStudentId, name: playerName })
+        : bestResultForName(results, playerName);
       setMyGrades(best?.grades ?? []);
       setGradeCheckStatus('done');
     } catch {

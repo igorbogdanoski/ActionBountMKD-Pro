@@ -48,6 +48,8 @@ beforeEach(() => {
   getQuestResults.mockReset();
   getQuestResults.mockResolvedValue([]);
   downloadClassCertificates.mockReset();
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:roster-links');
+  vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
 });
 
 describe('H3b ClassGroups controls', () => {
@@ -82,6 +84,22 @@ describe('H3b ClassGroups controls', () => {
     fireEvent.click(assignment);
     expect(assignment).toHaveAttribute('aria-pressed', 'true');
     expect(saveGroup).toHaveBeenLastCalledWith(expect.objectContaining({ assignedQuestIds: ['quest-1'] }));
+  });
+
+  it('exports one roster-bound launch link per student for an assigned quest', async () => {
+    getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-1'] }]);
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    render(<ClassGroups />);
+    await screen.findByRole('button', { name: /6-Б/ });
+
+    fireEvent.change(screen.getByTitle('Избери авантура за индивидуални линкови'), {
+      target: { value: 'quest-1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Извези индивидуални линкови' }));
+
+    expect(URL.createObjectURL).toHaveBeenCalledOnce();
+    expect(click).toHaveBeenCalledOnce();
+    click.mockRestore();
   });
 
   it('requires the app confirmation modal before deleting a group', async () => {

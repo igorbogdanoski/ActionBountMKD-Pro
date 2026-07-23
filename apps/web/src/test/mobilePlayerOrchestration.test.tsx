@@ -85,6 +85,21 @@ function renderPlayer(quest: Quest) {
   );
 }
 
+function renderRosterPlayer(quest: Quest) {
+  return render(
+    <HelmetProvider>
+      <MemoryRouter>
+        <MobilePlayer
+          questId={quest.id}
+          questProp={quest}
+          rosterStudentId="student-1"
+          rosterStudentName="Ана"
+        />
+      </MemoryRouter>
+    </HelmetProvider>
+  );
+}
+
 function infoQuizQuest(): Quest {
   return {
     id: 'quest-1',
@@ -175,6 +190,25 @@ async function finishInfoQuiz(name = 'Марко') {
 }
 
 describe('MobilePlayer orchestration', () => {
+  it('locks roster identity and persists it in the online result', async () => {
+    saveQuestResult.mockResolvedValue('result-1');
+    renderRosterPlayer(infoQuizQuest());
+
+    expect(screen.getByPlaceholderText('Внесете го вашето име...')).toHaveValue('Ана');
+    expect(screen.getByPlaceholderText('Внесете го вашето име...')).toHaveAttribute('readonly');
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+    fireEvent.click(await screen.findByText('Разбрав, понатаму'));
+    fireEvent.click(await screen.findByText('4'));
+    fireEvent.click(screen.getByText('Потврди'));
+
+    await waitFor(() => expect(saveQuestResult).toHaveBeenCalledWith(expect.objectContaining({
+      questId: 'quest-1',
+      studentId: 'student-1',
+      playerName: 'Ана',
+    })), { timeout: 3000 });
+    expect(saveOfflineResult).not.toHaveBeenCalled();
+  });
+
   it('uses semantic entry controls and persists onboarding dismissal', () => {
     renderPlayer(infoQuizQuest());
     const start = screen.getByRole('button', { name: 'Започни Авантура' });

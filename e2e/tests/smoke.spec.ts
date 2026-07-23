@@ -33,6 +33,23 @@ test.describe('public shell', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
+  test('roster launch pre-fills and locks stable student identity', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', message => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', error => runtimeErrors.push(error.message));
+
+    await page.goto('/play/demo?student=student-1&name=%D0%90%D0%BD%D0%B0', {
+      waitUntil: 'domcontentloaded',
+    });
+    const nameInput = page.getByPlaceholder('Внесете го вашето име...');
+    await expect(nameInput).toHaveValue('Ана', { timeout: 15_000 });
+    await expect(nameInput).toHaveAttribute('readonly', '');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('legal pages are reachable', async ({ page }) => {
     await page.goto('/privacy');
     await expect(page.locator('body')).toContainText(/Приватн/i);

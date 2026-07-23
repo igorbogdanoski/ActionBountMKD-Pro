@@ -10,13 +10,14 @@ import {
   groupAssignedCount,
   buildClassGradebook,
   questMaxScore,
-  bestResultForName,
+  bestResultForStudent,
 } from 'shared';
 import type { ClassGroup, GroupStudent, Quest, QuestResult } from 'shared';
 import { downloadClassCertificates, type CertificateData } from '../../utils/certificate';
-import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap, Download, Award } from 'lucide-react';
+import { Users, Plus, Trash2, UserPlus, X, BookMarked, GraduationCap, Download, Award, Link2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { buildRosterLaunchUrl } from '../../lib/rosterLaunch';
 
 const uid = () =>
   (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
@@ -36,6 +37,7 @@ export function ClassGroups() {
   const [newGroupName, setNewGroupName] = useState('');
   const [studentInput, setStudentInput] = useState('');
   const [certQuestId, setCertQuestId] = useState<string>('');
+  const [launchQuestId, setLaunchQuestId] = useState<string>('');
   const [busy, setBusy] = useState<'' | 'csv' | 'cert'>('');
   const [certificateNotice, setCertificateNotice] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -167,6 +169,30 @@ export function ClassGroups() {
     }
   };
 
+  const exportRosterLinks = () => {
+    if (!selected || !launchQuestId || selected.students.length === 0) return;
+    const quest = quests.find(item => item.id === launchQuestId);
+    if (!quest) return;
+    const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+    const rows = selected.students.map(student => [
+      csvCell(student.name),
+      csvCell(buildRosterLaunchUrl(window.location.origin, quest.id, student)),
+    ].join(','));
+    const content = '\uFEFF' + [
+      [csvCell('Ученик'), csvCell('Индивидуален линк')].join(','),
+      ...rows,
+    ].join('\n');
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `линкови_${selected.name.replace(/\s+/g, '_')}_${quest.title.replace(/\s+/g, '_')}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const generateCertificates = async () => {
     if (!selected || !certQuestId) return;
     const quest = quests.find(q => q.id === certQuestId);
@@ -178,7 +204,7 @@ export function ClassGroups() {
       const maxScore = questMaxScore(quest);
       const items: CertificateData[] = [];
       for (const s of selected.students) {
-        const best = bestResultForName(results, s.name);
+        const best = bestResultForStudent(results, s);
         if (!best) continue; // само ученици што ја завршиле
         items.push({
           playerName: s.name,
@@ -420,8 +446,31 @@ export function ClassGroups() {
                   {busy !== 'csv' && <Download className="w-4 h-4" />} {busy === 'csv' ? 'Извезувам…' : 'Извези оцени (CSV)'}
                 </Button>
                 <span className="text-xs text-slate-500">
-                  Поени по ученик за сите доделени авантури (совпаѓање по име).
+                  Поени по ученик за сите доделени авантури (стабилно ID, со fallback за стари резултати).
                 </span>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">
+                <select
+                  title="Избери авантура за индивидуални линкови"
+                  value={launchQuestId}
+                  onChange={event => setLaunchQuestId(event.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 sm:max-w-xs w-full"
+                >
+                  <option value="">Избери авантура за линкови…</option>
+                  {(selected.assignedQuestIds ?? []).map(id => (
+                    <option key={id} value={id}>{questTitle(id)}</option>
+                  ))}
+                </select>
+                <Button
+                  type="button"
+                  onClick={exportRosterLinks}
+                  disabled={!launchQuestId || selected.students.length === 0}
+                  colorClassName="bg-indigo-600 hover:bg-indigo-500 text-white focus-visible:ring-indigo-500"
+                  className="!py-2 !rounded-lg !font-semibold shrink-0"
+                >
+                  <Link2 className="w-4 h-4" /> Извези индивидуални линкови
+                </Button>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">

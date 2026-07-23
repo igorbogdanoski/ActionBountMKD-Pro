@@ -1,8 +1,9 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from './utils/AuthContext';
 import { AnalyticsConsentBanner } from './components/AnalyticsConsentBanner';
 import { InstallPrompt } from './components/InstallPrompt';
+import { parseRosterLaunch } from './lib/rosterLaunch';
 
 // ─── Lazy-loaded routes (code splitting) ─────────────────────────────────────
 const LandingPage      = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -54,8 +55,16 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function PlayerRoute() {
   const { questId } = useParams<{ questId: string }>();
+  const [searchParams] = useSearchParams();
   if (!questId) return <Navigate to="/" replace />;
-  return <MobilePlayer questId={questId} />;
+  const rosterIdentity = parseRosterLaunch(`?${searchParams.toString()}`);
+  return (
+    <MobilePlayer
+      questId={questId}
+      rosterStudentId={rosterIdentity?.studentId}
+      rosterStudentName={rosterIdentity?.studentName}
+    />
+  );
 }
 
 // ─── Dashboard shell ───────────────────────────────────────────────────────────

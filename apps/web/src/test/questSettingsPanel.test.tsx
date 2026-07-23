@@ -141,6 +141,39 @@ describe('QuestSettingsPanel controls', () => {
     ]);
   });
 
+  it('shows objective coverage, unmapped stages and orphaned references', () => {
+    const quest = makeQuest({
+      pedagogy: {
+        learningObjectives: [
+          { id: 'objective-1', label: 'Решава равенки' },
+          { id: 'objective-2', label: 'Толкува графици' },
+        ],
+      },
+      stages: [
+        { id: 's1', type: 'INFO', title: 'Прва', description: '', order: 0, points: 10, objectiveRef: 'objective-1' },
+        { id: 's2', type: 'INFO', title: 'Втора', description: '', order: 1, points: 15, objectiveRef: 'objective-1' },
+        { id: 's3', type: 'INFO', title: 'Трета', description: '', order: 2, points: 20 },
+        { id: 's4', type: 'INFO', title: 'Четврта', description: '', order: 3, points: 5, objectiveRef: 'objective-deleted' },
+      ],
+    });
+    renderPanel(quest);
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
+
+    expect(screen.getByText('Решава равенки')).toBeInTheDocument();
+    expect(screen.getByText('2 етапи · 25 поени')).toBeInTheDocument();
+    expect(screen.getByText('Толкува графици')).toBeInTheDocument();
+    expect(screen.getByText('0 етапи · 0 поени')).toBeInTheDocument();
+    expect(screen.getByText('1 од 4 етапи немаат мапирана наставна цел.')).toBeInTheDocument();
+    expect(screen.getByText('1 етапи упатуваат кон избришана наставна цел.')).toBeInTheDocument();
+  });
+
+  it('hides the coverage summary when no stable objectives exist yet', () => {
+    renderPanel(makeQuest({ stages: [{ id: 's1', type: 'INFO', title: 'Прва', description: '', order: 0 }] }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
+
+    expect(screen.queryByText('Покриеност на наставната програма')).not.toBeInTheDocument();
+  });
+
   it('gates the public leaderboard control by plan', () => {
     planState.planId = 'free';
     const { rerender } = renderPanel();

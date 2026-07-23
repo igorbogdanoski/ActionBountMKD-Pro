@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Quest, QuestCategory, QuestPedagogy, EducationSubject, EducationGrade, LearningObjective } from 'shared';
-import { QUEST_CATEGORY_LABELS, EDUCATION_SUBJECTS, EDUCATION_GRADES, MAX_LEARNING_GOALS, MAX_LEARNING_GOAL_LENGTH } from 'shared';
+import { QUEST_CATEGORY_LABELS, EDUCATION_SUBJECTS, EDUCATION_GRADES, MAX_LEARNING_GOALS, MAX_LEARNING_GOAL_LENGTH, computeObjectiveCoverage } from 'shared';
 import { Tabs, Field, Toggle, inputCls, textareaCls } from './stages/shared';
 import { ImageUploader } from '../upload/ImageUploader';
 import { TrackUploader } from '../upload/TrackUploader';
@@ -55,6 +55,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
   };
   const learningGoals = pedagogy.learningGoals ?? [];
   const learningObjectives = pedagogy.learningObjectives ?? [];
+  const objectiveCoverage = computeObjectiveCoverage(learningObjectives, quest.stages);
   const addGoal = () => {
     const g = goalInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
     if (!g) return;
@@ -337,6 +338,33 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                   )}
                 </div>
               </Field>
+              {learningObjectives.length > 0 && (
+                <Field label="Покриеност на наставната програма" hint="Пресметано врз основа на мапираните етапи во оваа авантура.">
+                  <div className="space-y-2">
+                    {objectiveCoverage.objectives.map(coverage => (
+                      <div
+                        key={coverage.objective.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-slate-700 bg-slate-800/50 px-3 py-2"
+                      >
+                        <span className="text-sm text-slate-200 truncate">{coverage.objective.label}</span>
+                        <span className="text-xs font-semibold text-slate-400 shrink-0">
+                          {coverage.mappedStageCount} етапи · {coverage.mappedPoints} поени
+                        </span>
+                      </div>
+                    ))}
+                    {objectiveCoverage.unmappedStageIds.length > 0 && (
+                      <p className="text-xs text-amber-400">
+                        {objectiveCoverage.unmappedStageIds.length} од {quest.stages.length} етапи немаат мапирана наставна цел.
+                      </p>
+                    )}
+                    {objectiveCoverage.missingObjectiveRefs.length > 0 && (
+                      <p className="text-xs text-rose-400">
+                        {objectiveCoverage.missingObjectiveRefs.length} етапи упатуваат кон избришана наставна цел.
+                      </p>
+                    )}
+                  </div>
+                </Field>
+              )}
               <Field label="Цели на учење" hint={`Што ќе научат учениците. Максимум ${MAX_LEARNING_GOALS}, притисни Enter за додавање`}>
                 <div className="space-y-2">
                   <div className="flex gap-2">

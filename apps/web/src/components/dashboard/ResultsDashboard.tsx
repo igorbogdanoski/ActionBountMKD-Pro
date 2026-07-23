@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { SubmissionReviewModal } from './SubmissionReviewModal';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 export function ResultsDashboard() {
   const { user } = useAuth();
@@ -397,20 +398,35 @@ export function ResultsDashboard() {
               <>
                 {/* Summary chips */}
                 <div className="flex flex-wrap gap-3">
-                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                  <Card
+                    tone="dark"
+                    padded={false}
+                    data-testid="funnel-summary-card"
+                    className="!rounded-xl !shadow-none px-4 py-3 text-center"
+                  >
                     <p className="text-2xl font-bold text-white">{results.length}</p>
                     <p className="text-xs text-slate-400 mt-0.5">Вкупно играчи</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                  </Card>
+                  <Card
+                    tone="dark"
+                    padded={false}
+                    data-testid="funnel-summary-card"
+                    className="!rounded-xl !shadow-none px-4 py-3 text-center"
+                  >
                     <p className="text-2xl font-bold text-emerald-400">{funnelStats[funnelStats.length - 1]?.pct ?? 0}%</p>
                     <p className="text-xs text-slate-400 mt-0.5">Завршиле квестот</p>
-                  </div>
-                  <div className="rounded-xl bg-slate-800 border border-slate-700 px-4 py-3 text-center">
+                  </Card>
+                  <Card
+                    tone="dark"
+                    padded={false}
+                    data-testid="funnel-summary-card"
+                    className="!rounded-xl !shadow-none px-4 py-3 text-center"
+                  >
                     <p className="text-2xl font-bold text-rose-400">
                       {funnelStats.filter(s => s.bigDrop).length}
                     </p>
                     <p className="text-xs text-slate-400 mt-0.5">Критичен пад (&gt;20%)</p>
-                  </div>
+                  </Card>
                 </div>
 
                 {/* Bar chart */}
@@ -823,4 +839,3 @@ export function ResultsDashboard() {
     </div>
   );
 }
-

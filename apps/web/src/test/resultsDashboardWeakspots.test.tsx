@@ -109,6 +109,18 @@ describe('ResultsDashboard cross-quest weak-spots tab', () => {
 });
 
 describe('ResultsDashboard H3b controls', () => {
+  it('renders the funnel summary as three hard-dark shared cards', async () => {
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Аналитика/ }));
+    const cards = await screen.findAllByTestId('funnel-summary-card');
+    expect(cards).toHaveLength(3);
+    expect(cards.every(card => card.className.includes('bg-slate-800'))).toBe(true);
+    expect(cards.every(card => card.className.includes('!rounded-xl'))).toBe(true);
+    expect(cards.every(card => card.className.includes('!shadow-none'))).toBe(true);
+  });
+
   it('exposes a semantic tablist and keeps empty exports disabled', async () => {
     getQuestResults.mockResolvedValue([]);
     render(<ResultsDashboard />);

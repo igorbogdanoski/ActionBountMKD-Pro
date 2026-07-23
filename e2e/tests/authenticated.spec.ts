@@ -218,6 +218,13 @@ test.describe('authenticated QA harness', () => {
     const analytics = page.getByRole('tab', { name: /Аналитика/ });
     await analytics.click();
     await expect(analytics).toHaveAttribute('aria-selected', 'true');
+    const funnelCards = page.getByTestId('funnel-summary-card');
+    await expect(funnelCards).toHaveCount(3);
+    for (let index = 0; index < 3; index += 1) {
+      await expect(funnelCards.nth(index)).toHaveClass(/bg-slate-800/);
+      await expect(funnelCards.nth(index)).toHaveClass(/!rounded-xl/);
+      await expect(funnelCards.nth(index)).toHaveClass(/!shadow-none/);
+    }
     const weakspots = page.getByRole('tab', { name: /Слаби точки/ });
     await weakspots.click();
     await expect(weakspots).toHaveAttribute('aria-selected', 'true');

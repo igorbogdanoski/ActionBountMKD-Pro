@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { Zap, Crown } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlan';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 
 const PLAN_LABELS: Record<string, string> = {
   free:       'Free',
@@ -37,15 +38,22 @@ export function PlanUsageWidget({ questCount }: Props) {
   const pct = isUnlimited ? 0 : Math.min((questCount / maxQuests) * 100, 100);
   const nearLimit = !isUnlimited && pct >= 80;
   const atLimit = !isUnlimited && questCount >= maxQuests;
+  const usageState = atLimit ? 'exhausted' : nearLimit ? 'warning' : 'normal';
 
   return (
-    <div className={`rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center gap-4 ${
+    <Card
+      tone="dark"
+      padded={false}
+      data-testid="plan-usage-card"
+      data-state={usageState}
+      className={`!shadow-none p-4 flex flex-col sm:flex-row sm:items-center gap-4 ${
       atLimit
-        ? 'bg-rose-500/5 border-rose-500/20'
+        ? '!bg-rose-500/5 !border-rose-500/20'
         : nearLimit
-          ? 'bg-amber-500/5 border-amber-500/20'
-          : 'bg-slate-800/50 border-slate-700'
-    }`}>
+          ? '!bg-amber-500/5 !border-amber-500/20'
+          : '!bg-slate-800/50 !border-slate-700'
+      }`}
+    >
       <div className="flex-1 space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
@@ -67,7 +75,14 @@ export function PlanUsageWidget({ questCount }: Props) {
         </div>
 
         {!isUnlimited && (
-          <div className="w-full h-1.5 rounded-full bg-slate-700 overflow-hidden">
+          <div
+            role="progressbar"
+            aria-label="Искористеност на лимитот за квестови"
+            aria-valuemin={0}
+            aria-valuemax={maxQuests}
+            aria-valuenow={Math.min(questCount, maxQuests)}
+            className="w-full h-1.5 rounded-full bg-slate-700 overflow-hidden"
+          >
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 atLimit ? 'bg-rose-500' : nearLimit ? 'bg-amber-400' : BAR_COLORS[planId]
@@ -90,6 +105,6 @@ export function PlanUsageWidget({ questCount }: Props) {
           {planId === 'free' ? 'Надгради план' : 'Надгради во Pro'}
         </Button>
       )}
-    </div>
+    </Card>
   );
 }

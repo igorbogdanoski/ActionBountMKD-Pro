@@ -61,16 +61,36 @@ beforeEach(() => {
 describe('H3b review and plan controls', () => {
   it('keeps the plan upgrade action explicit and routes to pricing', () => {
     render(<MemoryRouter><PlanUsageWidget questCount={3} /></MemoryRouter>);
+    const card = screen.getByTestId('plan-usage-card');
+    expect(card).toHaveAttribute('data-state', 'exhausted');
+    expect(card.className).toContain('!bg-rose-500/5');
+    expect(card.className).toContain('!shadow-none');
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '3');
     const upgrade = screen.getByRole('button');
     expect(upgrade).toHaveAttribute('type', 'button');
     fireEvent.click(upgrade);
     expect(navigate).toHaveBeenCalledWith('/pricing');
   });
 
+  it('preserves normal and warning state palettes', () => {
+    const { rerender } = render(<MemoryRouter><PlanUsageWidget questCount={1} /></MemoryRouter>);
+    expect(screen.getByTestId('plan-usage-card')).toHaveAttribute('data-state', 'normal');
+    expect(screen.getByTestId('plan-usage-card').className).toContain('!bg-slate-800/50');
+
+    planState.planId = 'starter';
+    planState.limits.maxQuests = 10;
+    rerender(<MemoryRouter><PlanUsageWidget questCount={8} /></MemoryRouter>);
+    expect(screen.getByTestId('plan-usage-card')).toHaveAttribute('data-state', 'warning');
+    expect(screen.getByTestId('plan-usage-card').className).toContain('!bg-amber-500/5');
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '8');
+  });
+
   it('does not render an upgrade action for an enterprise plan', () => {
     planState.planId = 'enterprise';
     planState.limits.maxQuests = -1;
     render(<MemoryRouter><PlanUsageWidget questCount={300} /></MemoryRouter>);
+    expect(screen.getByTestId('plan-usage-card')).toHaveAttribute('data-state', 'normal');
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 

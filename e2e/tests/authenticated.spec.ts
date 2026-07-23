@@ -111,6 +111,11 @@ test.describe('authenticated QA harness', () => {
 
   test('routes the dashboard plan usage upgrade action to pricing', async ({ page }) => {
     await page.goto('/dashboard?qaPlan=free', { waitUntil: 'domcontentloaded' });
+    const usageCard = page.getByTestId('plan-usage-card');
+    await expect(usageCard).toBeVisible({ timeout: 15_000 });
+    await expect(usageCard).toHaveAttribute('data-state', /normal|warning|exhausted/);
+    await expect(usageCard).toHaveClass(/!shadow-none/);
+    await expect(usageCard.getByRole('progressbar')).toBeVisible();
     const upgrade = page.locator('main button:has(svg.lucide-zap)');
     await expect(upgrade).toBeVisible({ timeout: 15_000 });
     await upgrade.click();

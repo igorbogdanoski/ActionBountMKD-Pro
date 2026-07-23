@@ -8,6 +8,7 @@ describe('buildSitemapXml', () => {
     expect(count).toBe(STATIC_ROUTES.length);
     expect(xml).toContain(`<loc>${SITE_ORIGIN}/</loc>`);
     expect(xml).toContain(`<loc>${SITE_ORIGIN}/pricing</loc>`);
+    expect(xml).toContain(`<loc>${SITE_ORIGIN}/changelog</loc>`);
     expect(xml.startsWith('<?xml')).toBe(true);
   });
 

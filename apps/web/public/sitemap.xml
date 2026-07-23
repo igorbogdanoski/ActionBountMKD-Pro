@@ -20,6 +20,12 @@
   </url>
 
   <url>
+    <loc>https://avantura.mismath.net/changelog</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
     <loc>https://avantura.mismath.net/play/demo</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

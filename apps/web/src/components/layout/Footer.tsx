@@ -25,6 +25,7 @@ export function Footer() {
             <li><Link to="/creator" className="hover:text-brand-500 transition-colors">Креирај авантура</Link></li>
             <li><Link to="/pricing" className="hover:text-brand-500 transition-colors">Цени и планови</Link></li>
             <li><Link to="/join" className="hover:text-brand-500 transition-colors">Приклучи се на сесија</Link></li>
+            <li><Link to="/changelog" className="hover:text-brand-500 transition-colors">Новости</Link></li>
           </ul>
         </nav>
 

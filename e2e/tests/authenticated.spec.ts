@@ -432,6 +432,11 @@ test.describe('authenticated QA harness', () => {
     await expect(templatesTab).toHaveAttribute('aria-selected', 'false');
     await expect(page.getByRole('button', { name: 'Чека' })).toHaveAttribute('aria-pressed', 'true');
     await expect(page.getByText('QA Наставник')).toBeVisible();
+    const paymentCards = page.getByTestId('admin-payment-card');
+    await expect(paymentCards).toHaveCount(1);
+    await expect(paymentCards.first()).toHaveClass(/!bg-slate-900/);
+    await expect(paymentCards.first()).toHaveClass(/!rounded-xl/);
+    await expect(paymentCards.first()).toHaveClass(/!shadow-none/);
 
     await page.getByRole('button', { name: 'Одобри (pro)' }).click();
     const dialog = page.getByRole('dialog', { name: 'Одобри плаќање?' });
@@ -451,6 +456,11 @@ test.describe('authenticated QA harness', () => {
     await page.getByRole('tab', { name: 'Шаблони' }).click();
     await expect(page.getByText('QA шаблон за проверка')).toBeVisible();
     await expect(page.getByText('QA јавен шаблон')).toBeVisible();
+    const templateCards = page.getByTestId('admin-template-card');
+    await expect(templateCards).toHaveCount(2);
+    await expect(templateCards.first()).toHaveClass(/!bg-slate-900/);
+    await expect(templateCards.first()).toHaveClass(/!rounded-xl/);
+    await expect(templateCards.first()).toHaveClass(/!shadow-none/);
 
     const featured = page.getByRole('button', { name: 'Отстрани Featured: QA јавен шаблон' });
     await expect(featured).toHaveAttribute('aria-pressed', 'true');

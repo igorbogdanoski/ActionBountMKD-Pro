@@ -69,6 +69,10 @@ describe('AdminPanel payment controls', () => {
     expect(within(tabs).getByRole('tab', { name: 'Плаќања' })).toHaveAttribute('aria-selected', 'true');
     expect(within(tabs).getByRole('tab', { name: 'Шаблони' })).toHaveAttribute('aria-selected', 'false');
     const pending = await screen.findByRole('button', { name: 'Чека' });
+    const paymentCard = screen.getByTestId('admin-payment-card');
+    expect(paymentCard.className).toContain('!bg-slate-900');
+    expect(paymentCard.className).toContain('!rounded-xl');
+    expect(paymentCard.className).toContain('!shadow-none');
     expect(pending).toHaveAttribute('aria-pressed', 'true');
     expect(mocks.getPaymentRequests).toHaveBeenCalledWith('pending');
 
@@ -139,6 +143,11 @@ describe('AdminPanel template controls', () => {
   it('seeds only after confirmation and renders progress messages', async () => {
     mocks.runSeedTemplates.mockImplementation(async (onProgress: (message: string) => void) => { onProgress('✓ Додадени 15 шаблони'); });
     await openTemplates();
+    const templateCards = screen.getAllByTestId('admin-template-card');
+    expect(templateCards).toHaveLength(2);
+    expect(templateCards.every(card => card.className.includes('!bg-slate-900'))).toBe(true);
+    expect(templateCards.every(card => card.className.includes('!rounded-xl'))).toBe(true);
+    expect(templateCards.every(card => card.className.includes('!shadow-none'))).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Seed шаблони' }));
     expect(mocks.runSeedTemplates).not.toHaveBeenCalled();
     const dialog = screen.getByRole('dialog', { name: 'Додади стандардни шаблони?' });

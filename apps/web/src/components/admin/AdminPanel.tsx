@@ -7,6 +7,7 @@ import { getAdminTemplates, saveTemplate } from '../../utils/storage';
 import { runSeedTemplates, cleanupDuplicateTemplates } from '../../utils/seedTemplates';
 import { SEO } from '../SEO';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import type { PlanId, Template } from 'shared';
 
@@ -187,7 +188,13 @@ function TemplatesTab() {
       ) : (
       <div className="space-y-3">
       {templates.map(tpl => (
-        <div key={tpl.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+        <Card
+          key={tpl.id}
+          tone="dark"
+          padded={false}
+          data-testid="admin-template-card"
+          className="!rounded-xl !bg-slate-900 !border-slate-800 !shadow-none p-4 space-y-3"
+        >
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
               <p className="font-semibold text-sm">{tpl.title}</p>
@@ -242,7 +249,7 @@ function TemplatesTab() {
               </Button>
             )}
           </div>
-        </div>
+        </Card>
       ))}
       </div>
       )}
@@ -456,7 +463,13 @@ export function AdminPanel() {
               {requests.map(req => {
                 const st = STATUS_LABELS[req.status];
                 return (
-                  <div key={req.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+                  <Card
+                    key={req.id}
+                    tone="dark"
+                    padded={false}
+                    data-testid="admin-payment-card"
+                    className="!rounded-xl !bg-slate-900 !border-slate-800 !shadow-none p-4 space-y-3"
+                  >
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <p className="font-semibold text-sm">{req.displayName}</p>
@@ -498,7 +511,7 @@ export function AdminPanel() {
                         </Button>
                       </div>
                     )}
-                  </div>
+                  </Card>
                 );
               })}
             </div>

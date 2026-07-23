@@ -76,3 +76,29 @@ Modal/overlay/banner semantics, elevation и z-index contract остануваа
 - Unit/render contracts ги потврдуваат Card usage и уникатните class contracts.
 - `tsc --noEmit`, цел Vitest suite и production build мора да поминат.
 - Landing browser QA мора да помине на desktop и mobile со нула horizontal overflow и без console errors.
+
+## H4d creator/admin completion audit — 2026-07-23
+
+Valid hard-dark content-card contracts:
+
+- `AdminPanel` template-moderation records — мигрирани во H4d-1.
+- `AdminPanel` payment-request records — мигрирани во H4d-1.
+
+Преостанатите creator/admin candidate surfaces се проверени и намерно исклучени:
+
+| Surface | Класификација | Причина за исклучување |
+|---|---|---|
+| Admin seed section | Action/operation panel | Оркестрира seed/cleanup lifecycle и confirmation actions |
+| Admin seed log | Transient operation log | Scrollable status output, не самостојна content единица |
+| Admin errors и confirmation errors | Alert | `role="alert"`/modal feedback contract |
+| FindSpot map fallback | Media/map fallback | Ја задржува точната map висина и loading state |
+| FindSpot/StageEditor empty hints | Empty/help state | Контекстуална порака во editor shell |
+| StageList items | Draggable interactive surface | Selection, drag/reorder и nested actions |
+| Quest inventory items и learning goals | Editable record rows | Remove/edit actions и form state |
+| Public leaderboard lock notice | Paywall notice | Feature-gate feedback, не content card |
+| Quest danger zone | Destructive action shell | Delete confirmation lifecycle |
+| Share/QR preview panels | Media/print frames | Exact white QR rendering/print contract |
+| Rubric criteria и Switch conditions | Editor/form shells | Complex nested inputs и CRUD actions |
+| Switch guidance panel | Instructional notice | Contextual editor guidance, не standalone card |
+
+H4d не бара дополнително `Card` API проширување. Механичка миграција на овие surfaces би ги замаглила нивните вистински semantics.

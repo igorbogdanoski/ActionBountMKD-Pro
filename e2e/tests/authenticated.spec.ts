@@ -500,6 +500,9 @@ test.describe('authenticated QA harness', () => {
     await page.getByRole('button', { name: 'Разбрав, понатаму' }).click();
 
     await expect(page.getByText('Честитки, QA Ученик!')).toBeVisible();
+    const pointsCard = page.getByTestId('player-points-card');
+    await expect(pointsCard).toHaveClass(/!rounded-3xl/);
+    expect(await pointsCard.evaluate(element => element.scrollWidth > element.clientWidth)).toBe(false);
     const feedback = page.getByPlaceholder('Споделете впечаток за авантурата...');
     await feedback.fill('Одлична QA авантура.');
     await page.getByRole('button', { name: 'Испрати коментар' }).click();

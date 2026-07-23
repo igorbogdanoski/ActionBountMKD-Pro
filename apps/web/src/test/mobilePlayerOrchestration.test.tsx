@@ -200,6 +200,8 @@ describe('MobilePlayer orchestration', () => {
 
     expect(await screen.findByText('Честитки, Марко!', undefined, { timeout: 3000 })).toBeTruthy();
     expect(screen.getByText('10')).toBeTruthy();
+    expect(screen.getByTestId('player-points-card').className).toContain('!rounded-3xl');
+    expect(screen.getByTestId('player-achievements-card').className).toContain('!bg-white');
     expect(screen.queryByText('Провери ја мојата оценка')).toBeNull();
   });
 

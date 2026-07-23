@@ -36,6 +36,7 @@ import { milestoneEncouragement, progressPercent } from '../../utils/encourageme
 import { shouldShowOnboarding, PLAYER_ONBOARDING_TIPS, ONBOARDING_STORAGE_KEY } from '../../utils/onboarding';
 import { computeAchievements } from '../../utils/achievements';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 
 interface MobilePlayerProps {
@@ -1054,10 +1055,14 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
           <h2 className={`text-3xl font-bold ${isNightMode ? 'text-white' : 'text-slate-900'} mb-2`}>Честитки, {playerName}!</h2>
           <p className={`${isNightMode ? 'text-slate-400' : 'text-slate-500'} mb-6`}>Успешно ја завршивте авантурата.</p>
           
-          <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-6 py-5 rounded-3xl shadow-sm border mb-6 transition-colors`}>
+          <Card
+            padded={false}
+            data-testid="player-points-card"
+            className={`${isNightMode ? '!bg-slate-800 !border-slate-700' : '!bg-white !border-slate-200'} px-6 py-5 !rounded-3xl !shadow-sm mb-6 transition-colors`}
+          >
             <p className={`text-sm uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-1`}>Освоени поени</p>
             <p className="text-4xl font-black text-indigo-500">{points}</p>
-          </div>
+          </Card>
 
           {(() => {
             const achievements = computeAchievements({
@@ -1070,7 +1075,11 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
             });
             if (achievements.length === 0) return null;
             return (
-              <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>
+              <Card
+                padded={false}
+                data-testid="player-achievements-card"
+                className={`${isNightMode ? '!bg-slate-800 !border-slate-700' : '!bg-white !border-slate-200'} px-5 py-4 !shadow-sm mb-6 text-left`}
+              >
                 <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-3`}>Постигнувања</p>
                 <div className="space-y-2.5">
                   {achievements.map(a => (
@@ -1083,12 +1092,16 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             );
           })()}
 
           {inventoryItems.length > 0 && collectedItemIds.length > 0 && (
-            <div className={`${isNightMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'} px-5 py-4 rounded-2xl shadow-sm border mb-6 text-left`}>
+            <Card
+              padded={false}
+              data-testid="player-inventory-card"
+              className={`${isNightMode ? '!bg-slate-800 !border-slate-700' : '!bg-white !border-slate-200'} px-5 py-4 !shadow-sm mb-6 text-left`}
+            >
               <p className={`text-xs uppercase font-bold ${isNightMode ? 'text-slate-500' : 'text-slate-400'} mb-2`}>Собрани предмети</p>
               <div className="flex flex-wrap gap-2">
                 {inventoryItems.filter(item => collectedItemIds.includes(item.id)).map(item => (
@@ -1097,7 +1110,7 @@ export function MobilePlayer({ questId, questProp, isPreview, sessionCode, sessi
                   </span>
                 ))}
               </div>
-            </div>
+            </Card>
           )}
 
           {rubricStages.length > 0 && (

@@ -57,6 +57,9 @@ service cloud.firestore {
     function isValidResult(data) {
       return data.keys().hasAll(['questId', 'playerName', 'points', 'completedAt'])
         && data.questId is string
+        && (!('studentId' in data) || (data.studentId is string
+          && data.studentId.size() >= 1
+          && data.studentId.size() <= 128))
         && data.playerName is string
         && data.playerName.size() >= 1
         && data.playerName.size() <= 100

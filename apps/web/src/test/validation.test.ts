@@ -160,6 +160,12 @@ describe('QuestResultSchema', () => {
     expect(QuestResultSchema.safeParse(valid).success).toBe(true);
   });
 
+  it('accepts an optional bounded stable student id', () => {
+    expect(QuestResultSchema.safeParse({ ...valid, studentId: 'student-123' }).success).toBe(true);
+    expect(QuestResultSchema.safeParse({ ...valid, studentId: '' }).success).toBe(false);
+    expect(QuestResultSchema.safeParse({ ...valid, studentId: 'x'.repeat(129) }).success).toBe(false);
+  });
+
   it('rejects negative points', () => {
     expect(QuestResultSchema.safeParse({ ...valid, points: -1 }).success).toBe(false);
   });

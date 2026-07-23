@@ -470,6 +470,8 @@ export interface QuizAnswerRecord {
 export interface QuestResult {
   id: string;
   questId: string;
+  /** Stable class-roster identity when the player was launched as a roster student. */
+  studentId?: string;
   playerName: string;
   points: number;
   completedAt: string;
@@ -518,6 +520,31 @@ export function bestResultForName(results: QuestResult[], name: string): QuestRe
   return best;
 }
 
+/**
+ * Prefer stable roster identity while retaining name matching for legacy
+ * results that predate `studentId`. Results assigned to another stable ID are
+ * never borrowed merely because the display name matches.
+ */
+export function bestResultForStudent(
+  results: QuestResult[],
+  student: Pick<GroupStudent, 'id' | 'name'>,
+): QuestResult | null {
+  const normalizedName = normalizePlayerName(student.name);
+  let best: QuestResult | null = null;
+
+  for (const result of results) {
+    const stableMatch = result.studentId === student.id;
+    const legacyNameMatch =
+      !result.studentId &&
+      normalizedName.length > 0 &&
+      normalizePlayerName(result.playerName) === normalizedName;
+    if (!stableMatch && !legacyNameMatch) continue;
+    if (!best || result.points > best.points) best = result;
+  }
+
+  return best;
+}
+
 /** Build a per-student gradebook across a set of adventures. Pure. */
 export function buildClassGradebook(
   students: Pick<GroupStudent, 'id' | 'name'>[],
@@ -526,7 +553,7 @@ export function buildClassGradebook(
 ): GradeRow[] {
   return students.map(s => {
     const cells: GradeCell[] = questIds.map(qid => {
-      const best = bestResultForName(resultsByQuest[qid] ?? [], s.name);
+      const best = bestResultForStudent(resultsByQuest[qid] ?? [], s);
       return {
         questId: qid,
         points: best ? best.points : null,

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { questMaxScore, normalizePlayerName, bestResultForName, buildClassGradebook } from 'shared';
+import {
+  questMaxScore,
+  normalizePlayerName,
+  bestResultForName,
+  bestResultForStudent,
+  buildClassGradebook,
+} from 'shared';
 import type { QuestResult, Stage } from 'shared';
 
 const result = (over: Partial<QuestResult>): QuestResult => ({
@@ -50,6 +56,27 @@ describe('bestResultForName', () => {
   it('returns the highest-scoring matching result, case-insensitively', () => {
     expect(bestResultForName(results, 'АНА')?.points).toBe(80);
     expect(bestResultForName(results, 'бојан')?.points).toBe(100);
+  });
+});
+
+describe('bestResultForStudent', () => {
+  it('matches stable student ids before display names', () => {
+    const results = [
+      result({ studentId: 's2', playerName: 'Ана', points: 100 }),
+      result({ studentId: 's1', playerName: 'Ана П.', points: 80 }),
+    ];
+
+    expect(bestResultForStudent(results, { id: 's1', name: 'Ана' })?.points).toBe(80);
+  });
+
+  it('includes legacy name-matched results without borrowing another stable id', () => {
+    const results = [
+      result({ playerName: ' Ана ', points: 90 }),
+      result({ studentId: 's2', playerName: 'Ана', points: 100 }),
+      result({ studentId: 's1', playerName: 'Ана', points: 80 }),
+    ];
+
+    expect(bestResultForStudent(results, { id: 's1', name: 'ана' })?.points).toBe(90);
   });
 });
 

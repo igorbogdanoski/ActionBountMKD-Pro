@@ -136,7 +136,9 @@ Batch-от е затворен само кога:
   - [x] H4c-2 `ResultsDashboard` stage-drop и question-accuracy analysis cards.
   - [x] H4c-3 `PlanUsageWidget` stateful informational card.
   - [x] H4c-4 Dashboard completion audit: interactive tiles, filters/forms, chart/table shells, banners/modals и grading rows се намерно исклучени.
-- [ ] Creator dark cards со `tone="dark"`.
+- [ ] Creator/admin dark cards со `tone="dark"`.
+  - [x] H4d-1 Admin template-moderation и payment-request record cards.
+  - [ ] H4d-2 Creator/admin completion audit и преостанати valid content-card кандидати.
 - [ ] Player/session surfaces, последни.
 - [ ] Проширување на Card API само за повторлив semantic pattern.
 
@@ -243,7 +245,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H4c-1 Results funnel summary cards | `dec2788` | PASS | 602/602 PASS; 7 focused Results contracts | PASS | Трите compact funnel statistics panels се мигрирани во shared hard-dark `Card`; exact `rounded-xl`, slate palette, compact padding и no-shadow contract се зачувани. Chart, table, filters, grading rows и interactive surfaces не се допрени. Desktop/mobile Results contract 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4c-2 Results analysis cards | `e3e8a4c` | PASS | 603/603 PASS; 8 focused Results contracts | PASS | Per-stage funnel rows и per-question accuracy panels се мигрирани во shared hard-dark `Card`; compact `rounded-xl`, no-shadow contract и rose big-drop warning state се зачувани. Chart/table shells, weak-spot navigation buttons, grading rows, paywall/empty states и icon frames се semantic review-ирани и намерно исклучени. Desktop/mobile Results contract 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4c-3 Plan usage card + dashboard audit | `55d25d1` | PASS | 604/604 PASS; 4 focused plan/review contracts | PASS | `PlanUsageWidget` е мигриран во shared hard-dark `Card` со зачувани normal/warning/exhausted palette состојби, responsive layout, plan badge и upgrade action; usage bar доби explicit progressbar semantics, а unlimited plan намерно нема progressbar. Dashboard completion audit ги исклучува interactive quest/template tiles, filters/forms, chart/table shells, banners/modals, grading lifecycle rows и decorative frames. Desktop/mobile upgrade/card contract 2/2 PASS; production build PASS. |
+| 2026-07-23 | H4d-1 Admin moderation record cards | `f84e802` | PASS | 604/604 PASS; 10 focused Admin contracts | PASS | Template-moderation и payment-request records се мигрирани во shared hard-dark `Card` со зачувани `slate-900`, `slate-800` border, compact `rounded-xl`, padding и no-shadow contract. Wrapper-ите остануваат non-interactive, а confirmation, moderation, Featured и financial actions остануваат експлицитни Button/Modal lifecycle-и. Desktop/mobile Admin contracts 4/4 PASS со zero overflow; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H4d creator/admin hard-dark semantic cards преку individual review. Почни со најмалата read-only informational група; не мигрирај editor/form shells, draggable stage surfaces, modals, toolbars или interactive selectors. Користи `tone="dark"` само за екрани што се намерно hard-dark и задржи ги локалните compact geometry/shadow contracts. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H4d-2 creator/admin completion audit. Creator candidate-ите досега се empty hints, map/media fallbacks, editable inventory/goals, paywall/danger notices, editor/form shells, draggable surfaces или interactive selectors и не смеат механички да се мигрираат. Провери ги преостанатите Admin seed/action panel и transient states; мигрирај само ако остане вистински non-interactive content-card contract, инаку документарно затвори H4d и премини на player/session surfaces. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

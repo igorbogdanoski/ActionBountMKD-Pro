@@ -153,9 +153,9 @@ Batch-от е затворен само кога:
 
 ### H6 — Стабилен student identity и attempts
 
-- [ ] Optional stable `QuestResult.studentId` за roster players; guest/public compatibility.
+- [x] Optional stable `QuestResult.studentId` за roster players; guest/public compatibility.
   - [x] H6-1 Data contract: optional bounded field, Firestore create validation и ID-first/name-fallback gradebook matching.
-  - [ ] H6-2 Roster-bound player launch/result producer со вистински `GroupStudent.id` (никогаш session/device UUID).
+  - [x] H6-2 Roster-bound player launch/result producer со вистински `GroupStudent.id` (никогаш session/device UUID).
 - [ ] `attemptId`/attempt number и immutable result semantics.
 - [ ] First/latest/best/teacher-approved result policy.
 - [ ] Resubmission lifecycle и teacher controls.
@@ -259,7 +259,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H5-2 LandingPage localization | `72977b9` | PASS | 611/611 PASS; 3 focused Landing translation contracts | PASS | Featured adventures блокот и language-group label се целосно префрлени во `mk.json`/`en.json`; testimonial initials сега се изведуваат од локализираните записи. Македонскиот copy, navigation и visual hierarchy се зачувани. Desktop/mobile MK→EN production-preview contract 2/2 PASS со zero overflow и zero runtime/console errors; production build PASS. |
 | 2026-07-23 | H5-3 Translation parity + H5 closure | `291c8bc` | PASS | 612/612 PASS; 1 focused parity contract | N/A (test-only) | Рекурзивниот locale contract ги споредува missing/extra keys, value kinds, array lengths и element structures, како и interpolation placeholder sets помеѓу `mk.json` и `en.json`. Тековните trees се целосно усогласени; production build PASS. H5 complete. |
 | 2026-07-23 | H6-1 Stable student identity data contract | `da94de8` | PASS | 615/615 PASS; 69 focused gradebook/validation contracts | N/A (data/test-only) | `QuestResult.studentId` е optional и bounded во shared type, Zod validation и Firestore create rules. Gradebook matching е ID-first и дозволува name fallback само за legacy резултати без `studentId`, со што duplicate-name резултат со туѓ стабилен ID не се припишува погрешно. Guest/public writers остануваат непроменети; production build PASS. |
+| 2026-07-23 | H6-2 Roster-bound player launch | `3e3f7a4` | PASS | 624/624 PASS; 44 focused roster/player/offline/gradebook contracts | PASS | Class Groups извезува CSV со индивидуален URL по ученик и доделена авантура. Route contract валидира bounded opaque `GroupStudent.id` и Unicode name; player го претполнува и заклучува името, result producer и offline replay го зачувуваат `studentId`, а grade/certificate lookup е ID-first. Guest/public и live-session UUID flows остануваат без `studentId`. Desktop/mobile production-preview route 2/2 PASS со zero overflow/runtime errors; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H6-2: дефинирај и имплементирај roster-bound player launch contract што носи вистински `GroupStudent.id` до web result producer и offline queue, без да го користи анонимниот live-session/device UUID како `studentId`. Guest, public и старите result flows мора да останат без `studentId`; покриј roster student, duplicate names, guest и offline replay со focused contracts пред browser gate. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H6-3: воведи immutable `attemptId` и attempt number/timestamp semantics за web, mobile и offline result producers. Дефинирај backward-compatible derivation за стари резултати без attempt metadata, спречи двојно offline replay запишување каде што е можно и покриј повеќе attempts од ист roster student и guest со focused storage/analytics contracts пред UI policy работа. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

@@ -147,7 +147,7 @@ Batch-от е затворен само кога:
 
 ### H5 — Мали product-completeness задачи
 
-- [ ] Changelog route, page и navigation entry.
+- [x] Changelog route, page и navigation entry.
 - [ ] Преостанатите LandingPage user-facing literals во `mk.json`/`en.json`.
 - [ ] Translation parity test.
 
@@ -253,7 +253,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H4e-1 Player informational cards | `95f8608` | PASS | 606/606 PASS; 21 focused player contracts | PASS | INFO description, TOURNAMENT team task и shared rubric preview се мигрирани во `Card` како read-only informational surfaces. Exact light/night palette, padding, borders и shadow contracts се зачувани со експлицитни overrides; media, scanner, answer-selector и live-control surfaces не се допрени. Desktop/mobile INFO lifecycle 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4e-2 Player finish-summary cards | `8a5c835` | PASS | 606/606 PASS; 10 focused MobilePlayer contracts | PASS | Finish-screen points, achievements и collected-inventory summaries се мигрирани во shared `Card`, со зачувани light/night palette, compact padding, small shadow и points `rounded-3xl` contract. Teacher-grade, feedback и certificate lifecycle panels не се допрени. Desktop/mobile finish lifecycle 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H4e-3 Player/session completion audit + H4 closure | `ac733c7` | PASS | 606/606 PASS (carried verified baseline; documentation-only audit) | PASS (no visual changes) | Exhaustive audit ги класифицира преостанатите MobilePlayer, stage-player, JoinSession и LiveSessionHost wrappers како application/game shells, interactive navigation/forms, async lifecycle panels, overlays/dialogs, alerts/status UI или media/device frames. Нема преостанат valid content-card candidate и Card API не бара проширување. H4 complete. |
+| 2026-07-23 | H5-1 Public changelog | `99b39ac` | PASS | 608/608 PASS; 6 focused changelog/sitemap contracts | PASS | Додадена е lazy-loaded public `/changelog` страница со SEO metadata, три dated release sections, shared Footer navigation entry и sitemap source-of-truth/static XML entry. Desktop/mobile production-preview contract 2/2 PASS со реалниот локален VITE config, zero overflow и zero console/page/request errors; production build PASS. |
 
 ## Следна акција
 
-H4 е целосно затворен. Продолжи со H5 product-completeness по ред: прво changelog route/page/navigation entry, потоа преостанатите LandingPage literals во `mk.json`/`en.json`, и на крај translation parity test. Секој H5 batch мора да има focused tests, цел Vitest suite, production build и релевантен desktop/mobile browser gate. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H5-2: инвентаризирај ги преостанатите LandingPage user-facing literals и премести ги во `mk.json`/`en.json` без промена на copy, interpolation, navigation или visual hierarchy. Потоа H5-3 мора да додаде translation parity test што рекурзивно ги споредува двата locale trees и спречува missing/extra keys. Секој batch мора да има focused tests, цел Vitest suite, production build и релевантен desktop/mobile browser gate. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

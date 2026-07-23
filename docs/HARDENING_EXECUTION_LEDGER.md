@@ -164,8 +164,8 @@ Batch-от е затворен само кога:
 
 ### H7 — Objectives, coverage и mastery
 
-- [ ] Стабилен objective ID/reference model.
-- [ ] Optional `objectiveRef` на `BaseStage` со validation и backward compatibility.
+- [x] Стабилен objective ID/reference model.
+- [x] Optional `objectiveRef` на `BaseStage` со validation и backward compatibility.
 - [ ] Creator UI за mapping на етапи кон цели.
 - [ ] Curriculum-coverage aggregation и teacher UI.
 - [ ] Objective-level mastery врз stable student/attempt model.
@@ -264,7 +264,8 @@ Batch-от е затворен само кога:
 | 2026-07-23 | H6-4 Attempt selection policy | `66ccb48` | PASS (web + mobile) | 632/632 PASS; 75 focused policy/validation contracts | N/A (pure/data-only) | Shared contract поддржува `first`, `latest`, `best` и `teacher-approved`; default за gradebook/сертификати е `best`, со latest deterministic tie-break. Roster matching е stable-ID-first со legacy fallback, duplicate stable IDs не се мешаат, а guest lookup не позајмува roster резултат со исто име. Player creates експлицитно не смеат да внесат approval metadata; production build PASS. |
 | 2026-07-23 | H6-5 Teacher attempt approval controls | `4cbc18e` | PASS (rules + web) | 635/635 PASS; 16 focused storage/dashboard contracts | PASS | Firestore owner-only update contract дозволува само paired `approvedAt`/`approvedBy`, го врзува approver-от со `request.auth.uid` и безбедно ги брише двете полиња при revoke; player create и immutable attempt payload остануваат заклучени. ResultsDashboard прикажува deterministically изведен број на обид, approval state, busy/error feedback и approve/revoke controls. Firestore emulator rules compile PASS; desktop/mobile Results lifecycle 2/2 PASS со zero overflow; production build PASS. |
 | 2026-07-23 | H6-6 Rules/index/backward-compatibility closure | `5d1c84c` | PASS (audit + web) | 638/638 PASS; 18 focused identity/policy contracts | PASS (carried H6-5 UI gate) | Query audit потврди дека result reads користат само single-field `questId ==` или single-field `completedAt` ordering, па Firestore automatic indexes се доволни и не е потребен composite-index artifact/migration. Legacy results без `studentId`, `attemptId` и approval metadata остануваат читливи и selectable; новата matrix експлицитно ги покрива renamed stable-ID students, duplicate names, guest/roster isolation и teacher-approved избор низ повеќе attempts. Rules compile, H6-5 desktop/mobile gate и production build остануваат зелени. H6 complete. |
+| 2026-07-23 | H7-1 Stable objective reference model | `5eb616d` | PASS (web + shared) | 644/644 PASS; 66 focused validation/coverage contracts | N/A (data/pure-only) | Додаден е bounded `LearningObjective { id, label }` модел со unique-ID validation и optional bounded `BaseStage.objectiveRef`; legacy `learningGoals` и stages без mapping остануваат валидни. Pure coverage aggregation мапира исклучиво по стабилен ID, собира stage count/points и одделно пријавува unmapped stages и missing references. Renamed objectives, duplicate labels, unknown/deleted references и legacy quests се експлицитно покриени; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H7-1: дефинирај стабилен, bounded objective reference model што не зависи од mutable objective label, со backward-compatible optional `BaseStage.objectiveRef` validation. Пред Creator UI, заклучи pure coverage aggregation semantics и тестови за missing/renamed objectives, duplicate labels, unmapped stages и legacy quests. Не воведувај institution-specific curriculum taxonomy без експлицитен source-of-truth. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H7-2: додади Creator UI за создавање, преименување и бришење stable objectives и mapping на секоја етапа преку `objectiveRef`. Бришење objective мора јасно да ги прикаже засегнатите stages и безбедно да ги unmapped-ира; не мапирај по label. Покриј desktop/mobile create/rename/map/delete lifecycle и backward compatibility со legacy `learningGoals`, потоа продолжи со teacher coverage UI. Не воведувај institution-specific curriculum taxonomy без експлицитен source-of-truth.

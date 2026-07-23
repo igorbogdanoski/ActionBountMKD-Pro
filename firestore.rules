@@ -72,7 +72,9 @@ service cloud.firestore {
         && (!('quizAnswers' in data) || (data.quizAnswers is list && data.quizAnswers.size() <= 100))
         // grades are only ever written by the teacher via the dedicated
         // update rule below — a player's initial create must never include them.
-        && !('grades' in data);
+        && !('grades' in data)
+        && !('approvedAt' in data)
+        && !('approvedBy' in data);
     }
 
     // A rubric grade update may only touch `grades` (append/replace the

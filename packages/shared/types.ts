@@ -481,8 +481,14 @@ export interface QuestResult {
   teamCode?: string;
   submissions?: StageSubmission[];
   grades?: RubricGrade[];
+  /** Teacher approval metadata; never supplied by a player result create. */
+  approvedAt?: string;
+  approvedBy?: string;
   quizAnswers?: QuizAnswerRecord[];
 }
+
+export type ResultSelectionPolicy = 'first' | 'latest' | 'best' | 'teacher-approved';
+export const DEFAULT_RESULT_SELECTION_POLICY: ResultSelectionPolicy = 'best';
 
 export interface NumberedQuestResult {
   result: QuestResult;
@@ -504,6 +510,36 @@ export function numberQuestAttempts(results: QuestResult[]): NumberedQuestResult
       return (left.attemptId ?? left.id).localeCompare(right.attemptId ?? right.id);
     })
     .map((result, index) => ({ result, attemptNumber: index + 1 }));
+}
+
+function resultTimestamp(result: QuestResult): number {
+  const timestamp = Date.parse(result.completedAt);
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function resultStableId(result: QuestResult): string {
+  return result.attemptId ?? result.id;
+}
+
+export function selectQuestResult(
+  results: QuestResult[],
+  policy: ResultSelectionPolicy = DEFAULT_RESULT_SELECTION_POLICY,
+): QuestResult | null {
+  const candidates = policy === 'teacher-approved'
+    ? results.filter(result => Boolean(result.approvedAt))
+    : results;
+  if (candidates.length === 0) return null;
+
+  return [...candidates].sort((left, right) => {
+    if (policy === 'best') {
+      const byPoints = right.points - left.points;
+      if (byPoints !== 0) return byPoints;
+    }
+    const byTime = resultTimestamp(left) - resultTimestamp(right);
+    if (byTime !== 0) return policy === 'first' ? byTime : -byTime;
+    const byId = resultStableId(left).localeCompare(resultStableId(right));
+    return policy === 'first' ? byId : -byId;
+  })[0];
 }
 
 // ─── GRADEBOOK (Phase 7D-4) ───────────────────────────────────────────────────
@@ -536,12 +572,12 @@ export function normalizePlayerName(name: string): string {
 export function bestResultForName(results: QuestResult[], name: string): QuestResult | null {
   const norm = normalizePlayerName(name);
   if (!norm) return null;
-  let best: QuestResult | null = null;
-  for (const r of results) {
-    if (normalizePlayerName(r.playerName) !== norm) continue;
-    if (!best || r.points > best.points) best = r;
-  }
-  return best;
+  return selectQuestResult(
+    results.filter(result =>
+      !result.studentId && normalizePlayerName(result.playerName) === norm
+    ),
+    'best',
+  );
 }
 
 /**
@@ -553,20 +589,24 @@ export function bestResultForStudent(
   results: QuestResult[],
   student: Pick<GroupStudent, 'id' | 'name'>,
 ): QuestResult | null {
-  const normalizedName = normalizePlayerName(student.name);
-  let best: QuestResult | null = null;
+  return selectResultForStudent(results, student, 'best');
+}
 
-  for (const result of results) {
+export function selectResultForStudent(
+  results: QuestResult[],
+  student: Pick<GroupStudent, 'id' | 'name'>,
+  policy: ResultSelectionPolicy = DEFAULT_RESULT_SELECTION_POLICY,
+): QuestResult | null {
+  const normalizedName = normalizePlayerName(student.name);
+  const candidates = results.filter(result => {
     const stableMatch = result.studentId === student.id;
     const legacyNameMatch =
       !result.studentId &&
       normalizedName.length > 0 &&
       normalizePlayerName(result.playerName) === normalizedName;
-    if (!stableMatch && !legacyNameMatch) continue;
-    if (!best || result.points > best.points) best = result;
-  }
-
-  return best;
+    return stableMatch || legacyNameMatch;
+  });
+  return selectQuestResult(candidates, policy);
 }
 
 /** Build a per-student gradebook across a set of adventures. Pure. */
@@ -574,14 +614,15 @@ export function buildClassGradebook(
   students: Pick<GroupStudent, 'id' | 'name'>[],
   questIds: string[],
   resultsByQuest: Record<string, QuestResult[]>,
+  policy: ResultSelectionPolicy = DEFAULT_RESULT_SELECTION_POLICY,
 ): GradeRow[] {
   return students.map(s => {
     const cells: GradeCell[] = questIds.map(qid => {
-      const best = bestResultForStudent(resultsByQuest[qid] ?? [], s);
+      const selected = selectResultForStudent(resultsByQuest[qid] ?? [], s, policy);
       return {
         questId: qid,
-        points: best ? best.points : null,
-        completedAt: best ? best.completedAt : null,
+        points: selected ? selected.points : null,
+        completedAt: selected ? selected.completedAt : null,
       };
     });
     const total = cells.reduce((sum, c) => sum + (c.points ?? 0), 0);

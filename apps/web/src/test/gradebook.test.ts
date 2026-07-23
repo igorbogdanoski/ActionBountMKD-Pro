@@ -6,6 +6,8 @@ import {
   bestResultForStudent,
   buildClassGradebook,
   numberQuestAttempts,
+  selectQuestResult,
+  selectResultForStudent,
 } from 'shared';
 import type { QuestResult, Stage } from 'shared';
 
@@ -94,6 +96,54 @@ describe('numberQuestAttempts', () => {
       ['r3', 2],
       ['legacy-b', 3],
     ]);
+  });
+});
+
+describe('result selection policy', () => {
+  const attempts = [
+    result({ id: 'first', points: 40, completedAt: '2026-01-01T10:00:00.000Z' }),
+    result({ id: 'best-old', points: 90, completedAt: '2026-01-02T10:00:00.000Z' }),
+    result({ id: 'best-latest', points: 90, completedAt: '2026-01-03T10:00:00.000Z' }),
+    result({
+      id: 'approved',
+      points: 70,
+      completedAt: '2026-01-04T10:00:00.000Z',
+      approvedAt: '2026-01-05T10:00:00.000Z',
+      approvedBy: 'teacher-1',
+    }),
+  ];
+
+  it('supports first, latest and best with deterministic tie-breaking', () => {
+    expect(selectQuestResult(attempts, 'first')?.id).toBe('first');
+    expect(selectQuestResult(attempts, 'latest')?.id).toBe('approved');
+    expect(selectQuestResult(attempts, 'best')?.id).toBe('best-latest');
+  });
+
+  it('returns only a teacher-approved attempt for the approval policy', () => {
+    expect(selectQuestResult(attempts, 'teacher-approved')?.id).toBe('approved');
+    expect(selectQuestResult(attempts.slice(0, 3), 'teacher-approved')).toBeNull();
+  });
+
+  it('keeps duplicate roster names isolated while admitting legacy attempts', () => {
+    const duplicateNames = [
+      result({ id: 's1-low', studentId: 's1', playerName: 'Ана', points: 40 }),
+      result({ id: 's2-high', studentId: 's2', playerName: 'Ана', points: 100 }),
+      result({ id: 'legacy', playerName: 'Ана', points: 80 }),
+    ];
+
+    expect(selectResultForStudent(duplicateNames, { id: 's1', name: 'Ана' }, 'best')?.id).toBe('legacy');
+    expect(selectResultForStudent(duplicateNames, { id: 's2', name: 'Ана' }, 'best')?.id).toBe('s2-high');
+    expect(bestResultForName(duplicateNames, 'Ана')?.id).toBe('legacy');
+  });
+
+  it('applies an explicit policy to gradebook cells', () => {
+    const rows = buildClassGradebook(
+      [{ id: 's1', name: 'Ана' }],
+      ['q1'],
+      { q1: attempts },
+      'first',
+    );
+    expect(rows[0].cells[0]).toMatchObject({ points: 40, completedAt: '2026-01-01T10:00:00.000Z' });
   });
 });
 

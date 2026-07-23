@@ -44,6 +44,7 @@ const FLEX_ICONS = [
 interface TestimonialItem { quote: string; name: string; role: string; initial: string; }
 interface TitleText { title: string; text: string; }
 interface FaqEntry { q: string; a: string; }
+interface FeaturedAdventure { emoji: string; title: string; subject: string; grade: string; desc: string; time: number; }
 
 export function LandingPage() {
   const { user } = useAuth();
@@ -64,6 +65,7 @@ export function LandingPage() {
   const featureLabels = t('landing.features.labels', { returnObjects: true }) as string[];
   const flexLabels = t('landing.features.flexLabels', { returnObjects: true }) as string[];
   const faqItems = t('landing.faq.items', { returnObjects: true }) as FaqEntry[];
+  const featuredAdventures = t('landing.featured.items', { returnObjects: true }) as FeaturedAdventure[];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -92,7 +94,7 @@ export function LandingPage() {
           </nav>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex gap-1" role="group" aria-label="Language">
+          <div className="flex gap-1" role="group" aria-label={t('landing.nav.language')}>
             {LANGUAGES.map(lang => (
               <Button
                 key={lang.code}
@@ -197,9 +199,17 @@ export function LandingPage() {
             {/* Social proof */}
             <div className="pt-4 flex items-center justify-center lg:justify-start gap-3 text-xs text-slate-400">
               <div className="flex -space-x-2">
-                <span className="w-6 h-6 rounded-full bg-brand-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">М</span>
-                <span className="w-6 h-6 rounded-full bg-amber-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Е</span>
-                <span className="w-6 h-6 rounded-full bg-emerald-500 border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold">Т</span>
+                {testimonials.slice(0, 3).map((item, index) => (
+                  <span
+                    key={item.name}
+                    aria-hidden="true"
+                    className={`w-6 h-6 rounded-full border-2 border-[#2a2522] flex items-center justify-center text-[10px] text-white font-bold ${
+                      index === 0 ? 'bg-brand-500' : index === 1 ? 'bg-amber-500' : 'bg-emerald-500'
+                    }`}
+                  >
+                    {item.initial}
+                  </span>
+                ))}
               </div>
               <span>{t('landing.hero.socialProof')}</span>
             </div>
@@ -343,8 +353,8 @@ export function LandingPage() {
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-8 gap-4">
             <div>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">Примери авантури</h2>
-              <p className="text-slate-500 text-sm mt-1">Создадени од македонски наставници — готови за употреба</p>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900">{t('landing.featured.title')}</h2>
+              <p className="text-slate-500 text-sm mt-1">{t('landing.featured.subtitle')}</p>
             </div>
             <Button
               onClick={() => navigate('/explore')}
@@ -353,18 +363,14 @@ export function LandingPage() {
               colorClassName="text-brand-600 hover:text-brand-700 hover:underline focus-visible:ring-brand-500"
               className="flex-shrink-0 p-0 font-semibold"
             >
-              Сите авантури →
+              {t('landing.featured.viewAll')}
             </Button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { emoji: '📐', title: 'Синтетичка геометрија', subject: 'Математика', grade: '8 одд.', desc: 'Учениците конструираат симетрали и мерат агли со GPS во реалниот свет.', time: 45 },
-              { emoji: '🏛️', title: 'Скопје низ вековите', subject: 'Историја', grade: 'Сите', desc: 'Водена прошетка до Камен Мост, Чаршијата и Кале со QR станици.', time: 75 },
-              { emoji: '🌿', title: 'Лов на екосистеми', subject: 'Природни науки', grade: '6 одд.', desc: 'Теренска настава — фотографирање растенија и мерење на услови на средина.', time: 60 },
-            ].map((a, i) => (
+            {featuredAdventures.map((a, i) => (
               <Button
                 key={i}
-                aria-label={`Отвори авантура: ${a.title}`}
+                aria-label={t('landing.featured.openLabel', { title: a.title })}
                 onClick={() => navigate('/explore')}
                 fullWidth
                 colorClassName="bg-[#f4f6ee] hover:bg-brand-50 border border-slate-200 hover:border-brand-300 focus-visible:ring-brand-500"
@@ -376,7 +382,9 @@ export function LandingPage() {
                 <div className="flex flex-wrap gap-1">
                   <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">{a.subject}</span>
                   <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{a.grade}</span>
-                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">~{a.time} мин</span>
+                  <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full">
+                    {t('landing.featured.duration', { count: a.time })}
+                  </span>
                 </div>
               </Button>
             ))}

@@ -12,6 +12,27 @@ test.describe('public shell', () => {
     await expect(page.getByText('Авантура').first()).toBeVisible();
   });
 
+  test('landing featured adventures switch cleanly between locales', async ({ page }) => {
+    const runtimeErrors: string[] = [];
+    page.on('console', message => {
+      if (message.type() === 'error') runtimeErrors.push(message.text());
+    });
+    page.on('pageerror', error => runtimeErrors.push(error.message));
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('group', { name: 'Јазик' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Примери авантури' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Отвори авантура: Синтетичка геометрија' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'English' }).click();
+    await expect(page.getByRole('group', { name: 'Language' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Featured adventures' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Open adventure: Synthetic geometry' })).toBeVisible();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+    expect(runtimeErrors).toEqual([]);
+  });
+
   test('legal pages are reachable', async ({ page }) => {
     await page.goto('/privacy');
     await expect(page.locator('body')).toContainText(/Приватн/i);

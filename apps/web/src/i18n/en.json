@@ -180,7 +180,8 @@
       "create": "Create Adventure",
       "login": "Sign in",
       "freeTest": "Free trial",
-      "dashboard": "Dashboard"
+      "dashboard": "Dashboard",
+      "language": "Language"
     },
     "hero": {
       "badge": "A new dimension of learning",
@@ -257,6 +258,18 @@
         { "q": "Is it free?", "a": "Yes, you can start for free and create an adventure without paying. For larger groups and advanced features we have paid plans." },
         { "q": "Does the student have to install an app?", "a": "No. It's enough to open the link or scan a QR code to start playing directly in the browser." },
         { "q": "Can I use QR codes instead of GPS?", "a": "Yes. For indoor spaces such as museums and schools, points can be unlocked by scanning a QR code instead of by GPS location." }
+      ]
+    },
+    "featured": {
+      "title": "Featured adventures",
+      "subtitle": "Created by Macedonian teachers — ready to use",
+      "viewAll": "All adventures →",
+      "openLabel": "Open adventure: {{title}}",
+      "duration": "~{{count}} min",
+      "items": [
+        { "emoji": "📐", "title": "Synthetic geometry", "subject": "Mathematics", "grade": "Grade 8", "desc": "Students construct bisectors and measure angles with GPS in the real world.", "time": 45 },
+        { "emoji": "🏛️", "title": "Skopje through the centuries", "subject": "History", "grade": "All grades", "desc": "A guided walk to the Stone Bridge, Old Bazaar and Kale with QR stations.", "time": 75 },
+        { "emoji": "🌿", "title": "Ecosystem hunt", "subject": "Natural sciences", "grade": "Grade 6", "desc": "Field learning — photographing plants and measuring environmental conditions.", "time": 60 }
       ]
     },
     "finalCta": {

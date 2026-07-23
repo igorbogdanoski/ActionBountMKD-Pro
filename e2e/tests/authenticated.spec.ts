@@ -117,6 +117,39 @@ test.describe('authenticated QA harness', () => {
     await expect(page).toHaveURL(/\/pricing$/);
   });
 
+  test('preserves pricing plan card states and responsive layout', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', message => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
+
+    await page.goto('/pricing?qaPlan=free', { waitUntil: 'domcontentloaded' });
+    const cards = page.getByTestId('pricing-plan-card');
+    await expect(cards).toHaveCount(4);
+    await expect(cards.filter({ hasText: 'Најпопуларен' })).toHaveCount(1);
+    await expect(cards.filter({ has: page.getByRole('button', { name: /Активен план/ }) })).toHaveCount(1);
+
+    const themeStyles: Record<string, string[]> = {};
+    for (const theme of ['light', 'dark'] as const) {
+      await page.locator('html').evaluate((element, selectedTheme) => {
+        element.classList.toggle('dark', selectedTheme === 'dark');
+      }, theme);
+      await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /^(?!.*\bdark\b)/);
+      themeStyles[theme] = await cards.evaluateAll(elements =>
+        elements.map(element => {
+          const style = getComputedStyle(element);
+          return `${style.backgroundColor}|${style.borderColor}|${style.boxShadow}`;
+        }),
+      );
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+    }
+
+    expect(themeStyles.light).toHaveLength(4);
+    expect(themeStyles.dark).toHaveLength(4);
+    expect(themeStyles.light).not.toEqual(themeStyles.dark);
+    expect(consoleErrors).toEqual([]);
+  });
+
   test('opens and closes the Pro template submission panel without overflow', async ({ page }) => {
     await page.goto('/templates?qaPlan=pro', { waitUntil: 'domcontentloaded' });
     const submitToggle = page.getByRole('button', { name: 'Предложи шаблон' });

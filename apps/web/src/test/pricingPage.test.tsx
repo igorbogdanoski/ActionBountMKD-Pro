@@ -43,6 +43,11 @@ describe('PricingPage', () => {
     expect(screen.getAllByText('Starter').length).toBe(2);
     expect(screen.getAllByText('Pro').length).toBe(2);
     expect(screen.getAllByText('Enterprise').length).toBe(2);
+    const cards = screen.getAllByTestId('pricing-plan-card');
+    expect(cards).toHaveLength(4);
+    expect(cards.every(card => card.className.includes('shadow-soft'))).toBe(true);
+    expect(cards.filter(card => card.className.includes('ring-2'))).toHaveLength(1);
+    expect(cards.filter(card => card.className.includes('!shadow-none'))).toHaveLength(3);
   });
 
   it('uses submit-safe shared buttons, preserves plan palettes, and disables the current plan', () => {

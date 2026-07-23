@@ -8,6 +8,7 @@ import { getUserPaymentRequests, type PaymentRequest } from '../../utils/payment
 import { SEO, PricingSchema, BreadcrumbSchema } from '../SEO';
 import { PaymentModal } from './PaymentModal';
 import { Button } from '../ui/Button';
+import { Card } from '../ui/Card';
 import { PLAN_LIMITS, type PlanId } from 'shared';
 
 interface Plan {
@@ -101,10 +102,10 @@ const PLANS: Plan[] = [
 ];
 
 const COLOR_MAP: Record<string, { border: string; badge: string; btn: string; btnActive: string; icon: string }> = {
-  slate:  { border: 'border-slate-300 dark:border-slate-700',   badge: 'bg-slate-600 dark:bg-slate-700 text-white',  btn: 'bg-slate-700 hover:bg-slate-600 text-white',       btnActive: 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-default',        icon: 'text-slate-500 dark:text-slate-400' },
-  indigo: { border: 'border-indigo-400 dark:border-indigo-500',  badge: 'bg-indigo-500 text-white',     btn: 'bg-indigo-600 hover:bg-indigo-500 text-white',      btnActive: 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 cursor-default',   icon: 'text-indigo-500 dark:text-indigo-400' },
-  emerald:{ border: 'border-emerald-400 dark:border-emerald-500', badge: 'bg-emerald-500 text-white',    btn: 'bg-emerald-600 hover:bg-emerald-500 text-white',    btnActive: 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 cursor-default', icon: 'text-emerald-500 dark:text-emerald-400' },
-  amber:  { border: 'border-amber-400 dark:border-amber-500',   badge: 'bg-amber-500 text-slate-900',  btn: 'bg-amber-500 hover:bg-amber-400 text-slate-900',   btnActive: 'bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 cursor-default',     icon: 'text-amber-500 dark:text-amber-400' },
+  slate:  { border: '!border-slate-300 dark:!border-slate-700',   badge: 'bg-slate-600 dark:bg-slate-700 text-white',  btn: 'bg-slate-700 hover:bg-slate-600 text-white',       btnActive: 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 cursor-default',        icon: 'text-slate-500 dark:text-slate-400' },
+  indigo: { border: '!border-indigo-400 dark:!border-indigo-500',  badge: 'bg-indigo-500 text-white',     btn: 'bg-indigo-600 hover:bg-indigo-500 text-white',      btnActive: 'bg-indigo-100 dark:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 cursor-default',   icon: 'text-indigo-500 dark:text-indigo-400' },
+  emerald:{ border: '!border-emerald-400 dark:!border-emerald-500', badge: 'bg-emerald-500 text-white',    btn: 'bg-emerald-600 hover:bg-emerald-500 text-white',    btnActive: 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 cursor-default', icon: 'text-emerald-500 dark:text-emerald-400' },
+  amber:  { border: '!border-amber-400 dark:!border-amber-500',   badge: 'bg-amber-500 text-slate-900',  btn: 'bg-amber-500 hover:bg-amber-400 text-slate-900',   btnActive: 'bg-amber-100 dark:bg-amber-900/60 text-amber-600 dark:text-amber-300 cursor-default',     icon: 'text-amber-500 dark:text-amber-400' },
 };
 
 // ─── Feature comparison table — derived from PLAN_LIMITS so it can never
@@ -296,10 +297,12 @@ export function PricingPage() {
               const isActive = currentPlan === plan.id;
 
               return (
-                <div
+                <Card
                   key={plan.id}
-                  className={`relative flex flex-col rounded-2xl border ${c.border} bg-white dark:bg-gray-900 p-6 ${
-                    plan.highlighted ? 'ring-2 ring-indigo-500 shadow-xl shadow-indigo-500/10' : ''
+                  padded={false}
+                  data-testid="pricing-plan-card"
+                  className={`relative flex flex-col ${c.border} !bg-white dark:!bg-gray-900 p-6 ${
+                    plan.highlighted ? 'ring-2 ring-indigo-500 !shadow-xl shadow-indigo-500/10' : '!shadow-none'
                   }`}
                 >
                   {plan.highlighted && (
@@ -344,7 +347,7 @@ export function PricingPage() {
                   >
                     {isActive ? '✓ Активен план' : plan.cta}
                   </Button>
-                </div>
+                </Card>
               );
             })}
           </div>

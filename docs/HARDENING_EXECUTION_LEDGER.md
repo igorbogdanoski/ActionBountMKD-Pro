@@ -133,7 +133,8 @@ Batch-от е затворен само кога:
   - [x] H4b Pricing plan cards; `SettingsPage` sections се потврдени како form/settings shells и намерно не се мигрирани.
 - [ ] Dashboard cards.
   - [x] H4c-1 `ResultsDashboard` funnel summary cards.
-  - [ ] H4c-2 Преостанати `ResultsDashboard` informational/analysis cards, по semantic review.
+  - [x] H4c-2 `ResultsDashboard` stage-drop и question-accuracy analysis cards.
+  - [ ] H4c-3 `PlanUsageWidget` stateful informational card.
 - [ ] Creator dark cards со `tone="dark"`.
 - [ ] Player/session surfaces, последни.
 - [ ] Проширување на Card API само за повторлив semantic pattern.
@@ -239,7 +240,8 @@ Batch-от е затворен само кога:
 | 2026-07-18 | H4a Landing informational cards | `e20ec12` | PASS | 601/601 PASS; Landing Card browser contract 2/2 PASS | PASS | `Testimonial`, `Step` и `Audience` се мигрирани во shared Card во единствениот одобрен production фајл; вкупно 9 render-и. Exact light background, border opacity, small shadow, padding и Audience hover contract се зачувани со експлицитни overrides; FAQ, adventure tiles, banners и media frames не се допрени. Desktop/mobile Landing semantics и zero overflow PASS; production build PASS. |
 | 2026-07-23 | H4b Pricing plan cards | `62ab729` | PASS | 601/601 PASS; 8 focused Pricing contracts | PASS | Четирите commerce plan wrappers се мигрирани во shared `Card` со `padded={false}` и експлицитно зачувани slate/indigo/emerald/amber borders, light/dark backgrounds, highlighted ring/shadow и current-plan state. `SettingsPage` sections се semantic form/settings shells и намерно не се мигрирани. Desktop/mobile Pricing contract 2/2 PASS во light/dark, со zero overflow и zero console errors; production build PASS. |
 | 2026-07-23 | H4c-1 Results funnel summary cards | `dec2788` | PASS | 602/602 PASS; 7 focused Results contracts | PASS | Трите compact funnel statistics panels се мигрирани во shared hard-dark `Card`; exact `rounded-xl`, slate palette, compact padding и no-shadow contract се зачувани. Chart, table, filters, grading rows и interactive surfaces не се допрени. Desktop/mobile Results contract 2/2 PASS со zero overflow; production build PASS. |
+| 2026-07-23 | H4c-2 Results analysis cards | `e3e8a4c` | PASS | 603/603 PASS; 8 focused Results contracts | PASS | Per-stage funnel rows и per-question accuracy panels се мигрирани во shared hard-dark `Card`; compact `rounded-xl`, no-shadow contract и rose big-drop warning state се зачувани. Chart/table shells, weak-spot navigation buttons, grading rows, paywall/empty states и icon frames се semantic review-ирани и намерно исклучени. Desktop/mobile Results contract 2/2 PASS со zero overflow; production build PASS. |
 
 ## Следна акција
 
-Продолжи со H4c-2 преку individual semantic review на преостанатите `ResultsDashboard` informational/analysis panels. Оддели ги chart/table shells, grading rows, weak-spot navigation buttons, empty/paywall states и icon frames од вистинските content cards; мигрирај само една сродна група. Потоа ревидирај го `PlanUsageWidget` како посебен stateful informational batch. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.
+Продолжи со H4c-3 преку state-by-state semantic review на `PlanUsageWidget`. Зачувај ги normal, warning и exhausted palette/border состојбите, responsive layout, plan badge, progress semantics и upgrade action без Card да ја преземе интерактивната улога. Потоа направи dashboard completion audit што ги класифицира преостанатите quest/template tiles, filters, forms, tables и shells. R15 останува контролиран и се ревидира при Expo/Firebase Admin major-upgrade планирањето.

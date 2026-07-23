@@ -464,9 +464,15 @@ export function ResultsDashboard() {
                 {/* Per-stage drop list */}
                 <div className="space-y-2">
                   {funnelStats.map((s, idx) => (
-                    <div key={s.id} className={`rounded-xl border px-4 py-3 flex items-center gap-4 ${
-                      s.bigDrop ? 'bg-rose-500/5 border-rose-500/20' : 'bg-slate-800 border-slate-700'
-                    }`}>
+                    <Card
+                      key={s.id}
+                      tone="dark"
+                      padded={false}
+                      data-testid="funnel-stage-card"
+                      className={`!rounded-xl !shadow-none px-4 py-3 flex items-center gap-4 ${
+                        s.bigDrop ? '!bg-rose-500/5 !border-rose-500/20' : ''
+                      }`}
+                    >
                       <span className="text-xs font-bold text-slate-500 w-8 shrink-0">{idx + 1}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-slate-200 truncate">{s.title || s.name}</p>
@@ -490,7 +496,7 @@ export function ResultsDashboard() {
                           </p>
                         )}
                       </div>
-                    </div>
+                    </Card>
                   ))}
                 </div>
 
@@ -502,7 +508,13 @@ export function ResultsDashboard() {
                       Точност по прашање
                     </h3>
                     {quizStats.map(q => (
-                      <div key={q.id} className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-3">
+                      <Card
+                        key={q.id}
+                        tone="dark"
+                        padded={false}
+                        data-testid="quiz-analysis-card"
+                        className="!rounded-xl !shadow-none px-4 py-3"
+                      >
                         <div className="flex items-center justify-between gap-3 mb-2">
                           <p className="text-sm font-semibold text-slate-200 truncate">{q.title || q.name}</p>
                           {q.accuracy !== null ? (
@@ -531,7 +543,7 @@ export function ResultsDashboard() {
                             ))}
                           </div>
                         )}
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}

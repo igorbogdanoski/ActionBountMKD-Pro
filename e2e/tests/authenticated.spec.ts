@@ -225,6 +225,14 @@ test.describe('authenticated QA harness', () => {
       await expect(funnelCards.nth(index)).toHaveClass(/!rounded-xl/);
       await expect(funnelCards.nth(index)).toHaveClass(/!shadow-none/);
     }
+    const funnelStageCards = page.getByTestId('funnel-stage-card');
+    const funnelStageCardCount = await funnelStageCards.count();
+    expect(funnelStageCardCount).toBeGreaterThan(0);
+    for (let index = 0; index < funnelStageCardCount; index += 1) {
+      await expect(funnelStageCards.nth(index)).toHaveClass(/bg-slate-800/);
+      await expect(funnelStageCards.nth(index)).toHaveClass(/!rounded-xl/);
+      await expect(funnelStageCards.nth(index)).toHaveClass(/!shadow-none/);
+    }
     const weakspots = page.getByRole('tab', { name: /Слаби точки/ });
     await weakspots.click();
     await expect(weakspots).toHaveAttribute('aria-selected', 'true');

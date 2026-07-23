@@ -121,6 +121,22 @@ describe('ResultsDashboard H3b controls', () => {
     expect(cards.every(card => card.className.includes('!shadow-none'))).toBe(true);
   });
 
+  it('renders stage and question analysis rows as compact shared cards', async () => {
+    render(<ResultsDashboard />);
+    await screen.findByText('Слаб квест', { selector: 'option' });
+
+    fireEvent.click(screen.getByRole('tab', { name: /Аналитика/ }));
+    const stageCards = await screen.findAllByTestId('funnel-stage-card');
+    const questionCards = await screen.findAllByTestId('quiz-analysis-card');
+    expect(stageCards).toHaveLength(1);
+    expect(questionCards).toHaveLength(1);
+    for (const card of [...stageCards, ...questionCards]) {
+      expect(card.className).toContain('bg-slate-800');
+      expect(card.className).toContain('!rounded-xl');
+      expect(card.className).toContain('!shadow-none');
+    }
+  });
+
   it('exposes a semantic tablist and keeps empty exports disabled', async () => {
     getQuestResults.mockResolvedValue([]);
     render(<ResultsDashboard />);

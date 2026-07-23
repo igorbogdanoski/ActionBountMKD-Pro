@@ -27,7 +27,8 @@ vi.mock('../hooks/usePlan', () => ({ usePlan: () => planState }));
 
 const getQuests = vi.hoisted(() => vi.fn());
 const getQuestResults = vi.hoisted(() => vi.fn());
-vi.mock('../utils/storage', () => ({ getQuests, getQuestResults }));
+const setResultApproval = vi.hoisted(() => vi.fn());
+vi.mock('../utils/storage', () => ({ getQuests, getQuestResults, setResultApproval }));
 const downloadWorkbook = vi.hoisted(() => vi.fn());
 vi.mock('../utils/excelExport', () => ({ downloadWorkbook }));
 vi.mock('../components/dashboard/SubmissionReviewModal', () => ({
@@ -68,6 +69,7 @@ beforeEach(() => {
   planState.planId = 'pro';
   getQuests.mockReset().mockResolvedValue(quests());
   getQuestResults.mockReset().mockImplementation((questId: string) => Promise.resolve(resultsFor(questId)));
+  setResultApproval.mockReset();
   downloadWorkbook.mockReset();
 });
 
@@ -190,5 +192,38 @@ describe('ResultsDashboard H3b controls', () => {
     fireEvent.click(screen.getByRole('tab', { name: /За оценување/ }));
     fireEvent.click(await screen.findByRole('button', { name: 'Оцени' }));
     expect(screen.getByRole('dialog')).toHaveTextContent('Review mission-1');
+  });
+});
+
+describe('ResultsDashboard attempt approval', () => {
+  it('shows per-student attempt numbers and supports approve and revoke', async () => {
+    getQuestResults.mockResolvedValue([
+      {
+        id: 'attempt-1', attemptId: 'attempt-1', questId: 'q1', studentId: 'student-1',
+        playerName: 'Ана', points: 10, completedAt: '2026-01-01T10:00:00.000Z',
+      },
+      {
+        id: 'attempt-2', attemptId: 'attempt-2', questId: 'q1', studentId: 'student-1',
+        playerName: 'Ана', points: 20, completedAt: '2026-01-02T10:00:00.000Z',
+        approvedAt: '2026-01-03T10:00:00.000Z', approvedBy: 'teacher-1',
+      },
+    ]);
+    setResultApproval
+      .mockResolvedValueOnce({ approvedAt: '2026-01-04T10:00:00.000Z', approvedBy: 'teacher-1' })
+      .mockResolvedValueOnce({ approvedAt: undefined, approvedBy: undefined });
+
+    render(<ResultsDashboard />);
+    await screen.findByText('Обид #1');
+    expect(screen.getByText('Обид #2')).toBeTruthy();
+    expect(screen.getByText('Одобрен')).toBeTruthy();
+    expect(screen.getByText('Неодобрен')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Одобри за обид #1 на Ана' }));
+    await waitFor(() => expect(setResultApproval).toHaveBeenCalledWith('attempt-1', 'teacher-1', true));
+    expect(screen.getAllByText('Одобрен')).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Повлечи одобрување за обид #2 на Ана' }));
+    await waitFor(() => expect(setResultApproval).toHaveBeenCalledWith('attempt-2', 'teacher-1', false));
+    expect(screen.getByRole('button', { name: 'Одобри за обид #2 на Ана' })).toBeTruthy();
   });
 });

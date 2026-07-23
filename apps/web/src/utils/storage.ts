@@ -12,6 +12,7 @@ import {
   limit,
   startAfter,
   increment,
+  deleteField,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
@@ -102,6 +103,33 @@ export async function gradeSubmission(result: QuestResult, grade: RubricGrade): 
   const previousBonus = (result.grades ?? []).reduce((sum, g) => sum + g.totalPoints, 0);
   const points = result.points - previousBonus + bonus;
   await updateDoc(doc(db, RESULTS, result.id), { grades, points });
+}
+
+export type ResultApproval = Pick<QuestResult, 'approvedAt' | 'approvedBy'>;
+
+/**
+ * Approves or revokes one immutable attempt. Firestore rules bind approvals
+ * to the authenticated quest owner and permit no fields beyond this pair.
+ */
+export async function setResultApproval(
+  resultId: string,
+  teacherId: string,
+  approved: boolean,
+): Promise<ResultApproval> {
+  if (approved) {
+    const approval = {
+      approvedAt: new Date().toISOString(),
+      approvedBy: teacherId,
+    };
+    await updateDoc(doc(db, RESULTS, resultId), approval);
+    return approval;
+  }
+
+  await updateDoc(doc(db, RESULTS, resultId), {
+    approvedAt: deleteField(),
+    approvedBy: deleteField(),
+  });
+  return { approvedAt: undefined, approvedBy: undefined };
 }
 
 export async function getPublicQuestResults(questId: string, pageSize = 20): Promise<QuestResult[]> {

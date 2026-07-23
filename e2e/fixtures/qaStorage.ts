@@ -90,16 +90,40 @@ export async function getQuestById(id?: string) {
 export async function saveQuest() {}
 export async function deleteQuest() {}
 export async function saveQuestResult() { return 'qa-result-001'; }
-export async function getQuestResults(questId?: string) {
-  if (!new URLSearchParams(window.location.search).has('qaResults') || questId !== 'qa-quest-1') return [];
-  return [{
+let qaResults = [
+  {
     id: 'qa-result-1',
-    questId,
+    attemptId: 'qa-result-1',
+    questId: 'qa-quest-1',
+    studentId: 'qa-student-1',
     playerName: 'QA Student',
     points: 10,
     completedAt: '2026-07-17T12:00:00.000Z',
     stageDurations: [{ stageId: 'qa-stage-1', durationSec: 42 }],
-  }];
+  },
+  {
+    id: 'qa-result-2',
+    attemptId: 'qa-result-2',
+    questId: 'qa-quest-1',
+    studentId: 'qa-student-1',
+    playerName: 'QA Student',
+    points: 15,
+    completedAt: '2026-07-18T12:00:00.000Z',
+    approvedAt: '2026-07-18T13:00:00.000Z',
+    approvedBy: 'qa-teacher',
+    stageDurations: [{ stageId: 'qa-stage-1', durationSec: 38 }],
+  },
+];
+export async function getQuestResults(questId?: string) {
+  if (!new URLSearchParams(window.location.search).has('qaResults') || questId !== 'qa-quest-1') return [];
+  return qaResults.map(result => ({ ...result, questId }));
+}
+export async function setResultApproval(resultId: string, teacherId: string, approved: boolean) {
+  const approval = approved
+    ? { approvedAt: new Date().toISOString(), approvedBy: teacherId }
+    : { approvedAt: undefined, approvedBy: undefined };
+  qaResults = qaResults.map(result => result.id === resultId ? { ...result, ...approval } : result);
+  return approval;
 }
 export async function gradeSubmission() {}
 export async function getPublicQuestResults() { return []; }

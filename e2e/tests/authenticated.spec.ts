@@ -219,6 +219,14 @@ test.describe('authenticated QA harness', () => {
     await expect(tabs.nth(0)).toHaveAttribute('aria-selected', 'true');
     await expect(page.getByRole('button', { name: 'Извоз во CSV' })).toBeEnabled();
     await expect(page.getByRole('button', { name: 'Извоз во Excel' })).toBeEnabled();
+    await expect(page.getByText('Обид #1')).toBeVisible();
+    await expect(page.getByText('Обид #2')).toBeVisible();
+    await expect(page.getByText('Одобрен', { exact: true })).toBeVisible();
+    await expect(page.getByText('Неодобрен', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Одобри за обид #1 на QA Student' }).click();
+    await expect(page.getByRole('button', { name: 'Повлечи одобрување за обид #1 на QA Student' })).toBeVisible();
+    await page.getByRole('button', { name: 'Повлечи одобрување за обид #2 на QA Student' }).click();
+    await expect(page.getByRole('button', { name: 'Одобри за обид #2 на QA Student' })).toBeVisible();
 
     const analytics = page.getByRole('tab', { name: /Аналитика/ });
     await analytics.click();

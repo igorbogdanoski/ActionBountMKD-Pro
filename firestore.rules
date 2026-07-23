@@ -87,6 +87,22 @@ service cloud.firestore {
         && after.points >= 0;
     }
 
+    // Approval is a separate owner-only decision. Approving must write both
+    // fields and bind the actor to the authenticated quest owner; revoking
+    // must remove both fields. No result/submission content may be rewritten.
+    function isValidApprovalUpdate(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['approvedAt', 'approvedBy'])
+        && (
+          (after.diff(before).affectedKeys().hasAll(['approvedAt', 'approvedBy'])
+            && after.keys().hasAll(['approvedAt', 'approvedBy'])
+            && after.approvedAt is string
+            && after.approvedAt.size() >= 1
+            && after.approvedAt.size() <= 64
+            && after.approvedBy == request.auth.uid)
+          || !after.keys().hasAny(['approvedAt', 'approvedBy'])
+        );
+    }
+
     // ─── QUESTS ──────────────────────────────────────────────────────────────
     match /quests/{questId} {
       // Public quests visible to all; private only to owner/collaborators
@@ -127,7 +143,8 @@ service cloud.firestore {
       // and only by touching grades/points — everything else is immutable.
       allow update: if request.resource.data == resource.data
                     || (ownsQuest(resource.data.questId)
-                      && isValidGradeUpdate(resource.data, request.resource.data));
+                      && (isValidGradeUpdate(resource.data, request.resource.data)
+                        || isValidApprovalUpdate(resource.data, request.resource.data)));
 
       allow delete: if false;
     }

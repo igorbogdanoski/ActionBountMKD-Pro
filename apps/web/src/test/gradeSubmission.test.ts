@@ -7,10 +7,12 @@ import type { RubricGrade, QuestResult } from 'shared';
 
 const fs = vi.hoisted(() => {
   const store = new Map<string, Record<string, unknown>>();
+  const deleteSentinel = { __deleteField: true };
   const clone = <T>(o: T): T => (o === undefined ? o : JSON.parse(JSON.stringify(o)));
 
   return {
     store,
+    deleteSentinel,
     reset: () => store.clear(),
     collection: (_db: unknown, coll: string) => ({ path: coll }),
     doc: (first: unknown, coll?: string, id?: string) => (
@@ -22,7 +24,12 @@ const fs = vi.hoisted(() => {
       store.set(ref.path, clone(value));
     },
     updateDoc: async (ref: { path: string }, patch: Record<string, unknown>) => {
-      store.set(ref.path, { ...(store.get(ref.path) ?? {}), ...clone(patch) });
+      const next = { ...(store.get(ref.path) ?? {}) };
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === deleteSentinel) delete next[key];
+        else next[key] = clone(value);
+      }
+      store.set(ref.path, next);
     },
   };
 });
@@ -42,9 +49,10 @@ vi.mock('firebase/firestore', () => ({
   limit: vi.fn(),
   startAfter: vi.fn(),
   increment: vi.fn(),
+  deleteField: () => fs.deleteSentinel,
 }));
 
-import { gradeSubmission, saveQuestResult } from '../utils/storage';
+import { gradeSubmission, saveQuestResult, setResultApproval } from '../utils/storage';
 
 beforeEach(() => fs.reset());
 
@@ -121,5 +129,28 @@ describe('saveQuestResult attempt identity', () => {
       id: 'attempt-123',
       attemptId: 'attempt-123',
     });
+  });
+});
+
+describe('setResultApproval', () => {
+  it('approves with only the timestamp and authenticated teacher identity', async () => {
+    const approval = await setResultApproval('r1', 'teacher-1', true);
+
+    expect(approval.approvedBy).toBe('teacher-1');
+    expect(Date.parse(approval.approvedAt!)).not.toBeNaN();
+    expect(fs.store.get('quest_results/r1')).toEqual(approval);
+  });
+
+  it('revokes both approval fields without rewriting immutable result data', async () => {
+    fs.store.set('quest_results/r1', {
+      approvedAt: '2026-01-01T00:00:00.000Z',
+      approvedBy: 'teacher-1',
+      points: 50,
+    });
+
+    const approval = await setResultApproval('r1', 'teacher-1', false);
+
+    expect(approval).toEqual({ approvedAt: undefined, approvedBy: undefined });
+    expect(fs.store.get('quest_results/r1')).toEqual({ points: 50 });
   });
 });

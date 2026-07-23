@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getQuests, getQuestResults } from '../../utils/storage';
+import { getQuests, getQuestResults, setResultApproval } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
-import { Quest, QuestResult } from 'shared';
+import { normalizePlayerName, numberQuestAttempts, Quest, QuestResult } from 'shared';
 import { computeStageCompletion, computeQuizAccuracy } from '../../utils/completion';
 import { downloadWorkbook, type SheetData } from '../../utils/excelExport';
 import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock, ClipboardCheck, CheckCircle2 } from 'lucide-react';
@@ -23,6 +23,8 @@ export function ResultsDashboard() {
   const [sortByStageId, setSortByStageId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel' | 'weakspots' | 'grade'>('leaderboard');
   const [reviewing, setReviewing] = useState<{ result: QuestResult; stageId: string } | null>(null);
+  const [approvalBusyId, setApprovalBusyId] = useState<string | null>(null);
+  const [approvalError, setApprovalError] = useState('');
 
   // Cross-quest weak-spot data — loaded lazily (only once the tab is opened)
   // and cached per session, since it means fetching results for every quest
@@ -193,6 +195,39 @@ export function ResultsDashboard() {
     }
     return data;
   }, [results, sortByStageId]);
+
+  const attemptNumbers = useMemo(() => {
+    const byActor = new Map<string, QuestResult[]>();
+    for (const result of results as QuestResult[]) {
+      const actorKey = result.studentId
+        ? `student:${result.studentId}`
+        : `guest:${normalizePlayerName(result.playerName)}`;
+      byActor.set(actorKey, [...(byActor.get(actorKey) ?? []), result]);
+    }
+
+    return new Map(
+      [...byActor.values()]
+        .flatMap(actorResults => numberQuestAttempts(actorResults))
+        .map(({ result, attemptNumber }) => [result.id, attemptNumber]),
+    );
+  }, [results]);
+
+  const toggleApproval = async (result: QuestResult) => {
+    if (!user || approvalBusyId) return;
+    const approved = !result.approvedAt;
+    setApprovalBusyId(result.id);
+    setApprovalError('');
+    try {
+      const approval = await setResultApproval(result.id, user.uid, approved);
+      setResults(current => current.map(item => (
+        item.id === result.id ? { ...item, ...approval } : item
+      )));
+    } catch {
+      setApprovalError('Одобрувањето не се зачува. Обидете се повторно.');
+    } finally {
+      setApprovalBusyId(null);
+    }
+  };
 
   const exportCSV = () => {
     if (results.length === 0) return;
@@ -728,6 +763,11 @@ export function ResultsDashboard() {
                 </div>
               </div>
               <div className="p-0 overflow-x-auto min-h-[300px]">
+                {approvalError && (
+                  <p role="alert" className="mx-4 mt-4 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                    {approvalError}
+                  </p>
+                )}
                 <table className="w-full text-left text-sm text-slate-400">
                   <thead className="bg-slate-900/50 text-xs uppercase font-semibold text-slate-500">
                     <tr>
@@ -735,6 +775,7 @@ export function ResultsDashboard() {
                       <th className="px-2 md:px-4 py-3">Играч</th>
                       <th className="px-2 md:px-4 py-3 text-right">Поени</th>
                       <th className="hidden sm:table-cell px-2 md:px-4 py-3 text-right">{sortByStageId ? 'Време' : 'Датум'}</th>
+                      <th className="px-2 md:px-4 py-3 text-right">Одобрување</th>
                     </tr>
                   </thead>
                   <motion.tbody 
@@ -744,12 +785,12 @@ export function ResultsDashboard() {
                     <AnimatePresence>
                       {sortedResults.length === 0 ? (
                         <motion.tr key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                          <td colSpan={4} className="px-4 py-8 text-center bg-transparent">Нема одиграни игри за оваа авантура.</td>
+                          <td colSpan={5} className="px-4 py-8 text-center bg-transparent">Нема одиграни игри за оваа авантура.</td>
                         </motion.tr>
                       ) : (
                         sortedResults.map((r, idx) => (
                           <motion.tr 
-                            key={`${r.playerName}-${r.completedAt}`} 
+                            key={r.id}
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
@@ -764,7 +805,12 @@ export function ResultsDashboard() {
                             </td>
                             <td className="px-2 md:px-4 py-3 font-bold text-slate-200 flex items-center gap-2">
                               <User className="w-4 h-4 text-slate-500 shrink-0" />
-                              <span className="truncate">{r.playerName || 'Анонимен'}</span>
+                              <span className="min-w-0">
+                                <span className="block truncate">{r.playerName || 'Анонимен'}</span>
+                                <span className="block text-[11px] font-semibold text-slate-500">
+                                  Обид #{attemptNumbers.get(r.id) ?? 1}
+                                </span>
+                              </span>
                             </td>
                             <td className="px-2 md:px-4 py-3 text-right font-black text-indigo-400">{r.points}</td>
                             <td className="hidden sm:table-cell px-2 md:px-4 py-3 text-right text-xs">
@@ -779,6 +825,24 @@ export function ResultsDashboard() {
                               ) : (
                                 new Date(r.completedAt).toLocaleDateString()
                               )}
+                            </td>
+                            <td className="px-2 md:px-4 py-3 text-right">
+                              <div className="flex flex-col items-end gap-1.5">
+                                <span className={`text-[11px] font-bold ${r.approvedAt ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                  {r.approvedAt ? 'Одобрен' : 'Неодобрен'}
+                                </span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant={r.approvedAt ? 'secondary' : 'success'}
+                                  disabled={approvalBusyId !== null}
+                                  onClick={() => void toggleApproval(r)}
+                                  aria-label={`${r.approvedAt ? 'Повлечи одобрување' : 'Одобри'} за обид #${attemptNumbers.get(r.id) ?? 1} на ${r.playerName || 'Анонимен'}`}
+                                  className="whitespace-nowrap !px-2 !py-1 !text-xs"
+                                >
+                                  {approvalBusyId === r.id ? 'Се зачувува…' : r.approvedAt ? 'Повлечи' : 'Одобри'}
+                                </Button>
+                              </div>
                             </td>
                           </motion.tr>
                         ))

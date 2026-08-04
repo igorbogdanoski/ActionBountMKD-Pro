@@ -20,7 +20,7 @@ export default defineConfig({
     { name: 'authenticated-mobile', use: { ...devices['Pixel 7'] } },
   ],
   webServer: {
-    command: 'npm run dev:qa',
+    command: 'npm run dev:qa --prefix ..',
     url: 'http://127.0.0.1:3100/settings?qaPlan=free&qaAdmin=1',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

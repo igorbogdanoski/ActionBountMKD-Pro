@@ -90,7 +90,7 @@ export function LandingPage() {
           <nav className="hidden md:flex gap-6 text-sm font-medium">
             <Button onClick={onNavigateToPlayerDemo} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.play')}</Button>
             <Button onClick={onNavigateToCreator} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.create')}</Button>
-            <Button onClick={() => navigate('/explore')} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('landing.nav.explore')}</Button>
+            <Button onClick={() => navigate('/explore')} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="p-0 font-medium">{t('nav.explore')}</Button>
           </nav>
         </div>
         <div className="flex items-center gap-3">

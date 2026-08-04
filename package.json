@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
+    "dev:public-qa": "vite --config e2e/vite.public.config.ts",
     "dev:qa": "vite --config e2e/vite.auth.config.ts",
     "build": "npm run build --workspaces --if-present",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",

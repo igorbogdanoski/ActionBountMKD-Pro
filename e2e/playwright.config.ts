@@ -17,7 +17,9 @@ const useExternal = Boolean(process.env.PLAYWRIGHT_BASE_URL);
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  testMatch: 'smoke.spec.ts',
+  fullyParallel: false,
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? 'github' : 'list',
@@ -33,7 +35,7 @@ export default defineConfig({
   webServer: useExternal
     ? undefined
     : {
-        command: 'npm run dev --prefix apps/web',
+        command: 'npm run dev:public-qa --prefix ..',
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

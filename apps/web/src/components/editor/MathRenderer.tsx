@@ -28,7 +28,7 @@ function unescapeHtml(text: string): string {
   return text.replace(/&(?:amp|lt|gt|quot|#39);/g, (entity) => HTML_ENTITIES[entity]);
 }
 
-function renderContent(text: string): string {
+export function renderMathContent(text: string): string {
   if (!text) return '';
 
   return escapeHtml(text)
@@ -61,7 +61,7 @@ function renderContent(text: string): string {
 }
 
 export function MathRenderer({ text, className = '' }: MathRendererProps) {
-  const html = useMemo(() => renderContent(text), [text]);
+  const html = useMemo(() => renderMathContent(text), [text]);
 
   if (!text) return null;
 

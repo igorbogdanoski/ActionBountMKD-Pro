@@ -30,6 +30,42 @@ export async function createSession(input: {
   return session;
 }
 
+export class SessionError extends Error {
+  constructor(public code: 'not-found' | 'finished' | 'full' | 'code-collision', message: string) {
+    super(message);
+    this.name = 'SessionError';
+  }
+}
+
+export async function joinSession(code: string, uid: string, name: string): Promise<GameSession> {
+  if (!session || session.id !== code.trim().toUpperCase()) {
+    throw new SessionError('not-found', 'Сесијата не постои.');
+  }
+  if (session.status === 'finished') {
+    throw new SessionError('finished', 'Сесијата е завршена.');
+  }
+  const now = new Date().toISOString();
+  const existing = session.players.find(player => player.uid === uid);
+  const player = existing
+    ? { ...existing, name: name.trim().slice(0, 40) || 'Играч', updatedAt: now }
+    : {
+        uid,
+        name: name.trim().slice(0, 40) || 'Играч',
+        points: 0,
+        stageIndex: 0,
+        finished: false,
+        joinedAt: now,
+        updatedAt: now,
+      };
+  session = {
+    ...session,
+    players: [...session.players.filter(candidate => candidate.uid !== uid), player],
+    updatedAt: now,
+  };
+  publish();
+  return session;
+}
+
 export function subscribeSession(_code: string, onChange: (value: GameSession | null) => void) {
   listeners.add(onChange);
   queueMicrotask(() => onChange(session));

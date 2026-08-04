@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback } from 'react';
-import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Button } from '../ui/Button';
+import { renderMathContent } from './MathRenderer';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,28 +64,6 @@ const SYMBOL_GROUPS = [
 ];
 
 // ─── KaTeX renderer ───────────────────────────────────────────────────────────
-
-function renderMath(text: string): string {
-  // Replace $$...$$ block math first, then $...$ inline
-  let result = text
-    .replace(/\$\$([^$]+)\$\$/g, (_, formula) => {
-      try {
-        return `<div class="katex-block">${katex.renderToString(formula.trim(), { displayMode: true, throwOnError: false })}</div>`;
-      } catch {
-        return `<span class="text-red-400 text-xs">[Грешка: ${formula}]</span>`;
-      }
-    })
-    .replace(/\$([^$\n]+)\$/g, (_, formula) => {
-      try {
-        return katex.renderToString(formula.trim(), { displayMode: false, throwOnError: false });
-      } catch {
-        return `<span class="text-red-400 text-xs">[Грешка: ${formula}]</span>`;
-      }
-    });
-
-  // Convert newlines to <br> for display
-  return result.replace(/\n/g, '<br/>');
-}
 
 function hasmath(text: string): boolean {
   return /\$[^$]/.test(text);
@@ -234,7 +212,7 @@ export function MathRichEditor({ value, onChange, placeholder, rows = 4, label, 
           <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Преглед</p>
           <div
             className="text-slate-200 text-sm leading-relaxed [&_.katex-block]:my-3 [&_.katex-block]:text-center"
-            dangerouslySetInnerHTML={{ __html: renderMath(value) }}
+            dangerouslySetInnerHTML={{ __html: renderMathContent(value) }}
           />
         </div>
       )}

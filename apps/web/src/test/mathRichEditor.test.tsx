@@ -40,4 +40,20 @@ describe('MathRichEditor controls', () => {
     expect(screen.getByRole('button', { name: 'Сокриј преглед' })).toHaveAttribute('aria-expanded', 'true');
     expect(document.getElementById('math-preview')).toBeInTheDocument();
   });
+
+  it('escapes raw HTML in the math preview while preserving KaTeX output', () => {
+    render(
+      <MathRichEditor
+        value={'<img src=x onerror="window.__richPwned=true"> $x^2$'}
+        onChange={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Преглед' }));
+
+    const preview = document.getElementById('math-preview')!;
+    expect(preview.querySelector('img')).toBeNull();
+    expect(preview.querySelector('.katex')).toBeTruthy();
+    expect(preview.textContent).toContain('<img src=x onerror="window.__richPwned=true">');
+    expect((window as unknown as { __richPwned?: boolean }).__richPwned).toBeUndefined();
+  });
 });

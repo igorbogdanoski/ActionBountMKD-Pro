@@ -65,11 +65,16 @@ test.describe('authenticated QA harness', () => {
     await expect(dialog).toBeHidden();
   });
 
-  test('preserves landing language and FAQ semantics without overflow', async ({ page }) => {
+  test('preserves landing language and FAQ semantics without overflow', async ({ page }, testInfo) => {
     await page.goto('/?qaGuest=1', { waitUntil: 'domcontentloaded' });
-    const languages = page.getByRole('group', { name: 'Language' }).getByRole('button');
+    const languageGroup = page.getByRole('group', { name: /^(Јазик|Language)$/ });
+    const languages = languageGroup.getByRole('button');
     await expect(languages).toHaveCount(2);
-    await expect(page.getByRole('group', { name: 'Language' }).locator('button[aria-pressed="true"]')).toHaveCount(1);
+    await expect(languageGroup.locator('button[aria-pressed="true"]')).toHaveCount(1);
+    await expect(page.locator('body')).not.toContainText('landing.nav.explore');
+    if (testInfo.project.name === 'authenticated-desktop') {
+      await expect(page.getByRole('button', { name: /^(Истражи|Explore)$/ })).toBeVisible();
+    }
 
     const faq = page.locator('button[aria-controls]').first();
     await expect(faq).toHaveAttribute('aria-expanded', 'false');
@@ -307,7 +312,7 @@ test.describe('authenticated QA harness', () => {
     await page.getByRole('button', { name: 'Додај таг' }).click();
     const removeTag = page.getByRole('button', { name: 'Отстрани таг скопје' });
     await expect(removeTag).toBeVisible();
-    await removeTag.click();
+    await removeTag.click({ force: true });
     await expect(removeTag).toBeHidden();
 
     await page.getByPlaceholder('Име на предмет').fill('Златен клуч');

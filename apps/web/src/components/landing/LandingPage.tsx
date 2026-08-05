@@ -106,7 +106,7 @@ export function LandingPage() {
                 className="px-2 py-1 rounded-md"
                 colorClassName={
                   i18n.language === lang.code
-                    ? 'bg-brand-500 text-white focus-visible:ring-brand-500'
+                    ? 'bg-brand-700 text-white focus-visible:ring-brand-700'
                     : 'text-slate-300 hover:text-white hover:bg-white/10 focus-visible:ring-brand-500'
                 }
               >
@@ -115,13 +115,13 @@ export function LandingPage() {
             ))}
           </div>
           {user ? (
-             <Button onClick={onNavigateToCreator} variant="outline" size="sm" className="rounded-full">
+             <Button onClick={onNavigateToCreator} variant="outline" size="sm" colorClassName="border border-brand-400 text-brand-300 hover:bg-brand-700 hover:text-white focus-visible:ring-brand-400" className="rounded-full">
                {t('landing.nav.dashboard')}
              </Button>
           ) : (
              <>
                <Button onClick={openLogin} variant="ghost" size="sm" colorClassName="text-white hover:text-brand-500 focus-visible:ring-brand-500" className="hidden md:inline-flex font-medium p-0">{t('landing.nav.login')}</Button>
-               <Button onClick={onNavigateToCreator} variant="outline" size="sm" className="rounded-full">
+               <Button onClick={onNavigateToCreator} variant="outline" size="sm" colorClassName="border border-brand-400 text-brand-300 hover:bg-brand-700 hover:text-white focus-visible:ring-brand-400" className="rounded-full">
                  {t('landing.nav.freeTest')}
                </Button>
              </>
@@ -360,7 +360,7 @@ export function LandingPage() {
               onClick={() => navigate('/explore')}
               variant="ghost"
               size="sm"
-              colorClassName="text-brand-600 hover:text-brand-700 hover:underline focus-visible:ring-brand-500"
+              colorClassName="text-brand-700 hover:text-brand-800 hover:underline focus-visible:ring-brand-700"
               className="flex-shrink-0 p-0 font-semibold"
             >
               {t('landing.featured.viewAll')}
@@ -377,7 +377,7 @@ export function LandingPage() {
                 className="!block text-left rounded-2xl p-5 group"
               >
                 <div className="text-3xl mb-3">{a.emoji}</div>
-                <h3 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-brand-600 transition-colors">{a.title}</h3>
+                <h3 className="font-bold text-slate-900 text-sm mb-1 group-hover:text-brand-700 transition-colors">{a.title}</h3>
                 <p className="text-xs text-slate-500 mb-3 line-clamp-2">{a.desc}</p>
                 <div className="flex flex-wrap gap-1">
                   <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-medium">{a.subject}</span>

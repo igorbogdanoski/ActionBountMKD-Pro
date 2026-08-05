@@ -37,7 +37,7 @@ export async function upsertUserProfile(_profile: UserProfile) {}
 // routes that authenticated.spec.ts does not exercise.
 export async function getQuests() {
   const params = new URLSearchParams(window.location.search);
-  if (!params.has('qaQuest') && !params.has('qaResults')) return [];
+  if (!params.has('qaQuest') && !params.has('qaResults') && !params.has('qaRoster')) return [];
   return [{
     id: 'qa-quest-1',
     creatorId: 'qa-teacher',
@@ -140,9 +140,43 @@ export async function deleteTemplate() {}
 export async function incrementTemplateUsage() {}
 export async function submitQuestFeedback() {}
 export async function getUserProfile() { return null; }
-export async function getGroups() { return []; }
+export async function getGroups() {
+  if (!new URLSearchParams(window.location.search).has('qaRoster')) return [];
+  return [{
+    id: 'qa-group-1',
+    ownerId: 'qa-teacher-001',
+    name: 'QA 8-А',
+    students: [{ id: 'qa-student-1', name: 'QA Student' }],
+    assignedQuestIds: ['qa-quest-1'],
+    createdAt: '2026-08-04T10:00:00.000Z',
+    updatedAt: '2026-08-04T10:00:00.000Z',
+  }];
+}
 export async function saveGroup() {}
 export async function deleteGroup() {}
+export async function getRosterLaunch(id: string) {
+  if (id !== '12345678-1234-4234-8234-123456789abc') return null;
+  return {
+    id,
+    setId: 'qa-group-1--qa-player-quest',
+    generationId: 'qa-generation-1',
+    ownerId: 'qa-teacher-001',
+    groupId: 'qa-group-1',
+    questId: 'qa-player-quest',
+    studentId: 'qa-student-1',
+    studentName: 'QA Student',
+    issuedAtMs: Date.now() - 60_000,
+    expiresAtMs: Date.now() + 86_400_000,
+  };
+}
+export async function rotateRosterLaunches(input: { students: { id: string; name: string }[] }) {
+  return input.students.map((student, index) => ({
+    id: `12345678-1234-4234-8234-${String(index + 1).padStart(12, '0')}`,
+    studentId: student.id,
+    studentName: student.name,
+  }));
+}
+export async function revokeRosterLaunches() {}
 export function cacheQuestLocally() {}
 export function getCachedQuest() { return null; }
 export function clearCachedQuest() {}

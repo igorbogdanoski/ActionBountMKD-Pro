@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { updateProfile } from 'firebase/auth';
-import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight, BellRing, AlertTriangle } from 'lucide-react';
+import { User, Palette, CreditCard, Check, Loader2, Sun, Moon, Globe, Shield, LogOut, ChevronRight, BellRing, AlertTriangle, Download, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
-import { upsertUserProfile, getUserTheme, getUserSettings, saveUserTheme } from '../../utils/storage';
+import { getUserTheme, getUserSettings, saveUserTheme } from '../../utils/storage';
+import { upsertUserProfile } from '../../utils/profileStorage';
 import { sendTestPushNotification } from '../../utils/pushNotifications';
+import {
+  buildAccountDataExport,
+  cancelAccountDeletion,
+  downloadAccountData,
+  getAccountDeletionRequest,
+  requestAccountDeletion,
+  type AccountDeletionRequest,
+} from '../../utils/accountData';
 import { readOutdoorPref, outdoorPrefValue, OUTDOOR_STORAGE_KEY, OUTDOOR_CLASS } from '../../utils/displayPrefs';
-import { Button, Toggle } from '../ui';
+import { Button, Modal, Toggle } from '../ui';
 import { LANGUAGES, type SupportedLang } from '../../i18n';
 import type { PlanId } from 'shared';
 
@@ -68,6 +77,13 @@ export function SettingsPage() {
   const [pushPermission, setPushPermission] = useState<string>('undetermined');
   const [pushError, setPushError] = useState<string | null>(null);
   const [sendingPush, setSendingPush] = useState(false);
+  const [exportingData, setExportingData] = useState(false);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [privacyError, setPrivacyError] = useState<string | null>(null);
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+  const [deletionOpen, setDeletionOpen] = useState(false);
+  const [deletionConfirmation, setDeletionConfirmation] = useState('');
+  const [deletionBusy, setDeletionBusy] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -78,6 +94,9 @@ export function SettingsPage() {
         setPushPermission(settings?.notificationPermissionStatus ?? 'undetermined');
         setPushError(settings?.notificationError ?? null);
       });
+      getAccountDeletionRequest(user.uid)
+        .then(setDeletionRequest)
+        .catch(() => setPrivacyError('Не успеа вчитувањето на статусот за бришење.'));
     }
   }, [user]);
 
@@ -126,6 +145,65 @@ export function SettingsPage() {
       setPushError(error instanceof Error ? error.message : 'Не успеа тест push барањето.');
     } finally {
       setSendingPush(false);
+    }
+  };
+
+  const exportAccountData = async () => {
+    if (!user?.email) return;
+    setExportingData(true);
+    setPrivacyError(null);
+    setExportNotice(null);
+    try {
+      const data = await buildAccountDataExport({
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName ?? '',
+      });
+      downloadAccountData(data);
+      setExportNotice('JSON извозот е подготвен. За целосна архива со Storage датотеки испрати барање до поддршката.');
+    } catch (error) {
+      console.error('[AccountData] export failed', error);
+      setPrivacyError('Не успеа извозот. Провери ја интернет врската и обиди се повторно.');
+    } finally {
+      setExportingData(false);
+    }
+  };
+
+  const submitDeletionRequest = async () => {
+    if (!user?.email || deletionConfirmation !== user.email) return;
+    setDeletionBusy(true);
+    setPrivacyError(null);
+    try {
+      const next = await requestAccountDeletion(user.uid, user.email);
+      setDeletionRequest(next);
+      setDeletionOpen(false);
+      setDeletionConfirmation('');
+      setExportNotice('Барањето е регистрирано. Сметката не е избришана автоматски; ќе следи проверка и обработка.');
+    } catch (error) {
+      console.error('[AccountData] deletion request failed', error);
+      setPrivacyError('Не успеа испраќањето на барањето за бришење.');
+    } finally {
+      setDeletionBusy(false);
+    }
+  };
+
+  const cancelDeletionRequest = async () => {
+    if (!user) return;
+    setDeletionBusy(true);
+    setPrivacyError(null);
+    try {
+      await cancelAccountDeletion(user.uid);
+      setDeletionRequest(current => current ? {
+        ...current,
+        status: 'cancelled',
+        updatedAt: new Date().toISOString(),
+      } : null);
+      setExportNotice('Барањето за бришење е откажано.');
+    } catch (error) {
+      console.error('[AccountData] cancellation failed', error);
+      setPrivacyError('Не успеа откажувањето на барањето.');
+    } finally {
+      setDeletionBusy(false);
     }
   };
 
@@ -387,8 +465,120 @@ export function SettingsPage() {
               </Button>
             </div>
           </SectionCard>
+
+          <SectionCard>
+            <div className="px-5 py-4 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-slate-200">Податоци и приватност</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Преземи self-service JSON копија или регистрирај проверливо барање за целосно бришење.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  type="button"
+                  onClick={exportAccountData}
+                  loading={exportingData}
+                  disabled={!user?.email}
+                  variant="secondary"
+                  leftIcon={<Download className="w-4 h-4" />}
+                  className="!py-2.5"
+                >
+                  Извези мои податоци
+                </Button>
+                {deletionRequest?.status === 'pending' ? (
+                  <Button
+                    type="button"
+                    onClick={cancelDeletionRequest}
+                    loading={deletionBusy}
+                    variant="ghost"
+                    colorClassName="text-amber-400 hover:text-amber-300 border border-amber-500/30"
+                    className="!py-2.5"
+                  >
+                    Откажи барање за бришење
+                  </Button>
+                ) : (!deletionRequest || deletionRequest.status === 'cancelled' || deletionRequest.status === 'rejected') ? (
+                  <Button
+                    type="button"
+                    onClick={() => setDeletionOpen(true)}
+                    variant="ghost"
+                    leftIcon={<Trash2 className="w-4 h-4" />}
+                    colorClassName="text-rose-400 hover:text-rose-300 border border-rose-500/30"
+                    className="!py-2.5"
+                  >
+                    Побарај бришење на сметка
+                  </Button>
+                ) : null}
+              </div>
+              {deletionRequest && deletionRequest.status !== 'cancelled' && (
+                <p className="text-xs text-amber-300" role="status">
+                  Статус на барањето: {deletionRequest.status}
+                </p>
+              )}
+              {exportNotice && <p className="text-xs text-emerald-400" role="status">{exportNotice}</p>}
+              {privacyError && <p className="text-xs text-rose-400" role="alert">{privacyError}</p>}
+              <p className="text-[11px] leading-5 text-slate-500">
+                Бришењето не се извршува во browser. Firestore, Authentication и Storage се обработуваат
+                координирано по проверка за да не останат orphaned податоци.
+              </p>
+            </div>
+          </SectionCard>
         </div>
       )}
+
+      <Modal
+        open={deletionOpen}
+        onClose={() => {
+          if (deletionBusy) return;
+          setDeletionOpen(false);
+          setDeletionConfirmation('');
+        }}
+        title="Барање за бришење на сметка"
+        footer={(
+          <>
+            <Button
+              type="button"
+              onClick={() => {
+                setDeletionOpen(false);
+                setDeletionConfirmation('');
+              }}
+              disabled={deletionBusy}
+              variant="ghost"
+            >
+              Откажи
+            </Button>
+            <Button
+              type="button"
+              onClick={submitDeletionRequest}
+              disabled={!user?.email || deletionConfirmation !== user.email}
+              loading={deletionBusy}
+              colorClassName="bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-500"
+            >
+              Регистрирај барање
+            </Button>
+          </>
+        )}
+      >
+        <div className="space-y-4 text-sm text-slate-600 dark:text-slate-300">
+          <p>
+            Ова регистрира барање, но не ја брише сметката веднаш. По проверката се обработуваат
+            Authentication, Firestore и Storage податоците како една контролирана задача.
+          </p>
+          <div>
+            <label htmlFor="delete-account-confirmation" className="block text-xs font-semibold mb-1.5">
+              За потврда внеси: {user?.email}
+            </label>
+            <input
+              id="delete-account-confirmation"
+              type="email"
+              value={deletionConfirmation}
+              onChange={event => setDeletionConfirmation(event.target.value)}
+              autoComplete="off"
+              className="w-full rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none focus:border-rose-500"
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

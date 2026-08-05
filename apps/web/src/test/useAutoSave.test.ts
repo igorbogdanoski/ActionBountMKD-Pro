@@ -116,4 +116,25 @@ describe('useAutoSave', () => {
     expect(saveQuest).toHaveBeenCalledWith(firstQuest);
     expect(onSaved).not.toHaveBeenCalled();
   });
+
+  it('restarts the debounce when the quest changes while it is already dirty', async () => {
+    saveQuest.mockResolvedValue(undefined);
+    const onSaved = vi.fn();
+    const firstQuest = makeQuest({ title: 'Прва верзија' });
+    const secondQuest = makeQuest({ title: 'Понова верзија' });
+    const { rerender } = renderHook(
+      ({ quest }) => useAutoSave(quest, true, onSaved),
+      { initialProps: { quest: firstQuest } },
+    );
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
+    rerender({ quest: secondQuest });
+    await act(async () => { await vi.advanceTimersByTimeAsync(600); });
+    expect(saveQuest).not.toHaveBeenCalled();
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(1400); });
+    expect(saveQuest).toHaveBeenCalledOnce();
+    expect(saveQuest).toHaveBeenCalledWith(secondQuest);
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
 });

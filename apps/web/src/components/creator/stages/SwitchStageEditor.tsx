@@ -148,16 +148,18 @@ export function SwitchStageEditor({ stage, allStages, inventoryItems, onChange }
               </div>
             ))}
 
-            <Button
-              type="button"
-              onClick={addCondition}
-              variant="ghost"
-              size="sm"
-              colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
-              leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
-            >
-              Додај услов
-            </Button>
+            {stage.conditions.length < 20 && (
+              <Button
+                type="button"
+                onClick={addCondition}
+                variant="ghost"
+                size="sm"
+                colorClassName="text-indigo-400 hover:text-indigo-300 focus-visible:ring-indigo-400"
+                leftIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
+              >
+                Додај услов
+              </Button>
+            )}
           </div>
 
           <Field label="Стандардна етапа (ако ниеден услов не се совпадне)">

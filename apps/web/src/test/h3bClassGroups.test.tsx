@@ -7,6 +7,8 @@ const saveGroup = vi.hoisted(() => vi.fn());
 const deleteGroup = vi.hoisted(() => vi.fn());
 const getQuests = vi.hoisted(() => vi.fn());
 const getQuestResults = vi.hoisted(() => vi.fn());
+const rotateRosterLaunches = vi.hoisted(() => vi.fn());
+const revokeRosterLaunches = vi.hoisted(() => vi.fn());
 const downloadClassCertificates = vi.hoisted(() => vi.fn());
 const planState = vi.hoisted(() => ({ planId: 'free' }));
 const authState = vi.hoisted(() => ({ user: { uid: 'teacher-1' } }));
@@ -14,6 +16,7 @@ const authState = vi.hoisted(() => ({ user: { uid: 'teacher-1' } }));
 vi.mock('../utils/AuthContext', () => ({ useAuth: () => authState }));
 vi.mock('../hooks/usePlan', () => ({ usePlan: () => planState }));
 vi.mock('../utils/storage', () => ({ getGroups, saveGroup, deleteGroup, getQuests, getQuestResults }));
+vi.mock('../utils/rosterLaunchStorage', () => ({ rotateRosterLaunches, revokeRosterLaunches }));
 vi.mock('../utils/certificate', () => ({ downloadClassCertificates }));
 
 import { ClassGroups } from '../components/dashboard/ClassGroups';
@@ -47,6 +50,13 @@ beforeEach(() => {
   deleteGroup.mockResolvedValue(undefined);
   getQuestResults.mockReset();
   getQuestResults.mockResolvedValue([]);
+  rotateRosterLaunches.mockReset();
+  rotateRosterLaunches.mockResolvedValue([{
+    id: '12345678-1234-4234-8234-123456789abc',
+    studentId: 'student-1',
+  }]);
+  revokeRosterLaunches.mockReset();
+  revokeRosterLaunches.mockResolvedValue(undefined);
   downloadClassCertificates.mockReset();
   vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:roster-links');
   vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
@@ -95,11 +105,33 @@ describe('H3b ClassGroups controls', () => {
     fireEvent.change(screen.getByTitle('Избери авантура за индивидуални линкови'), {
       target: { value: 'quest-1' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Извези индивидуални линкови' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Извези нови линкови' }));
 
+    await waitFor(() => expect(rotateRosterLaunches).toHaveBeenCalledWith(expect.objectContaining({
+      ownerId: 'teacher-1',
+      groupId: 'group-1',
+      questId: 'quest-1',
+    })));
     expect(URL.createObjectURL).toHaveBeenCalledOnce();
     expect(click).toHaveBeenCalledOnce();
+    expect(screen.getByRole('status')).toHaveTextContent(/30 дена/);
     click.mockRestore();
+  });
+
+  it('requires confirmation before revoking the selected roster links', async () => {
+    getGroups.mockResolvedValue([{ ...group, assignedQuestIds: ['quest-1'] }]);
+    render(<ClassGroups />);
+    await screen.findByRole('button', { name: /6-Б/ });
+    fireEvent.change(screen.getByTitle('Избери авантура за индивидуални линкови'), {
+      target: { value: 'quest-1' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Поништи линкови' }));
+
+    const dialog = screen.getByRole('dialog');
+    expect(revokeRosterLaunches).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Поништи линкови' }));
+    await waitFor(() => expect(revokeRosterLaunches).toHaveBeenCalledWith('group-1', 'quest-1'));
+    expect(await screen.findByRole('status')).toHaveTextContent(/поништени/);
   });
 
   it('requires the app confirmation modal before deleting a group', async () => {

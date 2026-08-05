@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useId, useRef } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
@@ -25,6 +25,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [busy, setBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const nameId = useId();
+  const emailId = useId();
+  const passwordId = useId();
 
   // Close when auth succeeds
   useEffect(() => {
@@ -85,7 +88,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const isEmailMode = tab === 'email';
 
   return (
-    <Modal open={isOpen} onClose={onClose} showHeader={false}>
+    <Modal open={isOpen} onClose={onClose} showHeader={false} ariaLabel={t('auth.modal.title')}>
       <div className="relative overflow-hidden rounded-2xl">
         {/* Close button */}
         <Button
@@ -94,7 +97,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
           size="icon"
           variant="ghost"
           className="absolute top-4 right-4 !p-1.5 text-slate-400 hover:text-slate-600 hover:!bg-slate-100"
-          aria-label="Close"
+          aria-label="Затвори"
         >
           <X size={18} />
         </Button>
@@ -102,7 +105,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         {/* Header */}
         <div className="bg-[#2a2522] px-6 py-5">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🗺️</span>
+            <span className="text-2xl" aria-hidden="true">🗺️</span>
             <div>
               <h2 className="text-white font-bold text-lg leading-tight">Авантура МКД</h2>
               <p className="text-slate-400 text-xs">{t('auth.modal.title')}</p>
@@ -120,7 +123,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
               variant="ghost"
               aria-pressed={tab === t_}
               colorClassName={tab === t_
-                ? 'border-brand-500 text-brand-600 focus-visible:ring-brand-500'
+                ? 'border-brand-500 text-brand-700 focus-visible:ring-brand-500'
                 : 'border-transparent text-slate-500 hover:text-slate-700 focus-visible:ring-slate-400'}
               className="flex-1 !rounded-none !py-3 !font-medium border-b-2"
             >
@@ -132,7 +135,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
         <div className="p-6">
           {/* Error banner */}
           {authError && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+            <div role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
               {authError}
             </div>
           )}
@@ -154,7 +157,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 className="!py-3 !gap-3 !font-medium"
               >
                 {/* Google G logo */}
-                <svg width="20" height="20" viewBox="0 0 24 24">
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                   <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -183,7 +186,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     type="button"
                     onClick={() => switchMode('login')}
                     variant="ghost"
-                    colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500"
+                    colorClassName="text-brand-700 hover:underline focus-visible:ring-brand-500"
                     className="mt-4 !p-0 !font-medium"
                   >
                     {t('auth.modal.backToLogin')}
@@ -194,10 +197,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   {/* Name — register only */}
                   {mode === 'register' && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label htmlFor={nameId} className="block text-xs font-medium text-slate-600 mb-1">
                         {t('auth.modal.labelName')}
                       </label>
                       <input
+                        id={nameId}
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -211,10 +215,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                    <label htmlFor={emailId} className="block text-xs font-medium text-slate-600 mb-1">
                       {t('auth.modal.labelEmail')}
                     </label>
                     <input
+                      id={emailId}
                       ref={emailRef}
                       type="email"
                       value={email}
@@ -229,10 +234,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                   {/* Password — login + register only */}
                   {mode !== 'reset' && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
+                      <label htmlFor={passwordId} className="block text-xs font-medium text-slate-600 mb-1">
                         {t('auth.modal.labelPassword')}
                       </label>
                       <input
+                        id={passwordId}
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -274,7 +280,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <div className="mt-4 flex flex-col items-center gap-1.5 text-sm">
                   {mode === 'login' && (
                     <>
-                      <Button type="button" variant="ghost" colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('register')}>
+                      <Button type="button" variant="ghost" colorClassName="text-brand-700 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('register')}>
                         {t('auth.modal.switchToRegister')}
                       </Button>
                       <Button type="button" variant="ghost" colorClassName="text-slate-400 hover:text-slate-600 focus-visible:ring-slate-400" className="!p-0 !text-xs !font-medium" onClick={() => switchMode('reset')}>
@@ -283,7 +289,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     </>
                   )}
                   {mode === 'register' && (
-                    <Button type="button" variant="ghost" colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('login')}>
+                    <Button type="button" variant="ghost" colorClassName="text-brand-700 hover:underline focus-visible:ring-brand-500" className="!p-0 !font-medium" onClick={() => switchMode('login')}>
                       {t('auth.modal.switchToLogin')}
                     </Button>
                   )}

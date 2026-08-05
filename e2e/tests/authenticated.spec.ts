@@ -7,6 +7,10 @@ test.describe('authenticated QA harness', () => {
       if (message.type() === 'error') consoleErrors.push(message.text());
     });
 
+    await page.addInitScript(() => {
+      localStorage.removeItem('qa-account-deletion-request');
+      localStorage.removeItem('qa-account-export-downloaded');
+    });
     await page.goto('/settings?qaPlan=free', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.getByText('QA Teacher')).toBeVisible();
@@ -25,16 +29,43 @@ test.describe('authenticated QA harness', () => {
     await expect(page.getByText('ExponentPushToken[qa-browser-only]', { exact: true })).toBeVisible();
     await expect(page.locator('button:has(svg.lucide-bell-ring)')).toBeEnabled();
 
+    await page.getByRole('button', { name: 'Извези мои податоци' }).click();
+    await expect(page.getByText(/JSON извозот е подготвен/)).toBeVisible();
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('qa-account-export-downloaded')))
+      .toBe('qa-teacher-001');
+
+    await page.getByRole('button', { name: 'Побарај бришење на сметка' }).click();
+    const deletionDialog = page.getByRole('dialog');
+    await expect(deletionDialog).toBeVisible();
+    const registerRequest = deletionDialog.getByRole('button', { name: 'Регистрирај барање' });
+    await expect(registerRequest).toBeDisabled();
+    await deletionDialog.getByLabel(/За потврда внеси/).fill('qa.teacher@example.test');
+    await expect(registerRequest).toBeEnabled();
+    await registerRequest.click();
+    await expect(deletionDialog).toBeHidden();
+    await expect(page.getByText('Статус на барањето: pending')).toBeVisible();
+    await page.getByRole('button', { name: 'Откажи барање за бришење' }).click();
+    await expect(page.getByRole('button', { name: 'Побарај бришење на сметка' })).toBeVisible();
+
     expect(consoleErrors).toEqual([]);
   });
 
   test('opens the mobile navigation drawer without overflow', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'authenticated-mobile', 'mobile-only contract');
     await page.goto('/settings?qaPlan=pro', { waitUntil: 'domcontentloaded' });
-    await page.locator('main > div').first().locator('button').first().click();
-    await expect(page.getByRole('navigation')).toBeVisible();
+    const menu = page.getByRole('button', { name: 'Отвори мени' });
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(menu).toHaveAttribute('aria-controls', 'app-sidebar-drawer');
+    await menu.click();
+    await expect(menu).toHaveAttribute('aria-expanded', 'true');
+    const drawer = page.getByRole('dialog', { name: 'Главна навигација' });
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByRole('button', { name: 'Затвори мени' })).toBeFocused();
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
     expect(overflow).toBe(false);
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveAttribute('aria-expanded', 'false');
+    await expect(menu).toBeFocused();
   });
 
   test('keeps the onboarding actions visible and routes the primary CTA', async ({ page }) => {
@@ -53,7 +84,7 @@ test.describe('authenticated QA harness', () => {
     await page.goto('/?qaGuest=1', { waitUntil: 'domcontentloaded' });
     await page.locator('header button.hidden').click();
 
-    const dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog', { name: 'Влез во Авантура МКД' });
     await expect(dialog).toBeVisible();
     const tabs = dialog.locator('button[aria-pressed]');
     await expect(tabs).toHaveCount(2);
@@ -61,7 +92,7 @@ test.describe('authenticated QA harness', () => {
     await tabs.nth(1).click();
     await expect(tabs.nth(1)).toHaveAttribute('aria-pressed', 'true');
     await expect(dialog.locator('button[type="submit"]')).toHaveCount(1);
-    await dialog.getByRole('button', { name: 'Close' }).click();
+    await dialog.getByRole('button', { name: 'Затвори' }).click();
     await expect(dialog).toBeHidden();
   });
 
@@ -189,6 +220,37 @@ test.describe('authenticated QA harness', () => {
     await page.getByRole('button', { name: 'Избриши група' }).click();
     await dialog.getByRole('button', { name: 'Избриши' }).click();
     await expect(page.getByRole('button', { name: /QA 7-А/ })).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
+
+  test('exports and revokes opaque roster links without responsive overflow', async ({ page }) => {
+    await page.goto('/groups?qaPlan=pro&qaRoster=1', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('button', { name: /QA 8-А/ })).toBeVisible({ timeout: 15_000 });
+    await page.getByTitle('Избери авантура за индивидуални линкови').selectOption('qa-quest-1');
+
+    const downloadPromise = page.waitForEvent('download');
+    await page.getByRole('button', { name: 'Извези нови линкови' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toContain('линкови_QA_8-А');
+    await expect(page.getByRole('status')).toContainText('30 дена');
+
+    await page.getByRole('button', { name: 'Поништи линкови' }).click();
+    const dialog = page.getByRole('dialog');
+    await expect(dialog).toContainText('веднаш ќе престанат да важат');
+    await dialog.getByRole('button', { name: 'Поништи линкови' }).click();
+    await expect(page.getByRole('status')).toContainText('поништени');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+  });
+
+  test('resolves an opaque fragment launch without exposing roster PII in the URL', async ({ page }) => {
+    await page.goto('/play/qa-player-quest#launch=12345678-1234-4234-8234-123456789abc', {
+      waitUntil: 'domcontentloaded',
+    });
+    const nameInput = page.getByPlaceholder('Внесете го вашето име...');
+    await expect(nameInput).toHaveValue('QA Student', { timeout: 15_000 });
+    await expect(nameInput).toHaveAttribute('readonly', '');
+    expect(page.url()).not.toContain('QA%20Student');
+    expect(page.url()).not.toContain('qa-student-1');
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
   });
 

@@ -110,6 +110,7 @@ export interface QuestPedagogy {
   learningObjectives?: LearningObjective[];
 }
 
+/** Combined maximum across legacy learningGoals and stable learningObjectives. */
 export const MAX_LEARNING_GOALS = 12;
 export const MAX_LEARNING_GOAL_LENGTH = 200;
 export const MAX_OBJECTIVE_ID_LENGTH = 64;
@@ -193,6 +194,41 @@ export interface ClassGroup {
 export const MAX_GROUP_STUDENTS = 60;
 export const MAX_GROUP_NAME_LENGTH = 80;
 export const MAX_STUDENT_NAME_LENGTH = 80;
+
+export type RosterLaunchStatus = 'active' | 'revoked';
+
+/**
+ * One rotatable launch generation for a group/quest pair. Updating the
+ * generation invalidates every older per-student launch without enumerating
+ * or deleting those documents.
+ */
+export interface RosterLaunchSet {
+  id: string;
+  ownerId: string;
+  groupId: string;
+  questId: string;
+  generationId: string;
+  status: RosterLaunchStatus;
+  issuedAtMs: number;
+  expiresAtMs: number;
+  revokedAtMs?: number;
+}
+
+/** Opaque, exact-document credential for one roster student and quest. */
+export interface RosterLaunch {
+  id: string;
+  setId: string;
+  generationId: string;
+  ownerId: string;
+  groupId: string;
+  questId: string;
+  studentId: string;
+  studentName: string;
+  issuedAtMs: number;
+  expiresAtMs: number;
+}
+
+export const ROSTER_LAUNCH_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 /** Number of adventures assigned to a group. */
 export function groupAssignedCount(group?: ClassGroup | null): number {
@@ -547,21 +583,31 @@ export interface QuizAnswerRecord {
 export interface QuestResult {
   id: string;
   questId: string;
+  /** Storage schema marker. Missing means a legacy inline result. */
+  schemaVersion?: 2;
   /** Client-generated idempotency key; legacy results may not have one. */
   attemptId?: string;
   /** Stable class-roster identity when the player was launched as a roster student. */
   studentId?: string;
+  /** Opaque launch credential required for new roster-bound attempts. */
+  launchId?: string;
   playerName: string;
   points: number;
   completedAt: string;
+  userId?: string | null;
+  completedStages?: number;
+  totalStages?: number;
   stageDurations?: { stageId: string; durationSec: number }[];
+  stageDurationCount?: number;
   teamCode?: string;
   submissions?: StageSubmission[];
+  submissionCount?: number;
   grades?: RubricGrade[];
   /** Teacher approval metadata; never supplied by a player result create. */
   approvedAt?: string;
   approvedBy?: string;
   quizAnswers?: QuizAnswerRecord[];
+  quizAnswerCount?: number;
 }
 
 export type ResultSelectionPolicy = 'first' | 'latest' | 'best' | 'teacher-approved';

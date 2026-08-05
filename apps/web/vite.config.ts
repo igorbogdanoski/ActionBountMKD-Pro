@@ -31,8 +31,10 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks: {
-            'vendor-react':    ['react', 'react-dom', 'react-router-dom'],
-            'vendor-firebase': ['firebase/app', 'firebase/auth', 'firebase/firestore'],
+            'vendor-react':    ['react', 'react-dom', 'react-dom/client', 'react-router-dom'],
+            'vendor-firebase-auth': ['firebase/app', 'firebase/auth'],
+            'vendor-firebase-firestore': ['firebase/firestore'],
+            'vendor-firebase-storage': ['firebase/storage'],
             'vendor-maps':     ['leaflet', 'react-leaflet'],
             'vendor-charts':   ['recharts'],
             'vendor-motion':   ['motion'],

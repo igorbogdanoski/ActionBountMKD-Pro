@@ -184,7 +184,7 @@ avantura.mismath.net
 **ДА** — Firebase/HTTPS
 
 ### Дали корисниците можат да побараат бришење на нивните податоци?
-**ДА** — преку Settings → Delete account или email на igor.bogdanoski@mismath.net
+**ДА** — преку Settings → Сметка → Побарај бришење на сметка или email на igor.bogdanoski@mismath.net. Барањето се регистрира за проверена, координирана обработка; не тврди дека сметката е веднаш избришана.
 
 ---
 

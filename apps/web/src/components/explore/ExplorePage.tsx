@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Search, MapPin, Clock, Layers, ChevronRight, Compass } from 'lucide-react';
 import { getPublicQuests } from '../../utils/storage';
 import { EDUCATION_SUBJECTS, EDUCATION_GRADES, type EducationSubject, type EducationGrade } from 'shared';
-import type { Quest } from 'shared';
+import type { QuestSummary } from 'shared';
 import { SEO, BreadcrumbSchema } from '../SEO';
 import { Footer } from '../layout/Footer';
 import { Button } from '../ui/Button';
@@ -19,7 +19,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   other: 'Друго',
 };
 
-function QuestCard({ quest }: { quest: Quest }) {
+function QuestCard({ quest }: { quest: QuestSummary }) {
   const navigate = useNavigate();
   const subject = quest.pedagogy?.subject;
   const grade = quest.pedagogy?.grade;
@@ -39,7 +39,7 @@ function QuestCard({ quest }: { quest: Quest }) {
       </div>
 
       <div className="p-4 flex flex-col flex-1 gap-2">
-        <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-brand-600 transition-colors" itemProp="name">
+        <h3 className="font-bold text-slate-900 text-sm leading-snug line-clamp-2 group-hover:text-brand-700 transition-colors" itemProp="name">
           {quest.title}
         </h3>
 
@@ -71,14 +71,14 @@ function QuestCard({ quest }: { quest: Quest }) {
         {/* Footer stats */}
         <div className="flex items-center gap-3 text-xs text-slate-400 pt-1 border-t border-slate-100">
           <span className="flex items-center gap-1">
-            <Layers size={11} /> {quest.stages?.length ?? 0} задачи
+            <Layers size={11} /> {quest.stageCount} задачи
           </span>
           {quest.playingTimeMinutes && (
             <span className="flex items-center gap-1">
               <Clock size={11} /> ~{quest.playingTimeMinutes} мин
             </span>
           )}
-          <span className="flex items-center gap-1 ml-auto text-brand-500 font-medium group-hover:gap-1.5 transition-all">
+          <span className="flex items-center gap-1 ml-auto text-brand-700 font-medium group-hover:gap-1.5 transition-all">
             Играј <ChevronRight size={11} />
           </span>
         </div>
@@ -88,7 +88,7 @@ function QuestCard({ quest }: { quest: Quest }) {
 }
 
 export function ExplorePage() {
-  const [quests, setQuests] = useState<Quest[]>([]);
+  const [quests, setQuests] = useState<QuestSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [subject, setSubject] = useState<EducationSubject | ''>('');
@@ -201,7 +201,7 @@ export function ExplorePage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => { setSearch(''); setSubject(''); setGrade(''); }}
-                  colorClassName="text-brand-600 hover:underline focus-visible:ring-brand-500"
+                  colorClassName="text-brand-700 hover:underline focus-visible:ring-brand-700"
                   className="mt-2 !p-0 !rounded-none !font-normal"
                 >
                   Исчисти филтри

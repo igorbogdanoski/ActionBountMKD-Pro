@@ -26,6 +26,12 @@ const makeResult = (points: number): Omit<QuestResult, 'id'> => ({
   stageDurations: [],
 });
 
+const identifiedResult = (attemptId: string, points: number): Omit<QuestResult, 'id'> => ({
+  ...makeResult(points),
+  attemptId,
+  completedAt: '2026-08-05T10:00:00.000Z',
+});
+
 const makeQuest = (id: string): Quest => ({
   id,
   title: 'Тест квест',
@@ -66,6 +72,28 @@ describe('offline result queue', () => {
   it('returns empty array on corrupted storage', () => {
     localStorage.setItem('ab_offline_results', '{not json');
     expect(getOfflineQueue()).toEqual([]);
+  });
+
+  it('treats an identical attempt as one queued result', () => {
+    const result = identifiedResult('attempt-1', 10);
+    saveOfflineResult(result);
+    saveOfflineResult({ ...result });
+
+    expect(getOfflineQueue()).toEqual([result]);
+  });
+
+  it('rejects different payloads that reuse one attempt id', () => {
+    saveOfflineResult(identifiedResult('attempt-conflict', 10));
+
+    expect(() => saveOfflineResult(identifiedResult('attempt-conflict', 20)))
+      .toThrow(/identity conflict/);
+    expect(getOfflineQueue()).toHaveLength(1);
+  });
+
+  it('fails safely when stored JSON is valid but is not a queue', () => {
+    localStorage.setItem('ab_offline_results', JSON.stringify({ points: 10 }));
+    expect(getOfflineQueue()).toEqual([]);
+    expect(offlineQueueSize()).toBe(0);
   });
 });
 
@@ -155,6 +183,46 @@ describe('syncOfflineQueue', () => {
     expect(saveQuestResultMock).toHaveBeenCalledTimes(1);
     expect(firstSynced).toBe(1);
     expect(secondSynced).toBe(1);
+  });
+
+  it('preserves a result queued while an earlier result is syncing', async () => {
+    let resolveSave: (value: string) => void = () => {};
+    saveQuestResultMock.mockImplementation(
+      () => new Promise<string>(resolve => { resolveSave = resolve; }),
+    );
+    const firstResult = identifiedResult('attempt-first', 10);
+    const arrivedDuringSync = identifiedResult('attempt-later', 20);
+    saveOfflineResult(firstResult);
+
+    const sync = syncOfflineQueue();
+    await vi.waitFor(() => expect(saveQuestResultMock).toHaveBeenCalledWith(firstResult));
+    saveOfflineResult(arrivedDuringSync);
+    resolveSave('saved');
+
+    await expect(sync).resolves.toBe(1);
+    expect(getOfflineQueue()).toEqual([arrivedDuringSync]);
+  });
+
+  it('keeps failed and newly queued results without retrying a successful sibling', async () => {
+    let resolveSecond: (value: never) => void = () => {};
+    saveQuestResultMock
+      .mockResolvedValueOnce('saved-first')
+      .mockImplementationOnce(() => new Promise<never>((_resolve, reject) => {
+        resolveSecond = reject;
+      }));
+    const first = identifiedResult('attempt-success', 10);
+    const failed = identifiedResult('attempt-failed', 20);
+    const later = identifiedResult('attempt-later', 30);
+    saveOfflineResult(first);
+    saveOfflineResult(failed);
+
+    const sync = syncOfflineQueue();
+    await vi.waitFor(() => expect(saveQuestResultMock).toHaveBeenCalledTimes(2));
+    saveOfflineResult(later);
+    resolveSecond(new Error('offline') as never);
+
+    await expect(sync).resolves.toBe(1);
+    expect(getOfflineQueue()).toEqual([failed, later]);
   });
 });
 

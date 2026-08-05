@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const baseConfig = require('./app.json');
+const baseConfig = require('./app.base.json');
 
 const appConfig = baseConfig.expo ?? baseConfig;
 

@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
+import type { RosterLaunch } from 'shared';
 import { useAuth } from './utils/AuthContext';
 import { AnalyticsConsentBanner } from './components/AnalyticsConsentBanner';
 import { InstallPrompt } from './components/InstallPrompt';
-import { parseRosterLaunch } from './lib/rosterLaunch';
+import { hasLegacyRosterLaunch, hasRosterLaunchReference, parseRosterLaunch, rosterLaunchProblem } from './lib/rosterLaunch';
 
 // ─── Lazy-loaded routes (code splitting) ─────────────────────────────────────
 const LandingPage      = lazy(() => import('./components/landing/LandingPage').then(m => ({ default: m.LandingPage })));
@@ -55,15 +56,61 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 
 function PlayerRoute() {
   const { questId } = useParams<{ questId: string }>();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const launchId = parseRosterLaunch(location.hash)?.launchId ?? '';
+  const launchReferencePresent = hasRosterLaunchReference(location.hash);
+  const legacyLaunch = hasLegacyRosterLaunch(location.search);
+  const [resolved, setResolved] = useState<{
+    launchId: string;
+    launch: RosterLaunch | null;
+    problem: string | null;
+  }>({ launchId: '', launch: null, problem: null });
+
+  useEffect(() => {
+    if (!questId || !launchId) return;
+    let active = true;
+    import('./utils/rosterLaunchStorage')
+      .then(({ getRosterLaunch }) => getRosterLaunch(launchId))
+      .then(launch => {
+        if (!active) return;
+        setResolved({ launchId, launch, problem: rosterLaunchProblem(launch, questId) });
+      })
+      .catch(() => {
+        if (active) setResolved({ launchId, launch: null, problem: 'unavailable' });
+      });
+    return () => { active = false; };
+  }, [launchId, questId]);
+
   if (!questId) return <Navigate to="/" replace />;
-  const rosterIdentity = parseRosterLaunch(`?${searchParams.toString()}`);
+  if (!launchId && (legacyLaunch || launchReferencePresent)) {
+    const message = legacyLaunch
+      ? 'Овој стар ученички линк повеќе не е безбеден. Побарајте нов линк од наставникот.'
+      : 'Ученичкиот линк е нецелосен или оштетен. Побарајте нов линк од наставникот.';
+    return <RosterLaunchUnavailable message={message} />;
+  }
+  if (launchId && resolved.launchId !== launchId) return <AppLoader />;
+  if (launchId && (resolved.problem || !resolved.launch)) {
+    return <RosterLaunchUnavailable message="Ученичкиот линк е неважечки, истечен или поништен. Побарајте нов линк од наставникот." />;
+  }
+
   return (
     <MobilePlayer
       questId={questId}
-      rosterStudentId={rosterIdentity?.studentId}
-      rosterStudentName={rosterIdentity?.studentName}
+      rosterStudentId={launchId ? resolved.launch?.studentId : undefined}
+      rosterStudentName={launchId ? resolved.launch?.studentName : undefined}
+      rosterLaunchId={launchId ? resolved.launch?.id : undefined}
     />
+  );
+}
+
+function RosterLaunchUnavailable({ message }: { message: string }) {
+  return (
+    <main className="min-h-screen flex items-center justify-center bg-slate-950 p-6 text-center">
+      <div role="alert" className="max-w-md rounded-2xl border border-rose-500/30 bg-slate-900 p-6 text-slate-100 shadow-xl">
+        <h1 className="text-xl font-bold mb-2">Линкот не е достапен</h1>
+        <p className="text-sm text-slate-300">{message}</p>
+      </div>
+    </main>
   );
 }
 

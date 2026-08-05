@@ -79,7 +79,7 @@ export function ChangelogPage() {
               {RELEASES.map((release, index) => (
                 <article key={release.date} aria-labelledby={`release-${index}`}>
                   <Card className="!bg-white !border-slate-200 !shadow-sm p-6">
-                    <time className="text-sm font-bold text-brand-600">{release.date}</time>
+                    <time className="text-sm font-bold text-brand-700">{release.date}</time>
                     <h2 id={`release-${index}`} className="text-2xl font-extrabold text-slate-900 mt-1 mb-2">
                       {release.title}
                     </h2>

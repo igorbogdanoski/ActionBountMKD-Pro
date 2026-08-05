@@ -187,6 +187,12 @@ describe('QuestResultSchema', () => {
     expect(QuestResultSchema.safeParse({ ...valid, studentId: 'x'.repeat(129) }).success).toBe(false);
   });
 
+  it('accepts only a bounded opaque roster launch id', () => {
+    expect(QuestResultSchema.safeParse({ ...valid, launchId: '12345678-1234-4234-8234-123456789abc' }).success).toBe(true);
+    expect(QuestResultSchema.safeParse({ ...valid, launchId: 'short' }).success).toBe(false);
+    expect(QuestResultSchema.safeParse({ ...valid, launchId: 'x'.repeat(129) }).success).toBe(false);
+  });
+
   it('accepts an optional bounded attempt id', () => {
     expect(QuestResultSchema.safeParse({ ...valid, attemptId: 'attempt-123' }).success).toBe(true);
     expect(QuestResultSchema.safeParse({ ...valid, attemptId: '' }).success).toBe(false);

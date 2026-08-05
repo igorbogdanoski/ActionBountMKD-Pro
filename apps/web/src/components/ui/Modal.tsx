@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from 'react';
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -13,6 +14,8 @@ interface ModalProps {
    * a fully custom branded header (their own close button included). The
    * focus trap, Escape handling, and backdrop still apply either way. */
   showHeader?: boolean;
+  /** Accessible name for dialogs with a custom header (`showHeader={false}`). */
+  ariaLabel?: string;
 }
 
 const SIZES = {
@@ -24,9 +27,15 @@ const SIZES = {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-export function Modal({ open, onClose, title, children, footer, size = 'md', showHeader = true }: ModalProps) {
+export function Modal({ open, onClose, title, children, footer, size = 'md', showHeader = true, ariaLabel }: ModalProps) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -36,7 +45,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', sho
     (getFocusable()[0] ?? dialog)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onClose(); return; }
+      if (e.key === 'Escape') { onCloseRef.current(); return; }
       if (e.key !== 'Tab') return;
 
       const focusable = getFocusable();
@@ -55,14 +64,42 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', sho
     document.addEventListener('keydown', onKey);
     return () => {
       document.removeEventListener('keydown', onKey);
-      previouslyFocused?.focus?.();
+      window.requestAnimationFrame(() => previouslyFocused?.focus?.());
     };
-  }, [open, onClose]);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const overlay = overlayRef.current;
+    if (!overlay) return;
+    const backgroundNodes = Array.from(document.body.children).filter(node => node !== overlay);
+    const previous = backgroundNodes.map(node => ({
+      node,
+      inert: node.getAttribute('inert'),
+      ariaHidden: node.getAttribute('aria-hidden'),
+    }));
+    const previousOverflow = document.body.style.overflow;
+    backgroundNodes.forEach(node => {
+      node.setAttribute('inert', '');
+      node.setAttribute('aria-hidden', 'true');
+    });
+    document.body.style.overflow = 'hidden';
+    return () => {
+      previous.forEach(({ node, inert, ariaHidden }) => {
+        if (inert === null) node.removeAttribute('inert');
+        else node.setAttribute('inert', inert);
+        if (ariaHidden === null) node.removeAttribute('aria-hidden');
+        else node.setAttribute('aria-hidden', ariaHidden);
+      });
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
   if (!open) return null;
 
-  return (
+  return createPortal((
     <div
+      ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
       onClick={onClose}
     >
@@ -70,7 +107,8 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', sho
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
+        aria-labelledby={title && showHeader ? titleId : undefined}
+        aria-label={ariaLabel ?? (!showHeader ? title : undefined)}
         tabIndex={-1}
         onClick={e => e.stopPropagation()}
         className={`w-full ${SIZES[size]} rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl outline-none`}
@@ -82,7 +120,7 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', sho
               type="button"
               aria-label="Затвори"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:text-slate-300 dark:hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
               <X className="h-5 w-5" />
             </button>
@@ -96,5 +134,5 @@ export function Modal({ open, onClose, title, children, footer, size = 'md', sho
         )}
       </div>
     </div>
-  );
+  ), document.body);
 }

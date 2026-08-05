@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getGroups, saveGroup, deleteGroup, getQuests, getQuestResults } from '../../utils/storage';
+import { rotateRosterLaunches, revokeRosterLaunches } from '../../utils/rosterLaunchStorage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
 import {
@@ -40,9 +41,12 @@ export function ClassGroups() {
   const [certQuestId, setCertQuestId] = useState<string>('');
   const [launchQuestId, setLaunchQuestId] = useState<string>('');
   const [masteryQuestId, setMasteryQuestId] = useState<string>('');
-  const [busy, setBusy] = useState<'' | 'csv' | 'cert' | 'mastery'>('');
+  const [busy, setBusy] = useState<'' | 'csv' | 'cert' | 'mastery' | 'links' | 'revoke-links'>('');
   const [certificateNotice, setCertificateNotice] = useState<string | null>(null);
+  const [launchNotice, setLaunchNotice] = useState<string | null>(null);
+  const [launchError, setLaunchError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingRevokeLinks, setPendingRevokeLinks] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -180,28 +184,60 @@ export function ClassGroups() {
     }
   };
 
-  const exportRosterLinks = () => {
-    if (!selected || !launchQuestId || selected.students.length === 0) return;
+  const exportRosterLinks = async () => {
+    if (!user || !selected || !launchQuestId || selected.students.length === 0) return;
     const quest = quests.find(item => item.id === launchQuestId);
     if (!quest) return;
-    const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
-    const rows = selected.students.map(student => [
-      csvCell(student.name),
-      csvCell(buildRosterLaunchUrl(window.location.origin, quest.id, student)),
-    ].join(','));
-    const content = '\uFEFF' + [
-      [csvCell('Ученик'), csvCell('Индивидуален линк')].join(','),
-      ...rows,
-    ].join('\n');
-    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `линкови_${selected.name.replace(/\s+/g, '_')}_${quest.title.replace(/\s+/g, '_')}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setBusy('links');
+    setLaunchNotice(null);
+    setLaunchError(null);
+    try {
+      const launches = await rotateRosterLaunches({
+        ownerId: user.uid,
+        groupId: selected.id,
+        questId: quest.id,
+        students: selected.students,
+      });
+      const csvCell = (value: string) => `"${value.replace(/"/g, '""')}"`;
+      const rows = selected.students.map((student, index) => [
+        csvCell(student.name),
+        csvCell(buildRosterLaunchUrl(window.location.origin, quest.id, launches[index].id)),
+      ].join(','));
+      const content = '\uFEFF' + [
+        [csvCell('Ученик'), csvCell('Индивидуален линк')].join(','),
+        ...rows,
+      ].join('\n');
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `линкови_${selected.name.replace(/\s+/g, '_')}_${quest.title.replace(/\s+/g, '_')}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setLaunchNotice('Креирани се нови линкови со важност од 30 дена. Сите претходни линкови за оваа авантура се поништени.');
+    } catch {
+      setLaunchError('Линковите не можеа да се креираат. Обидете се повторно.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const revokeRosterLinks = async () => {
+    if (!selected || !launchQuestId) return;
+    setBusy('revoke-links');
+    setLaunchNotice(null);
+    setLaunchError(null);
+    try {
+      await revokeRosterLaunches(selected.id, launchQuestId);
+      setLaunchNotice('Активните ученички линкови за избраната авантура се поништени.');
+    } catch {
+      setLaunchError('Линковите не можеа да се поништат. Обидете се повторно.');
+    } finally {
+      setBusy('');
+      setPendingRevokeLinks(false);
+    }
   };
 
   const exportObjectiveMastery = async () => {
@@ -537,13 +573,36 @@ export function ClassGroups() {
                 <Button
                   type="button"
                   onClick={exportRosterLinks}
-                  disabled={!launchQuestId || selected.students.length === 0}
+                  disabled={busy !== '' || !launchQuestId || selected.students.length === 0}
+                  loading={busy === 'links'}
                   colorClassName="bg-indigo-600 hover:bg-indigo-500 text-white focus-visible:ring-indigo-500"
                   className="!py-2 !rounded-lg !font-semibold shrink-0"
                 >
-                  <Link2 className="w-4 h-4" /> Извези индивидуални линкови
+                  {busy !== 'links' && <Link2 className="w-4 h-4" />} {busy === 'links' ? 'Креирам…' : 'Извези нови линкови'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  onClick={() => setPendingRevokeLinks(true)}
+                  disabled={busy !== '' || !launchQuestId}
+                  className="!py-2 !rounded-lg !font-semibold shrink-0"
+                >
+                  Поништи линкови
                 </Button>
               </div>
+              <p className="text-xs text-slate-500">
+                Линковите се opaque, важат 30 дена и не содржат име или ученички ID во URL. Нов export автоматски ги поништува претходните линкови.
+              </p>
+              {launchNotice && (
+                <p role="status" className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">
+                  {launchNotice}
+                </p>
+              )}
+              {launchError && (
+                <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-300">
+                  {launchError}
+                </p>
+              )}
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1 border-t border-slate-700/60">
                 <select
@@ -603,6 +662,26 @@ export function ClassGroups() {
         )}
       >
         <p className="text-sm text-slate-300">Дали сте сигурни дека сакате да ја избришете оваа група?</p>
+      </Modal>
+      <Modal
+        open={pendingRevokeLinks}
+        onClose={() => setPendingRevokeLinks(false)}
+        title="Поништи ученички линкови"
+        footer={(
+          <>
+            <Button type="button" variant="ghost" onClick={() => setPendingRevokeLinks(false)}>Откажи</Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={busy === 'revoke-links'}
+              onClick={revokeRosterLinks}
+            >
+              Поништи линкови
+            </Button>
+          </>
+        )}
+      >
+        <p className="text-sm text-slate-300">Сите тековни линкови за избраната авантура веднаш ќе престанат да важат.</p>
       </Modal>
     </div>
   );

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import type { Quest, QuestResult } from 'shared';
 
@@ -97,7 +97,7 @@ describe('H3b review and plan controls', () => {
   it('requires a rubric selection, appends feedback and saves the grade once', async () => {
     const onClose = vi.fn();
     const onGraded = vi.fn();
-    const { container } = render(
+    render(
       <SubmissionReviewModal
         open
         onClose={onClose}
@@ -110,7 +110,8 @@ describe('H3b review and plan controls', () => {
 
     const save = screen.getAllByRole('button').at(-1)!;
     expect(save).toBeDisabled();
-    const levels = container.querySelectorAll('button[aria-pressed]');
+    const levels = within(screen.getByRole('dialog')).getAllByRole('button')
+      .filter(button => button.hasAttribute('aria-pressed'));
     expect(levels).toHaveLength(2);
     fireEvent.click(levels[1]);
     expect(levels[1]).toHaveAttribute('aria-pressed', 'true');

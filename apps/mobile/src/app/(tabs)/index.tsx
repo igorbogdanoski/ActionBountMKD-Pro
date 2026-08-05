@@ -20,6 +20,7 @@ interface Adventure {
   isPublic?: boolean;
   createdAt?: any;
   stages?: any[];
+  stageCount?: number;
 }
 
 export default function DashboardScreen() {
@@ -37,7 +38,7 @@ export default function DashboardScreen() {
     try {
       const [mySnap, publicSnap] = await Promise.all([
         getDocs(query(collection(db, 'quests'), where('creatorId', '==', user.uid))),
-        getDocs(query(collection(db, 'quests'), where('isPublic', '==', true))),
+        getDocs(query(collection(db, 'quests'), where('visibility', '==', 'public'))),
       ]);
       const seen = new Set<string>();
       const data: Adventure[] = [];
@@ -88,7 +89,7 @@ export default function DashboardScreen() {
     : user?.email?.[0].toUpperCase() ?? '?';
 
   const renderAdventure = ({ item }: { item: Adventure }) => {
-    const stageCount = item.stages?.length ?? 0;
+    const stageCount = item.stageCount ?? item.stages?.length ?? 0;
     const status = getAdventureProgressStatus(item.id, inProgress, completed);
     const isCompleted = status === 'completed';
     const hasProgress = status === 'in-progress';

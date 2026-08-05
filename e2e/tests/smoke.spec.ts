@@ -33,7 +33,7 @@ test.describe('public shell', () => {
     expect(runtimeErrors).toEqual([]);
   });
 
-  test('roster launch pre-fills and locks stable student identity', async ({ page }) => {
+  test('legacy PII-bearing roster links fail closed with a clear message', async ({ page }) => {
     const runtimeErrors: string[] = [];
     page.on('console', message => {
       if (message.type() === 'error') runtimeErrors.push(message.text());
@@ -43,9 +43,11 @@ test.describe('public shell', () => {
     await page.goto('/play/demo?student=student-1&name=%D0%90%D0%BD%D0%B0', {
       waitUntil: 'domcontentloaded',
     });
-    const nameInput = page.getByPlaceholder('Внесете го вашето име...');
-    await expect(nameInput).toHaveValue('Ана', { timeout: 15_000 });
-    await expect(nameInput).toHaveAttribute('readonly', '');
+    await expect(page.getByRole('alert')).toContainText('стар ученички линк', { timeout: 15_000 });
+    await expect(page.getByPlaceholder('Внесете го вашето име...')).toHaveCount(0);
+    await page.goto('/play/demo#launch=short', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('alert')).toContainText('нецелосен или оштетен');
+    await expect(page.getByPlaceholder('Внесете го вашето име...')).toHaveCount(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
     expect(runtimeErrors).toEqual([]);
   });

@@ -113,6 +113,29 @@ describe('QuestSettingsPanel controls', () => {
     });
   });
 
+  it('shares the twelve-entry cap across legacy and stable objectives', () => {
+    renderPanel(makeQuest({
+      pedagogy: {
+        learningGoals: Array.from({ length: 6 }, (_, index) => `Legacy ${index}`),
+        learningObjectives: Array.from({ length: 6 }, (_, index) => ({
+          id: `objective-${index}`,
+          label: `Objective ${index}`,
+        })),
+      },
+    }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Педагогија' }));
+
+    fireEvent.change(screen.getByPlaceholderText(/Применува Питагорова/), {
+      target: { value: 'Уште една стабилна цел' },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/Препознава историски/), {
+      target: { value: 'Уште една legacy цел' },
+    });
+
+    expect(screen.getByRole('button', { name: 'Додај стабилна наставна цел' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Додај цел на учење' })).toBeDisabled();
+  });
+
   it('lists affected stages before deleting an objective and safely unmaps them', () => {
     const onChange = vi.fn();
     const quest = makeQuest({

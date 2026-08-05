@@ -4,7 +4,7 @@
 // completing a simple quest end to end — plus the rubric-grade lookup added
 // on the finish screen (students previously never saw a teacher's grade).
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import type { ReactNode } from 'react';
@@ -94,6 +94,7 @@ function renderRosterPlayer(quest: Quest) {
           questProp={quest}
           rosterStudentId="student-1"
           rosterStudentName="Ана"
+          rosterLaunchId="12345678-1234-4234-8234-123456789abc"
         />
       </MemoryRouter>
     </HelmetProvider>
@@ -180,6 +181,16 @@ function selectableInfoQuest(): Quest {
   } as Quest;
 }
 
+function singleInfoQuest(): Quest {
+  return {
+    ...infoQuizQuest(),
+    id: 'quest-single-info',
+    stages: [
+      { id: 'info-1', type: 'INFO', title: 'Почеток', description: 'Една етапа', order: 0, mediaType: 'none' },
+    ],
+  } as Quest;
+}
+
 async function finishInfoQuiz(name = 'Марко') {
   fireEvent.change(screen.getByPlaceholderText('Внесете го вашето име...'), { target: { value: name } });
   fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
@@ -190,6 +201,24 @@ async function finishInfoQuiz(name = 'Марко') {
 }
 
 describe('MobilePlayer orchestration', () => {
+  it('submits one attempt when the final control fires twice before rerender', async () => {
+    saveQuestResult.mockResolvedValue('result-1');
+    renderRosterPlayer(singleInfoQuest());
+    fireEvent.click(screen.getByRole('button', { name: 'Започни Авантура' }));
+    const finish = await screen.findByText('Разбрав, понатаму');
+
+    act(() => {
+      finish.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      finish.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    await waitFor(() => expect(saveQuestResult).toHaveBeenCalledTimes(1));
+    expect(saveQuestResult).toHaveBeenCalledWith(expect.objectContaining({
+      questId: 'quest-single-info',
+      attemptId: expect.any(String),
+    }));
+  });
+
   it('locks roster identity and persists it in the online result', async () => {
     saveQuestResult.mockResolvedValue('result-1');
     renderRosterPlayer(infoQuizQuest());
@@ -205,6 +234,7 @@ describe('MobilePlayer orchestration', () => {
       questId: 'quest-1',
       attemptId: expect.any(String),
       studentId: 'student-1',
+      launchId: '12345678-1234-4234-8234-123456789abc',
       playerName: 'Ана',
     })), { timeout: 3000 });
     expect(saveOfflineResult).not.toHaveBeenCalled();

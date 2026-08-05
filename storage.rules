@@ -28,8 +28,9 @@ service firebase.storage {
     // ─── STUDENT SUBMISSIONS (MISSION/SURVEY rubric grading) ──────────────────
     // Players are frequently unauthenticated (public play links, live sessions),
     // so this path can't be owner-gated like the uploads above — scoped instead
-    // by path, size and content-type. Readable via its unguessable download-URL
-    // token only, same trust model as every other path in this file.
+    // by path, size and content-type. These objects are publicly readable when
+    // the exact path/URL is known; a trusted upload/access service is required
+    // before this can become private without breaking anonymous submissions.
     match /submissions/{questId}/{fileName} {
       allow read: if true;
       allow write: if request.resource.size < 20 * 1024 * 1024

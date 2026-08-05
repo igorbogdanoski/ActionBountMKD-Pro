@@ -1,7 +1,7 @@
-import { createAttemptId } from 'shared';
+import { createAttemptId, normalizePendingResults, reconcilePendingResults } from 'shared';
 import type { QuestResult } from 'shared';
 import { saveQuestResult } from './storage';
-import { clearOfflineQueue, getOfflineQueue, replaceOfflineQueue } from './offlineQueue';
+import { getOfflineQueue, replaceOfflineQueue } from './offlineQueue';
 
 type PendingResult = Omit<QuestResult, 'id'>;
 
@@ -13,29 +13,25 @@ export async function syncOfflineQueue(): Promise<number> {
   if (syncInFlight) return syncInFlight;
 
   syncInFlight = (async () => {
-    const queue = getOfflineQueue().map(result => (
-      result.attemptId ? result : { ...result, attemptId: createAttemptId() }
-    ));
+    const queue = normalizePendingResults(getOfflineQueue(), createAttemptId);
     if (!queue.length) return 0;
     replaceOfflineQueue(queue);
 
     let synced = 0;
-    const failed: PendingResult[] = [];
+    const successfulAttemptIds = new Set<string>();
 
     for (const result of queue) {
       try {
         await saveQuestResult(result);
         synced++;
+        successfulAttemptIds.add(result.attemptId!);
       } catch {
-        failed.push(result);
+        // Reconciliation below retains this result from the latest queue.
       }
     }
 
-    if (failed.length === 0) {
-      clearOfflineQueue();
-    } else {
-      replaceOfflineQueue(failed);
-    }
+    const latestQueue = getOfflineQueue();
+    replaceOfflineQueue(reconcilePendingResults(queue, latestQueue, successfulAttemptIds));
 
     return synced;
   })();

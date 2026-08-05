@@ -11,6 +11,7 @@ export interface AdventureCacheItem {
   isPublic?: boolean;
   createdAt?: unknown;
   stages?: unknown[];
+  stageCount?: number;
 }
 
 interface CachedValue<T> {

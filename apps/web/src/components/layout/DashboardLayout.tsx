@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
+import { Menu } from 'lucide-react';
 import { Sidebar, CurrentView } from './Sidebar';
 import { getUserTheme, saveUserTheme } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
@@ -15,6 +15,11 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
   const { user } = useAuth();
   const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 768px)').matches,
+  );
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -25,6 +30,54 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
       else document.documentElement.classList.remove('dark');
     });
   }, [user]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const media = window.matchMedia('(min-width: 768px)');
+    const update = () => {
+      setIsDesktop(media.matches);
+      if (media.matches) setSidebarOpen(false);
+    };
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen || isDesktop) return;
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+    const focusableSelector = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const getFocusable = () => Array.from(drawer.querySelectorAll<HTMLElement>(focusableSelector));
+    window.requestAnimationFrame(() => getFocusable()[0]?.focus());
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSidebarOpen(false);
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const focusable = getFocusable();
+      if (focusable.length === 0) {
+        event.preventDefault();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      window.requestAnimationFrame(() => menuButtonRef.current?.focus());
+    };
+  }, [sidebarOpen, isDesktop]);
 
   const toggleTheme = () => {
     const newDark = !isDarkTheme;
@@ -42,15 +95,24 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
   return (
     <div className="flex h-screen dark:bg-slate-900 bg-slate-50 font-sans dark:text-slate-200 text-slate-800 overflow-hidden relative">
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {sidebarOpen && !isDesktop && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-30 bg-black/60 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar — hidden on mobile, shown as drawer when open */}
-      <div className={`
+      <div
+        ref={drawerRef}
+        id="app-sidebar-drawer"
+        role={sidebarOpen && !isDesktop ? 'dialog' : undefined}
+        aria-modal={sidebarOpen && !isDesktop ? 'true' : undefined}
+        aria-label={sidebarOpen && !isDesktop ? 'Главна навигација' : undefined}
+        aria-hidden={!isDesktop && !sidebarOpen ? true : undefined}
+        inert={!isDesktop && !sidebarOpen ? true : undefined}
+        className={`
         fixed inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out
         md:relative md:translate-x-0 md:flex md:shrink-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -60,13 +122,18 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
           onNavigate={handleNavigate}
           isDarkTheme={isDarkTheme}
           onToggleTheme={toggleTheme}
+          onClose={() => setSidebarOpen(false)}
         />
       </div>
 
-      <main className="flex-1 flex flex-col relative w-full h-full overflow-y-auto min-w-0">
+      <main
+        inert={sidebarOpen && !isDesktop ? true : undefined}
+        className="flex-1 flex flex-col relative w-full h-full overflow-y-auto min-w-0"
+      >
         {/* Mobile top bar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-slate-200 dark:border-slate-800 md:hidden shrink-0">
           <Button
+            ref={menuButtonRef}
             type="button"
             onClick={() => setSidebarOpen(true)}
             size="icon"
@@ -74,6 +141,8 @@ export function DashboardLayout({ currentView, onNavigate, children }: Dashboard
             colorClassName="text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:ring-slate-400"
             className="!p-1.5"
             aria-label="Отвори мени"
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar-drawer"
           >
             <Menu className="w-5 h-5" />
           </Button>

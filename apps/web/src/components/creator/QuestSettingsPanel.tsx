@@ -55,11 +55,12 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
   };
   const learningGoals = pedagogy.learningGoals ?? [];
   const learningObjectives = pedagogy.learningObjectives ?? [];
+  const pedagogyEntryCount = learningGoals.length + learningObjectives.length;
   const objectiveCoverage = computeObjectiveCoverage(learningObjectives, quest.stages);
   const addGoal = () => {
     const g = goalInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
     if (!g) return;
-    if (learningGoals.length >= MAX_LEARNING_GOALS || learningGoals.includes(g)) { setGoalInput(''); return; }
+    if (pedagogyEntryCount >= MAX_LEARNING_GOALS || learningGoals.includes(g)) { setGoalInput(''); return; }
     updatePedagogy({ learningGoals: [...learningGoals, g] });
     setGoalInput('');
   };
@@ -67,7 +68,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
 
   const addObjective = () => {
     const label = objectiveInput.trim().slice(0, MAX_LEARNING_GOAL_LENGTH);
-    if (!label || learningObjectives.length >= MAX_LEARNING_GOALS) return;
+    if (!label || pedagogyEntryCount >= MAX_LEARNING_GOALS) return;
     const randomPart = globalThis.crypto?.randomUUID?.()
       ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
     const objective: LearningObjective = {
@@ -277,7 +278,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                   value={pedagogy.curriculumRef ?? ''} maxLength={120}
                   onChange={e => updatePedagogy({ curriculumRef: e.target.value || undefined })} />
               </Field>
-              <Field label="Стабилни наставни цели" hint={`Се мапираат кон етапи преку стабилен ID. Максимум ${MAX_LEARNING_GOALS}.`}>
+              <Field label="Стабилни наставни цели" hint={`Се мапираат кон етапи преку стабилен ID. Вкупно максимум ${MAX_LEARNING_GOALS} со legacy целите.`}>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
@@ -299,7 +300,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                       variant="app-primary"
                       size="icon"
                       aria-label="Додај стабилна наставна цел"
-                      disabled={!objectiveInput.trim() || learningObjectives.length >= MAX_LEARNING_GOALS}
+                      disabled={!objectiveInput.trim() || pedagogyEntryCount >= MAX_LEARNING_GOALS}
                       onClick={addObjective}
                       className="shrink-0"
                     >
@@ -365,7 +366,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                   </div>
                 </Field>
               )}
-              <Field label="Цели на учење" hint={`Што ќе научат учениците. Максимум ${MAX_LEARNING_GOALS}, притисни Enter за додавање`}>
+              <Field label="Цели на учење" hint={`Што ќе научат учениците. Вкупно максимум ${MAX_LEARNING_GOALS} со стабилните цели, притисни Enter за додавање`}>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input type="text" className={inputCls} placeholder="напр. Препознава историски обележја во градот..."
@@ -373,7 +374,7 @@ export function QuestSettingsPanel({ quest, onChange, onDeleteQuest }: Props) {
                       onChange={e => setGoalInput(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addGoal(); } }} />
                     <Button type="button" variant="app-primary" size="icon" aria-label="Додај цел на учење"
-                      disabled={!goalInput.trim() || learningGoals.length >= MAX_LEARNING_GOALS} onClick={addGoal} className="shrink-0">
+                      disabled={!goalInput.trim() || pedagogyEntryCount >= MAX_LEARNING_GOALS} onClick={addGoal} className="shrink-0">
                       <Plus className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>

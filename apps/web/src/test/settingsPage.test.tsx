@@ -10,6 +10,11 @@ const mocks = vi.hoisted(() => ({
   getUserSettings: vi.fn(),
   saveUserTheme: vi.fn(),
   sendTestPushNotification: vi.fn(),
+  buildAccountDataExport: vi.fn(),
+  downloadAccountData: vi.fn(),
+  getAccountDeletionRequest: vi.fn(),
+  requestAccountDeletion: vi.fn(),
+  cancelAccountDeletion: vi.fn(),
   changeLanguage: vi.fn(),
   user: { uid: 'u1', email: 'teacher@example.com', displayName: 'Teacher', photoURL: null },
   profile: { uid: 'u1', displayName: 'Teacher', createdAt: '2025-01-02T00:00:00.000Z' },
@@ -33,12 +38,19 @@ vi.mock('../hooks/usePlan', () => ({
   usePlan: () => ({ planId: 'free', limits: { maxQuests: 3, canExportCSV: false, canCollaborate: false } }),
 }));
 vi.mock('../utils/storage', () => ({
-  upsertUserProfile: mocks.upsertUserProfile,
   getUserTheme: mocks.getUserTheme,
   getUserSettings: mocks.getUserSettings,
   saveUserTheme: mocks.saveUserTheme,
 }));
+vi.mock('../utils/profileStorage', () => ({ upsertUserProfile: mocks.upsertUserProfile }));
 vi.mock('../utils/pushNotifications', () => ({ sendTestPushNotification: mocks.sendTestPushNotification }));
+vi.mock('../utils/accountData', () => ({
+  buildAccountDataExport: mocks.buildAccountDataExport,
+  downloadAccountData: mocks.downloadAccountData,
+  getAccountDeletionRequest: mocks.getAccountDeletionRequest,
+  requestAccountDeletion: mocks.requestAccountDeletion,
+  cancelAccountDeletion: mocks.cancelAccountDeletion,
+}));
 vi.mock('../i18n', () => ({
   LANGUAGES: [
     { code: 'mk', label: 'Македонски', flag: '🇲🇰' },
@@ -67,6 +79,20 @@ beforeEach(() => {
   mocks.upsertUserProfile.mockResolvedValue(undefined);
   mocks.saveUserTheme.mockResolvedValue(undefined);
   mocks.sendTestPushNotification.mockResolvedValue(undefined);
+  mocks.getAccountDeletionRequest.mockResolvedValue(null);
+  mocks.buildAccountDataExport.mockResolvedValue({
+    schemaVersion: 1,
+    exportedAt: '2026-08-04T12:00:00.000Z',
+    identity: { uid: 'u1', email: 'teacher@example.com', displayName: 'Teacher' },
+  });
+  mocks.requestAccountDeletion.mockResolvedValue({
+    userId: 'u1',
+    email: 'teacher@example.com',
+    status: 'pending',
+    requestedAt: '2026-08-04T12:00:00.000Z',
+    updatedAt: '2026-08-04T12:00:00.000Z',
+  });
+  mocks.cancelAccountDeletion.mockResolvedValue(undefined);
   document.documentElement.classList.add('dark');
 });
 
@@ -194,5 +220,54 @@ describe('SettingsPage', () => {
     fireEvent.click(push);
     expect(await screen.findByText('Push delivery failed')).toBeTruthy();
     expect(push).not.toBeDisabled();
+  });
+
+  it('exports the signed-in account data from the account tab', async () => {
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Сметка' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Извези мои податоци' }));
+
+    await waitFor(() => expect(mocks.buildAccountDataExport).toHaveBeenCalledWith({
+      uid: 'u1',
+      email: 'teacher@example.com',
+      displayName: 'Teacher',
+    }));
+    expect(mocks.downloadAccountData).toHaveBeenCalledOnce();
+    expect(await screen.findByText(/JSON извозот е подготвен/)).toBeTruthy();
+  });
+
+  it('requires the exact account email before registering a deletion request', async () => {
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Сметка' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Побарај бришење на сметка' }));
+
+    const submit = screen.getByRole('button', { name: 'Регистрирај барање' });
+    const confirmation = screen.getByLabelText(/За потврда внеси/);
+    expect(submit).toBeDisabled();
+    fireEvent.change(confirmation, { target: { value: 'wrong@example.com' } });
+    expect(submit).toBeDisabled();
+    fireEvent.change(confirmation, { target: { value: 'teacher@example.com' } });
+    expect(submit).not.toBeDisabled();
+    fireEvent.click(submit);
+
+    await waitFor(() => expect(mocks.requestAccountDeletion).toHaveBeenCalledWith('u1', 'teacher@example.com'));
+    expect(await screen.findByRole('button', { name: 'Откажи барање за бришење' })).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('does not offer a new request while deletion is being processed', async () => {
+    mocks.getAccountDeletionRequest.mockResolvedValue({
+      userId: 'u1',
+      email: 'teacher@example.com',
+      status: 'in_progress',
+      requestedAt: '2026-08-04T12:00:00.000Z',
+      updatedAt: '2026-08-04T12:05:00.000Z',
+    });
+    render(<SettingsPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Сметка' }));
+
+    expect(await screen.findByText('Статус на барањето: in_progress')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Побарај бришење на сметка' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Откажи барање за бришење' })).toBeNull();
   });
 });

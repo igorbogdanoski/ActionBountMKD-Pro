@@ -52,7 +52,7 @@ export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void)
     timerRef.current = setTimeout(doSave, 2000); // 2s debounce
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [isDirty, quest.updatedAt, doSave]); // trigger on quest change
+  }, [isDirty, quest, doSave]); // restart the debounce for every editor snapshot
 
   return { lastSaved, saving, error, retry: doSave, suspend };
 }

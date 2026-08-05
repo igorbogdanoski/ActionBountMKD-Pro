@@ -84,6 +84,7 @@
           }
         }
       ],
+      "expo-image",
       "expo-font",
       "expo-web-browser"
     ],

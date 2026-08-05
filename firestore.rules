@@ -41,40 +41,662 @@ service cloud.firestore {
       return isAuth() && request.auth.token.admin == true;
     }
 
-    function isValidQuest(data) {
-      return data.keys().hasAll(['id', 'creatorId', 'title', 'visibility', 'playMode', 'sequence', 'stages', 'createdAt', 'updatedAt'])
-        && data.creatorId is string
+    function isBoundedString(value, maxLength) {
+      return value is string
+        && value.size() >= 1
+        && value.size() <= maxLength;
+    }
+
+    function isValidStringAt(values, index, maxLength) {
+      return values.size() <= index
+        || (values[index] is string
+          && values[index].size() <= maxLength);
+    }
+
+    function isValidTagList(values) {
+      return values is list
+        && values.size() <= 10
+        && !('' in values)
+        && isValidStringAt(values, 0, 30)
+        && isValidStringAt(values, 1, 30)
+        && isValidStringAt(values, 2, 30)
+        && isValidStringAt(values, 3, 30)
+        && isValidStringAt(values, 4, 30)
+        && isValidStringAt(values, 5, 30)
+        && isValidStringAt(values, 6, 30)
+        && isValidStringAt(values, 7, 30)
+        && isValidStringAt(values, 8, 30)
+        && isValidStringAt(values, 9, 30);
+    }
+
+    function isValidGoalList(values) {
+      return values is list
+        && values.size() <= 12
+        && !('' in values)
+        && isValidStringAt(values, 0, 200)
+        && isValidStringAt(values, 1, 200)
+        && isValidStringAt(values, 2, 200)
+        && isValidStringAt(values, 3, 200)
+        && isValidStringAt(values, 4, 200)
+        && isValidStringAt(values, 5, 200)
+        && (values.size() <= 6
+          || (isValidStringAt(values, 6, 200)
+            && isValidStringAt(values, 7, 200)
+            && isValidStringAt(values, 8, 200)
+            && isValidStringAt(values, 9, 200)
+            && isValidStringAt(values, 10, 200)
+            && isValidStringAt(values, 11, 200)));
+    }
+
+    function isValidLearningObjectiveAt(values, index) {
+      return values.size() <= index
+        || (values[index].id is string
+          && values[index].id.size() <= 64
+          && values[index].label is string
+          && values[index].label.size() <= 200);
+    }
+
+    function isValidLearningObjectiveList(values) {
+      return values is list
+        && values.size() <= 12
+        && isValidLearningObjectiveAt(values, 0)
+        && isValidLearningObjectiveAt(values, 1)
+        && isValidLearningObjectiveAt(values, 2)
+        && isValidLearningObjectiveAt(values, 3)
+        && isValidLearningObjectiveAt(values, 4)
+        && isValidLearningObjectiveAt(values, 5)
+        && (values.size() <= 6
+          || (isValidLearningObjectiveAt(values, 6)
+            && isValidLearningObjectiveAt(values, 7)
+            && isValidLearningObjectiveAt(values, 8)
+            && isValidLearningObjectiveAt(values, 9)
+            && isValidLearningObjectiveAt(values, 10)
+            && isValidLearningObjectiveAt(values, 11)));
+    }
+
+    function isValidPedagogy(data) {
+      return data is map
+        && data.keys().hasOnly(['subject', 'grade', 'curriculumRef', 'learningGoals', 'learningObjectives'])
+        // learningGoals is the legacy representation and learningObjectives
+        // its stable-ID successor; together they share one product limit.
+        && data.get('learningGoals', []).size()
+          + data.get('learningObjectives', []).size() <= 12
+        && (!('subject' in data) || isBoundedString(data.subject, 80))
+        && (!('grade' in data) || isBoundedString(data.grade, 40))
+        && (!('curriculumRef' in data) || isBoundedString(data.curriculumRef, 120))
+        && (!('learningGoals' in data) || isValidGoalList(data.learningGoals))
+        && (!('learningObjectives' in data) || isValidLearningObjectiveList(data.learningObjectives));
+    }
+
+    function isValidQuest(data, questId) {
+      return data.keys().hasAll([
+          'id', 'creatorId', 'title', 'visibility', 'playMode', 'sequence',
+          'createdAt', 'updatedAt'
+        ])
         && data.title is string
         && data.title.size() >= 1
         && data.title.size() <= 200
         && data.visibility in ['public', 'secret']
         && data.playMode in ['singleplayer', 'multiplayer']
         && data.sequence in ['fixed', 'random', 'selectable']
-        && data.stages is list
-        && data.stages.size() <= 100;
+        && data.stageSchemaVersion == 2
+        && data.stageCount is int && data.stageCount >= 0 && data.stageCount <= 100
+        && !data.keys().hasAny(['stages'])
+        && (!('description' in data) || (data.description is string && data.description.size() <= 2000))
+        && (!('tags' in data) || isValidTagList(data.tags))
+        && (!('pedagogy' in data) || isValidPedagogy(data.pedagogy));
     }
 
-    function isValidResult(data) {
-      return data.keys().hasAll(['questId', 'playerName', 'points', 'completedAt'])
-        && data.questId is string
-        && (!('attemptId' in data) || (data.attemptId is string
+    function isOptionalStageString(data, key, maxLength) {
+      return !data.keys().hasAny([key])
+        || (data.get(key, '') is string && data.get(key, '').size() <= maxLength);
+    }
+
+    function isOptionalStageBool(data, key) {
+      return !data.keys().hasAny([key]) || data.get(key, false) is bool;
+    }
+
+    function isOptionalStageNumber(data, key, minValue, maxValue) {
+      return !data.keys().hasAny([key])
+        || (data.get(key, 0) is number
+          && data.get(key, 0) >= minValue
+          && data.get(key, 0) <= maxValue);
+    }
+
+    function isValidStageBase(data, stageDocumentId) {
+      return data.keys().hasAll([
+          'id', 'questId', 'creatorId', 'stageRevision',
+          'type', 'title', 'description', 'order'
+        ])
+        && isBoundedString(data.id, 128)
+        && isBoundedString(data.questId, 128)
+        && stageDocumentId == data.questId + '__' + data.id
+        && isBoundedString(data.creatorId, 128)
+        && isBoundedString(data.stageRevision, 128)
+        && data.stageRevision.size() >= 20
+        && data.type in [
+          'INFO', 'QUIZ', 'MISSION', 'FIND_SPOT', 'SCAN_CODE',
+          'QR_TASK', 'SURVEY', 'TOURNAMENT', 'SWITCH'
+        ]
+        && data.title is string
+        && data.title.size() <= 200
+        && data.description is string
+        && data.description.size() <= 2000
+        && data.order is int
+        && data.order >= 0
+        && data.order < 100
+        && isOptionalStageNumber(data, 'points', 0, 10000)
+        && isOptionalStageString(data, 'audioUrl', 2048)
+        && isOptionalStageString(data, 'grantsItemId', 64)
+        && isOptionalStageString(data, 'requiresItemId', 64)
+        && isOptionalStageString(data, 'objectiveRef', 64)
+        && isOptionalStageBool(data, 'isIntro')
+        && isOptionalStageBool(data, 'isOutro');
+    }
+
+    function isValidPairAt(values, index) {
+      return values.size() <= index
+        || (values[index] is map
+          && values[index].keys().hasAll(['id', 'left', 'right'])
+          && values[index].keys().hasOnly(['id', 'left', 'right'])
+          && isBoundedString(values[index].id, 64)
+          && values[index].left is string
+          && values[index].left.size() <= 200
+          && values[index].right is string
+          && values[index].right.size() <= 200);
+    }
+
+    function isValidOrderingItemAt(values, index) {
+      return values.size() <= index
+        || (values[index] is map
+          && values[index].keys().hasAll(['id', 'text'])
+          && values[index].keys().hasOnly(['id', 'text'])
+          && isBoundedString(values[index].id, 64)
+          && values[index].text is string
+          && values[index].text.size() <= 200);
+    }
+
+    function isValidPairBlock(values, start) {
+      return isValidPairAt(values, start)
+        && isValidPairAt(values, start + 1)
+        && isValidPairAt(values, start + 2)
+        && isValidPairAt(values, start + 3)
+        && isValidPairAt(values, start + 4);
+    }
+
+    function isValidOrderingBlock(values, start) {
+      return isValidOrderingItemAt(values, start)
+        && isValidOrderingItemAt(values, start + 1)
+        && isValidOrderingItemAt(values, start + 2)
+        && isValidOrderingItemAt(values, start + 3)
+        && isValidOrderingItemAt(values, start + 4);
+    }
+
+    function isValidPairs(values) {
+      return values is list && values.size() <= 20
+        && isValidPairBlock(values, 0) && isValidPairBlock(values, 5)
+        && isValidPairBlock(values, 10) && isValidPairBlock(values, 15);
+    }
+
+    function isValidOrderingItems(values) {
+      return values is list && values.size() <= 20
+        && isValidOrderingBlock(values, 0) && isValidOrderingBlock(values, 5)
+        && isValidOrderingBlock(values, 10) && isValidOrderingBlock(values, 15);
+    }
+
+    function isValidRubricLevelAt(values, index) {
+      return values.size() <= index
+        || (values[index] is map
+          && values[index].keys().hasAll(['id', 'label', 'points'])
+          && values[index].keys().hasOnly(['id', 'label', 'points', 'descriptor'])
+          && isBoundedString(values[index].id, 64)
+          && values[index].label is string
+          && values[index].label.size() <= 120
+          && values[index].points is number
+          && values[index].points >= 0
+          && values[index].points <= 1000
+          && (!('descriptor' in values[index])
+            || (values[index].descriptor is string && values[index].descriptor.size() <= 500)));
+    }
+
+    function isValidRubricCriterionAt(values, index) {
+      return values.size() <= index
+        || (values[index] is map
+          && values[index].keys().hasAll(['id', 'title', 'levels'])
+          && values[index].keys().hasOnly(['id', 'title', 'levels'])
+          && isBoundedString(values[index].id, 64)
+          && values[index].title is string
+          && values[index].title.size() <= 120
+          && values[index].levels is list
+          && values[index].levels.size() <= 5
+          && isValidRubricLevelAt(values[index].levels, 0)
+          && isValidRubricLevelAt(values[index].levels, 1)
+          && isValidRubricLevelAt(values[index].levels, 2)
+          && isValidRubricLevelAt(values[index].levels, 3)
+          && isValidRubricLevelAt(values[index].levels, 4));
+    }
+
+    function isValidRubric(data) {
+      return data is map
+        && data.keys().hasAll(['criteria'])
+        && data.keys().hasOnly(['criteria', 'feedbackPresets'])
+        && data.criteria is list
+        && data.criteria.size() <= 8
+        && isValidRubricCriterionAt(data.criteria, 0)
+        && isValidRubricCriterionAt(data.criteria, 1)
+        && isValidRubricCriterionAt(data.criteria, 2)
+        && isValidRubricCriterionAt(data.criteria, 3)
+        && isValidRubricCriterionAt(data.criteria, 4)
+        && isValidRubricCriterionAt(data.criteria, 5)
+        && isValidRubricCriterionAt(data.criteria, 6)
+        && isValidRubricCriterionAt(data.criteria, 7)
+        && (!('feedbackPresets' in data) || isValidGoalList(data.feedbackPresets));
+    }
+
+    function isValidSwitchConditionAt(values, index) {
+      return values.size() <= index
+        || (values[index] is map
+          && values[index].keys().hasAll(['id', 'label', 'targetStageId'])
+          && values[index].keys().hasOnly([
+            'id', 'label', 'minPoints', 'maxPoints', 'requiredStageIds',
+            'requiredItemId', 'targetStageId'
+          ])
+          && isBoundedString(values[index].id, 64)
+          && values[index].label is string
+          && values[index].label.size() <= 500
+          && values[index].targetStageId is string
+          && values[index].targetStageId.size() <= 128
+          && (!('minPoints' in values[index]) || (values[index].minPoints is number
+            && values[index].minPoints >= -1000000 && values[index].minPoints <= 1000000))
+          && (!('maxPoints' in values[index]) || (values[index].maxPoints is number
+            && values[index].maxPoints >= -1000000 && values[index].maxPoints <= 1000000))
+          && (!('requiredItemId' in values[index]) || (values[index].requiredItemId is string
+            && values[index].requiredItemId.size() <= 64))
+          && (!('requiredStageIds' in values[index]) || (values[index].requiredStageIds is list
+            && values[index].requiredStageIds.size() <= 20
+            && isValidStringBlock(values[index].requiredStageIds, 0, 128)
+            && isValidStringBlock(values[index].requiredStageIds, 5, 128)
+            && isValidStringBlock(values[index].requiredStageIds, 10, 128)
+            && isValidStringBlock(values[index].requiredStageIds, 15, 128))));
+    }
+
+    function isValidSwitchConditionBlock(values, start) {
+      return isValidSwitchConditionAt(values, start)
+        && isValidSwitchConditionAt(values, start + 1)
+        && isValidSwitchConditionAt(values, start + 2)
+        && isValidSwitchConditionAt(values, start + 3)
+        && isValidSwitchConditionAt(values, start + 4);
+    }
+
+    function isValidStage(data, stageDocumentId) {
+      let baseKeys = [
+        'id', 'questId', 'creatorId', 'stageRevision', 'type', 'title',
+        'description', 'order', 'points', 'audioUrl', 'grantsItemId',
+        'requiresItemId', 'isIntro', 'isOutro', 'objectiveRef'
+      ];
+      return isValidStageBase(data, stageDocumentId)
+        && ((data.type == 'INFO'
+            && data.keys().hasOnly(baseKeys.concat(['mediaUrl', 'mediaType']))
+            && isOptionalStageString(data, 'mediaUrl', 2048)
+            && (!('mediaType' in data) || data.mediaType in ['image', 'video', 'none']))
+          || (data.type == 'QUIZ'
+            && data.keys().hasOnly(baseKeys.concat([
+              'questionType', 'options', 'correctAnswer', 'matchingPairs',
+              'orderingItems', 'timeLimitSeconds', 'requiredToAdvance', 'hintText'
+            ]))
+            && data.keys().hasAll(['questionType', 'correctAnswer'])
+            && data.questionType in ['multiple_choice', 'free_text', 'estimate_number', 'matching', 'ordering']
+            && ((data.correctAnswer is string && data.correctAnswer.size() <= 500)
+              || (data.correctAnswer is number && data.correctAnswer >= -1000000000 && data.correctAnswer <= 1000000000))
+            && (!('options' in data) || (data.options is list && data.options.size() <= 8
+              && isValidStringBlock(data.options, 0, 200) && isValidStringBlock(data.options, 5, 200)))
+            && (!('matchingPairs' in data) || isValidPairs(data.matchingPairs))
+            && (!('orderingItems' in data) || isValidOrderingItems(data.orderingItems))
+            && isOptionalStageNumber(data, 'timeLimitSeconds', 0, 3600)
+            && isOptionalStageBool(data, 'requiredToAdvance')
+            && isOptionalStageString(data, 'hintText', 2000))
+          || (data.type == 'MISSION'
+            && data.keys().hasOnly(baseKeys.concat(['submissionType', 'rubric']))
+            && data.submissionType in ['photo', 'video', 'audio']
+            && (!('rubric' in data) || isValidRubric(data.rubric)))
+          || (data.type == 'FIND_SPOT'
+            && data.keys().hasOnly(baseKeys.concat(['targetCoordinates', 'radiusMeters', 'mapIcon', 'showMode', 'requiredToAdvance']))
+            && data.targetCoordinates is map
+            && data.targetCoordinates.keys().hasOnly(['latitude', 'longitude'])
+            && data.targetCoordinates.keys().hasAll(['latitude', 'longitude'])
+            && data.targetCoordinates.latitude is number && data.targetCoordinates.latitude >= -90 && data.targetCoordinates.latitude <= 90
+            && data.targetCoordinates.longitude is number && data.targetCoordinates.longitude >= -180 && data.targetCoordinates.longitude <= 180
+            && data.radiusMeters is number && data.radiusMeters >= 1 && data.radiusMeters <= 10000
+            && isOptionalStageString(data, 'mapIcon', 64)
+            && (!('showMode' in data) || data.showMode in ['map', 'arrow', 'none'])
+            && isOptionalStageBool(data, 'requiredToAdvance'))
+          || (data.type == 'SCAN_CODE'
+            && data.keys().hasOnly(baseKeys.concat(['targetQrPayload']))
+            && data.targetQrPayload is string && data.targetQrPayload.size() <= 500)
+          || (data.type == 'QR_TASK'
+            && data.keys().hasOnly(baseKeys.concat([
+              'targetQrPayload', 'taskTitle', 'taskDescription', 'taskMediaUrl',
+              'answerType', 'options', 'correctAnswer', 'requiredToAdvance'
+            ]))
+            && data.keys().hasAll(['targetQrPayload', 'taskTitle', 'taskDescription', 'answerType', 'requiredToAdvance'])
+            && data.targetQrPayload is string && data.targetQrPayload.size() <= 500
+            && data.taskTitle is string && data.taskTitle.size() <= 200
+            && data.taskDescription is string && data.taskDescription.size() <= 2000
+            && data.answerType in ['text', 'photo', 'multiple_choice']
+            && data.requiredToAdvance is bool
+            && isOptionalStageString(data, 'taskMediaUrl', 2048)
+            && (!('options' in data) || (data.options is list && data.options.size() <= 6
+              && isValidStringBlock(data.options, 0, 200) && isValidStringAt(data.options, 5, 200)))
+            && isOptionalStageString(data, 'correctAnswer', 500))
+          || (data.type == 'SURVEY'
+            && data.keys().hasOnly(baseKeys.concat(['surveyQuestions', 'rubric']))
+            && data.surveyQuestions is list
+            && data.surveyQuestions.size() >= 1 && data.surveyQuestions.size() <= 20
+            && isValidStringBlock(data.surveyQuestions, 0, 500)
+            && isValidStringBlock(data.surveyQuestions, 5, 500)
+            && isValidStringBlock(data.surveyQuestions, 10, 500)
+            && isValidStringBlock(data.surveyQuestions, 15, 500)
+            && (!('rubric' in data) || isValidRubric(data.rubric)))
+          || (data.type == 'TOURNAMENT'
+            && data.keys().hasOnly(baseKeys.concat(['teamCount', 'taskDescription', 'judgingMode']))
+            && (!('teamCount' in data) || (data.teamCount is int && data.teamCount >= 2 && data.teamCount <= 20))
+            && isOptionalStageString(data, 'taskDescription', 2000)
+            && (!('judgingMode' in data) || data.judgingMode in ['points', 'time', 'manual']))
+          || (data.type == 'SWITCH'
+            && data.keys().hasOnly(baseKeys.concat(['conditions', 'defaultTargetStageId', 'showPathsToPlayer']))
+            && data.conditions is list && data.conditions.size() <= 20
+            && isValidSwitchConditionBlock(data.conditions, 0)
+            && isValidSwitchConditionBlock(data.conditions, 5)
+            && isValidSwitchConditionBlock(data.conditions, 10)
+            && isValidSwitchConditionBlock(data.conditions, 15)
+            && data.showPathsToPlayer is bool
+            && isOptionalStageString(data, 'defaultTargetStageId', 128)));
+    }
+
+    function questAfter(questId) {
+      return getAfter(/databases/$(database)/documents/quests/$(questId));
+    }
+
+    function canWriteQuestStage(data) {
+      let quest = questAfter(data.questId);
+      return isAuth()
+        && quest.data.creatorId == data.creatorId
+        && (quest.data.creatorId == request.auth.uid || isEditor(quest))
+        && quest.data.stageSchemaVersion == 2
+        && quest.data.stageRevision == data.stageRevision;
+    }
+
+    function isValidResult(data, resultId) {
+      return data.keys().hasAll([
+          'id', 'questId', 'attemptId', 'playerName', 'points', 'completedAt',
+          'schemaVersion', 'stageDurationCount', 'submissionCount', 'quizAnswerCount'
+        ])
+        && data.keys().hasOnly([
+          'id', 'questId', 'attemptId', 'studentId', 'launchId', 'playerName', 'userId',
+          'points', 'completedStages', 'totalStages', 'completedAt',
+          'teamCode', 'schemaVersion', 'stageDurationCount', 'submissionCount', 'quizAnswerCount'
+        ])
+        && isBoundedString(data.questId, 128)
+        && data.id == resultId
+        && (data.attemptId is string
           && data.attemptId.size() >= 1
-          && data.attemptId.size() <= 128))
+          && data.attemptId.size() <= 128
+          && data.attemptId == resultId)
+        && data.schemaVersion == 2
+        && data.stageDurationCount is int
+        && data.stageDurationCount >= 0
+        && data.stageDurationCount <= 100
+        && data.submissionCount is int
+        && data.submissionCount >= 0
+        && data.submissionCount <= 30
+        && data.quizAnswerCount is int
+        && data.quizAnswerCount >= 0
+        && data.quizAnswerCount <= 100
         && (!('studentId' in data) || (data.studentId is string
           && data.studentId.size() >= 1
           && data.studentId.size() <= 128))
+        && (!('launchId' in data) || (data.launchId is string
+          && data.launchId.size() >= 20
+          && data.launchId.size() <= 128))
         && data.playerName is string
         && data.playerName.size() >= 1
         && data.playerName.size() <= 100
         && data.points is number
         && data.points >= 0
-        && (!('submissions' in data) || (data.submissions is list && data.submissions.size() <= 30))
-        && (!('quizAnswers' in data) || (data.quizAnswers is list && data.quizAnswers.size() <= 100))
+        && data.points <= 1000000
+        && data.completedAt is string
+        && data.completedAt.size() >= 20
+        && data.completedAt.size() <= 40
+        && (!('userId' in data) || data.userId == null
+          || isBoundedString(data.userId, 128))
+        && (!('completedStages' in data) || (data.completedStages is int
+          && data.completedStages >= 0
+          && data.completedStages <= 100))
+        && (!('totalStages' in data) || (data.totalStages is int
+          && data.totalStages >= 0
+          && data.totalStages <= 100))
+        && (!('teamCode' in data) || (data.teamCode is string
+          && data.teamCode.size() <= 50))
         // grades are only ever written by the teacher via the dedicated
         // update rule below — a player's initial create must never include them.
         && !('grades' in data)
         && !('approvedAt' in data)
-        && !('approvedBy' in data);
+        && !('approvedBy' in data)
+        && isValidResultIdentity(data);
+    }
+
+    function isValidDurationItem(item) {
+      return item is map
+        && item.keys().hasAll(['stageId', 'durationSec'])
+        && item.keys().hasOnly(['stageId', 'durationSec'])
+        && isBoundedString(item.stageId, 128)
+        && item.durationSec is number
+        && item.durationSec >= 0
+        && item.durationSec <= 86400;
+    }
+
+    function isValidQuizAnswerItem(item) {
+      return item is map
+        && item.keys().hasAll(['stageId', 'selectedAnswer', 'correct'])
+        && item.keys().hasOnly(['stageId', 'selectedAnswer', 'correct'])
+        && isBoundedString(item.stageId, 128)
+        && item.selectedAnswer is string
+        && item.selectedAnswer.size() <= 10000
+        && item.correct is bool;
+    }
+
+    function isValidStringBlock(items, start, maxLength) {
+      return isValidStringAt(items, start, maxLength)
+        && isValidStringAt(items, start + 1, maxLength)
+        && isValidStringAt(items, start + 2, maxLength)
+        && isValidStringAt(items, start + 3, maxLength)
+        && isValidStringAt(items, start + 4, maxLength);
+    }
+
+    function isValidSurveyAnswers(items) {
+      return items is list
+        && items.size() <= 20
+        && isValidStringBlock(items, 0, 2000)
+        && isValidStringBlock(items, 5, 2000)
+        && isValidStringBlock(items, 10, 2000)
+        && isValidStringBlock(items, 15, 2000);
+    }
+
+    function isValidSubmissionItem(item) {
+      return item is map
+        && item.keys().hasAll(['stageId', 'type'])
+        && item.keys().hasOnly(['stageId', 'type', 'mediaUrl', 'surveyAnswers'])
+        && isBoundedString(item.stageId, 128)
+        && item.type in ['photo', 'video', 'audio', 'survey']
+        && ((item.type == 'survey'
+            && item.keys().hasAll(['surveyAnswers'])
+            && !item.keys().hasAny(['mediaUrl'])
+            && isValidSurveyAnswers(item.surveyAnswers))
+          || (item.type in ['photo', 'video', 'audio']
+            && item.keys().hasAll(['mediaUrl'])
+            && !item.keys().hasAny(['surveyAnswers'])
+            && isBoundedString(item.mediaUrl, 2048)));
+    }
+
+    function isValidDurationAt(items, index) {
+      return items.size() <= index || isValidDurationItem(items[index]);
+    }
+
+    function isValidQuizAnswerAt(items, index) {
+      return items.size() <= index || isValidQuizAnswerItem(items[index]);
+    }
+
+    function isValidSubmissionAt(items, index) {
+      return items.size() <= index || isValidSubmissionItem(items[index]);
+    }
+
+    function isValidDurationBlock(items, start) {
+      return isValidDurationAt(items, start)
+        && isValidDurationAt(items, start + 1)
+        && isValidDurationAt(items, start + 2)
+        && isValidDurationAt(items, start + 3)
+        && isValidDurationAt(items, start + 4);
+    }
+
+    function isValidQuizAnswerBlock(items, start) {
+      return isValidQuizAnswerAt(items, start)
+        && isValidQuizAnswerAt(items, start + 1)
+        && isValidQuizAnswerAt(items, start + 2)
+        && isValidQuizAnswerAt(items, start + 3)
+        && isValidQuizAnswerAt(items, start + 4);
+    }
+
+    function isValidSubmissionBlock(items, start) {
+      return isValidSubmissionAt(items, start)
+        && isValidSubmissionAt(items, start + 1)
+        && isValidSubmissionAt(items, start + 2)
+        && isValidSubmissionAt(items, start + 3)
+        && isValidSubmissionAt(items, start + 4);
+    }
+
+    function isValidProgressItems(data) {
+      return data.stageDurations is list
+        && data.stageDurations.size() <= 3
+        && data.quizAnswers is list
+        && data.quizAnswers.size() <= 3
+        && isValidDurationAt(data.stageDurations, 0)
+        && isValidDurationAt(data.stageDurations, 1)
+        && isValidDurationAt(data.stageDurations, 2)
+        && isValidQuizAnswerAt(data.quizAnswers, 0)
+        && isValidQuizAnswerAt(data.quizAnswers, 1)
+        && isValidQuizAnswerAt(data.quizAnswers, 2);
+    }
+
+    function isValidSubmissionItems(data) {
+      return data.submissions is list
+        && data.submissions.size() == 1
+        && isValidSubmissionAt(data.submissions, 0);
+    }
+
+    function isExpectedSliceSize(itemCount, totalCount, start, chunkSize) {
+      return (totalCount <= start && itemCount == 0)
+        || (totalCount > start
+          && ((totalCount <= start + chunkSize && itemCount == totalCount - start)
+            || (totalCount > start + chunkSize && itemCount == chunkSize)));
+    }
+
+    function resultAfterCount(resultId, field) {
+      return getAfter(/databases/$(database)/documents/quest_results/$(resultId)).data[field];
+    }
+
+    function isValidProgressCardinality(data) {
+      return isBoundedString(data.chunkId, 2)
+        && data.chunkIndex is int
+        && data.chunkIndex >= 0
+        && data.chunkIndex < 34
+        && (resultAfterCount(data.resultId, 'stageDurationCount') > data.chunkIndex * 3
+          || resultAfterCount(data.resultId, 'quizAnswerCount') > data.chunkIndex * 3)
+        && isExpectedSliceSize(
+          data.stageDurations.size(),
+          resultAfterCount(data.resultId, 'stageDurationCount'),
+          data.chunkIndex * 3,
+          3
+        )
+        && isExpectedSliceSize(
+          data.quizAnswers.size(),
+          resultAfterCount(data.resultId, 'quizAnswerCount'),
+          data.chunkIndex * 3,
+          3
+        );
+    }
+
+    function isValidSubmissionCardinality(data) {
+      return isBoundedString(data.chunkId, 2)
+        && data.chunkIndex is int
+        && data.chunkIndex >= 0
+        && data.chunkIndex < 30
+        && resultAfterCount(data.resultId, 'submissionCount') > data.chunkIndex;
+    }
+
+    function isTelemetryBoundToResult(data) {
+      return getAfter(/databases/$(database)/documents/quest_results/$(data.resultId)).data.id == data.resultId
+        && getAfter(/databases/$(database)/documents/quest_results/$(data.resultId)).data.questId == data.questId
+        && getAfter(/databases/$(database)/documents/quest_results/$(data.resultId)).data.schemaVersion == 2;
+    }
+
+    function isValidResultTelemetry(data, telemetryId) {
+      return data is map
+        && isBoundedString(data.resultId, 128)
+        && isBoundedString(data.questId, 128)
+        && isBoundedString(data.chunkId, 2)
+        && telemetryId == data.resultId + '__' + data.kind + '__' + data.chunkId
+        && isTelemetryBoundToResult(data)
+        && ((data.kind == 'progress'
+            && data.keys().hasAll(['resultId', 'questId', 'kind', 'chunkId', 'chunkIndex', 'stageDurations', 'quizAnswers'])
+            && data.keys().hasOnly(['resultId', 'questId', 'kind', 'chunkId', 'chunkIndex', 'stageDurations', 'quizAnswers'])
+            && isValidProgressItems(data)
+            && isValidProgressCardinality(data))
+          || (data.kind == 'submissions'
+            && data.keys().hasAll(['resultId', 'questId', 'kind', 'chunkId', 'chunkIndex', 'submissions'])
+            && data.keys().hasOnly(['resultId', 'questId', 'kind', 'chunkId', 'chunkIndex', 'submissions'])
+            && isValidSubmissionItems(data)
+            && isValidSubmissionCardinality(data)));
+    }
+
+    function isValidResultIdentity(data) {
+      return (!('studentId' in data) && !('launchId' in data))
+        || (
+          ('studentId' in data)
+          && ('launchId' in data)
+          && exists(/databases/$(database)/documents/roster_launches/$(data.launchId))
+          && isActiveRosterResultLaunch(
+            get(/databases/$(database)/documents/roster_launches/$(data.launchId)).data,
+            data
+          )
+        );
+    }
+
+    function isActiveRosterResultLaunch(launch, result) {
+      return launch.id == result.launchId
+        && launch.questId == result.questId
+        && launch.studentId == result.studentId
+        && launch.studentName == result.playerName
+        && isActiveRosterLaunch(launch);
+    }
+
+    function isActiveRosterLaunch(launch) {
+      return exists(/databases/$(database)/documents/roster_launch_sets/$(launch.setId))
+        && launch.expiresAtMs > request.time.toMillis()
+        && activeRosterLaunchSet(
+          get(/databases/$(database)/documents/roster_launch_sets/$(launch.setId)).data,
+          launch
+        );
+    }
+
+    function activeRosterLaunchSet(launchSet, launch) {
+      return launchSet.status == 'active'
+        && launchSet.id == launch.setId
+        && launchSet.ownerId == launch.ownerId
+        && launchSet.groupId == launch.groupId
+        && launchSet.questId == launch.questId
+        && launchSet.generationId == launch.generationId
+        && launchSet.expiresAtMs == launch.expiresAtMs
+        && launchSet.expiresAtMs > request.time.toMillis();
     }
 
     // A rubric grade update may only touch `grades` (append/replace the
@@ -113,15 +735,28 @@ service cloud.firestore {
       // Authenticated users can create their own quests
       allow create: if isAuth()
                     && request.resource.data.creatorId == request.auth.uid
-                    && isValidQuest(request.resource.data);
+                    && isValidQuest(request.resource.data, questId);
 
       // Owner or editor collaborators can update
       allow update: if (isOwner(resource) || isEditor(resource))
                     && request.resource.data.creatorId == resource.data.creatorId
-                    && isValidQuest(request.resource.data);
+                    && isValidQuest(request.resource.data, questId);
 
       // Only the owner can delete
       allow delete: if isOwner(resource);
+    }
+
+    // Stage payloads are isolated so every write evaluates one bounded stage
+    // instead of attempting to loop over a 100-item embedded quest array.
+    match /quest_stages/{stageDocumentId} {
+      allow read: if (isAuth() && resource.data.creatorId == request.auth.uid)
+                  || isPublic(get(/databases/$(database)/documents/quests/$(resource.data.questId)))
+                  || isCollaborator(get(/databases/$(database)/documents/quests/$(resource.data.questId)));
+      allow create, update: if isValidStage(request.resource.data, stageDocumentId)
+                            && canWriteQuestStage(request.resource.data);
+      allow delete: if isAuth()
+                    && (resource.data.creatorId == request.auth.uid
+                      || isEditor(get(/databases/$(database)/documents/quests/$(resource.data.questId))));
     }
 
     // Does the given quest belong to the current user? Used to scope results/
@@ -134,7 +769,7 @@ service cloud.firestore {
     // ─── QUEST RESULTS ────────────────────────────────────────────────────────
     match /quest_results/{resultId} {
       // Players submit results without auth (mobile player flow)
-      allow create: if isValidResult(request.resource.data);
+      allow create: if isValidResult(request.resource.data, resultId);
 
       // Only the quest's own creator can read its results (analytics dashboard)
       allow read: if ownsQuest(resource.data.questId);
@@ -150,6 +785,15 @@ service cloud.firestore {
     }
 
     // ─── QUEST FEEDBACK ───────────────────────────────────────────────────────
+    match /quest_result_telemetry/{telemetryId} {
+      // V2 telemetry is written in expression-safe, idempotent chunks.
+      // Payload mutation and deletion remain forbidden.
+      allow create: if isValidResultTelemetry(request.resource.data, telemetryId);
+      allow update: if request.resource.data == resource.data;
+      allow read: if ownsQuest(resource.data.questId);
+      allow delete: if false;
+    }
+
     match /quest_feedback/{feedbackId} {
       allow create: if request.resource.data.keys().hasAll(['questId', 'playerName', 'comment', 'createdAt'])
                     && request.resource.data.comment.size() <= 1000;
@@ -175,6 +819,59 @@ service cloud.firestore {
     }
 
     // ─── PAYMENT REQUESTS ─────────────────────────────────────────────────────
+    // Account erasure spans Auth, Firestore and Storage and therefore must run
+    // in a trusted environment. The client may only create or cancel its own
+    // auditable request; it cannot claim that deletion has completed.
+    function isValidDeletionRequest(data, userId) {
+      return data.keys().hasAll(['userId', 'email', 'status', 'requestedAt', 'updatedAt'])
+        && data.keys().hasOnly(['userId', 'email', 'status', 'requestedAt', 'updatedAt', 'processedAt'])
+        && data.userId == userId
+        && isBoundedString(data.userId, 128)
+        && isBoundedString(data.email, 254)
+        && data.status in ['pending', 'cancelled', 'in_progress', 'completed', 'rejected']
+        && isBoundedString(data.requestedAt, 40)
+        && isBoundedString(data.updatedAt, 40)
+        && (!('processedAt' in data) || isBoundedString(data.processedAt, 40));
+    }
+
+    match /account_deletion_requests/{userId} {
+      allow read: if isAuth() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuth()
+                    && request.auth.uid == userId
+                    && request.auth.token.email is string
+                    && request.resource.data.email == request.auth.token.email
+                    && isValidDeletionRequest(request.resource.data, userId)
+                    && request.resource.data.status == 'pending'
+                    && !request.resource.data.keys().hasAny(['processedAt']);
+      allow update: if isAuth()
+                    && request.auth.uid == userId
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.email == resource.data.email
+                    && (
+                      (resource.data.status == 'pending'
+                        && request.resource.data.status in ['pending', 'cancelled'])
+                      || (resource.data.status in ['cancelled', 'rejected']
+                        && request.resource.data.status == 'pending')
+                    )
+                    && !request.resource.data.keys().hasAny(['processedAt'])
+                    && (
+                      (resource.data.status in ['pending', 'cancelled']
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'requestedAt', 'updatedAt']))
+                      || (resource.data.status == 'rejected'
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                          .hasOnly(['status', 'requestedAt', 'updatedAt', 'processedAt']))
+                    )
+                    && isValidDeletionRequest(request.resource.data, userId);
+      allow update: if isAdmin()
+                    && request.resource.data.userId == resource.data.userId
+                    && request.resource.data.email == resource.data.email
+                    && request.resource.data.requestedAt == resource.data.requestedAt
+                    && isValidDeletionRequest(request.resource.data, userId);
+      allow delete: if false;
+    }
+
     function isValidPaymentRequest(data) {
       return data.keys().hasOnly(['userId', 'userEmail', 'displayName', 'planId', 'method', 'amountMkd', 'transactionRef', 'note', 'status', 'createdAt'])
         && data.keys().hasAll(['userId', 'userEmail', 'displayName', 'planId', 'method', 'amountMkd', 'transactionRef', 'status', 'createdAt'])
@@ -243,6 +940,86 @@ service cloud.firestore {
     }
 
     // ─── GAME SESSIONS (Real-time collaboration, Phase 5A) ─────────────────────
+    function isValidRosterLaunchSet(data, setId) {
+      return data.keys().hasAll([
+          'id', 'ownerId', 'groupId', 'questId', 'generationId', 'status',
+          'issuedAtMs', 'expiresAtMs'
+        ])
+        && data.keys().hasOnly([
+          'id', 'ownerId', 'groupId', 'questId', 'generationId', 'status',
+          'issuedAtMs', 'expiresAtMs', 'revokedAtMs'
+        ])
+        && data.id == setId
+        && isBoundedString(data.ownerId, 128)
+        && isBoundedString(data.groupId, 128)
+        && isBoundedString(data.questId, 128)
+        && isBoundedString(data.generationId, 128)
+        && data.status in ['active', 'revoked']
+        && data.issuedAtMs is int
+        && data.expiresAtMs is int
+        && data.expiresAtMs > data.issuedAtMs
+        && data.expiresAtMs <= data.issuedAtMs + 2592000000
+        && data.issuedAtMs <= request.time.toMillis() + 300000
+        && (!('revokedAtMs' in data) || data.revokedAtMs is int)
+        && get(/databases/$(database)/documents/class_groups/$(data.groupId)).data.ownerId == data.ownerId
+        && data.questId in get(/databases/$(database)/documents/class_groups/$(data.groupId)).data.assignedQuestIds
+        && get(/databases/$(database)/documents/quests/$(data.questId)).data.creatorId == data.ownerId;
+    }
+
+    function isValidRosterLaunch(data, launchId) {
+      return data.keys().hasAll([
+          'id', 'setId', 'generationId', 'ownerId', 'groupId', 'questId',
+          'studentId', 'studentName', 'issuedAtMs', 'expiresAtMs'
+        ])
+        && data.keys().hasOnly([
+          'id', 'setId', 'generationId', 'ownerId', 'groupId', 'questId',
+          'studentId', 'studentName', 'issuedAtMs', 'expiresAtMs'
+        ])
+        && data.id == launchId
+        && data.id.size() >= 20
+        && data.id.size() <= 128
+        && isBoundedString(data.setId, 300)
+        && isBoundedString(data.generationId, 128)
+        && isBoundedString(data.ownerId, 128)
+        && isBoundedString(data.groupId, 128)
+        && isBoundedString(data.questId, 128)
+        && isBoundedString(data.studentId, 128)
+        && isBoundedString(data.studentName, 80)
+        && data.issuedAtMs is int
+        && data.expiresAtMs is int
+        && existsAfter(/databases/$(database)/documents/roster_launch_sets/$(data.setId))
+        && activeRosterLaunchSet(
+          getAfter(/databases/$(database)/documents/roster_launch_sets/$(data.setId)).data,
+          data
+        );
+    }
+
+    match /roster_launch_sets/{setId} {
+      allow get: if isAuth() && resource.data.ownerId == request.auth.uid;
+      allow list: if false;
+      allow create: if isAuth()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && isValidRosterLaunchSet(request.resource.data, setId);
+      allow update: if isAuth()
+                    && resource.data.ownerId == request.auth.uid
+                    && request.resource.data.ownerId == resource.data.ownerId
+                    && request.resource.data.groupId == resource.data.groupId
+                    && request.resource.data.questId == resource.data.questId
+                    && isValidRosterLaunchSet(request.resource.data, setId);
+      allow delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /roster_launches/{launchId} {
+      allow get: if (isAuth() && resource.data.ownerId == request.auth.uid)
+                 || isActiveRosterLaunch(resource.data);
+      allow list: if false;
+      allow create: if isAuth()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && isValidRosterLaunch(request.resource.data, launchId);
+      allow update: if false;
+      allow delete: if isAuth() && resource.data.ownerId == request.auth.uid;
+    }
+
     function isSessionHost(resource) {
       return isAuth() && resource.data.hostId == request.auth.uid;
     }

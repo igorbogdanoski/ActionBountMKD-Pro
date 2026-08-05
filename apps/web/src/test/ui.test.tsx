@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Button, Card, Badge, Toggle, Modal } from '../components/ui';
 
 describe('Button', () => {
@@ -13,7 +13,7 @@ describe('Button', () => {
 
   it('applies the primary brand variant by default', () => {
     render(<Button>OK</Button>);
-    expect(screen.getByRole('button').className).toContain('bg-brand-500');
+    expect(screen.getByRole('button').className).toContain('bg-brand-700');
   });
 
   it('is disabled and does not fire click while loading', () => {
@@ -29,7 +29,7 @@ describe('Button', () => {
     render(<Button variant="app-primary">Зачувај</Button>);
     const cls = screen.getByRole('button').className;
     expect(cls).toContain('bg-indigo-600');
-    expect(cls).not.toContain('bg-brand-500');
+    expect(cls).not.toContain('bg-brand-700');
   });
 
   it('applies the emerald success and rose danger variants (consolidated from green/red)', () => {
@@ -43,7 +43,7 @@ describe('Button', () => {
     render(<Button variant="primary" colorClassName="bg-purple-700 text-white">Custom</Button>);
     const cls = screen.getByRole('button').className;
     expect(cls).toContain('bg-purple-700');
-    expect(cls).not.toContain('bg-brand-500');
+    expect(cls).not.toContain('bg-brand-700');
   });
 
   it('size="icon" applies compact square padding with no text gap', () => {
@@ -108,6 +108,26 @@ describe('Modal', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
+  it('uses an explicit accessible name for a custom-header dialog', () => {
+    render(<Modal open onClose={() => {}} showHeader={false} ariaLabel="Најава">тело</Modal>);
+    expect(screen.getByRole('dialog', { name: 'Најава' })).toBeInTheDocument();
+  });
+
+  it('makes background content inert while open and restores it on close', () => {
+    const background = document.createElement('main');
+    document.body.appendChild(background);
+    const { rerender } = render(<Modal open onClose={() => {}} title="Наслов">тело</Modal>);
+    expect(background).toHaveAttribute('inert');
+    expect(background).toHaveAttribute('aria-hidden', 'true');
+    expect(document.body.style.overflow).toBe('hidden');
+
+    rerender(<Modal open={false} onClose={() => {}} title="Наслов">тело</Modal>);
+    expect(background).not.toHaveAttribute('inert');
+    expect(background).not.toHaveAttribute('aria-hidden');
+    expect(document.body.style.overflow).toBe('');
+    background.remove();
+  });
+
   it('closes when the close button is clicked', () => {
     const onClose = vi.fn();
     render(<Modal open onClose={onClose} title="Наслов">тело</Modal>);
@@ -120,18 +140,18 @@ describe('Modal', () => {
     expect(screen.getByRole('button', { name: 'Затвори' })).toHaveFocus();
   });
 
-  it('restores focus to the trigger element on close', () => {
+  it('restores focus to the trigger element on close', async () => {
     const trigger = document.createElement('button');
     trigger.textContent = 'Отвори';
     document.body.appendChild(trigger);
     trigger.focus();
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
 
     const { rerender } = render(<Modal open onClose={() => {}} title="Наслов">тело</Modal>);
     expect(trigger).not.toHaveFocus();
 
     rerender(<Modal open={false} onClose={() => {}} title="Наслов">тело</Modal>);
-    expect(trigger).toHaveFocus();
+    await waitFor(() => expect(trigger).toHaveFocus());
 
     document.body.removeChild(trigger);
   });

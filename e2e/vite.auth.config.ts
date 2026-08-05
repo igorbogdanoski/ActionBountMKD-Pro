@@ -8,14 +8,17 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const webRoot = path.resolve(here, '../apps/web');
 const authModule = path.resolve(webRoot, 'src/utils/AuthContext.tsx');
 const storageModule = path.resolve(webRoot, 'src/utils/storage.ts');
+const rosterLaunchStorageModule = path.resolve(webRoot, 'src/utils/rosterLaunchStorage.ts');
 const firebaseModule = path.resolve(webRoot, 'src/utils/firebase.ts');
 const sessionStorageModule = path.resolve(webRoot, 'src/utils/sessionStorage.ts');
 const paymentRequestsModule = path.resolve(webRoot, 'src/utils/paymentRequests.ts');
+const accountDataModule = path.resolve(webRoot, 'src/utils/accountData.ts');
 const authMock = path.resolve(here, 'fixtures/qaAuthContext.tsx');
 const storageMock = path.resolve(here, 'fixtures/qaStorage.ts');
 const firebaseMock = path.resolve(here, 'fixtures/qaFirebase.ts');
 const sessionStorageMock = path.resolve(here, 'fixtures/qaSessionStorage.ts');
 const paymentRequestsMock = path.resolve(here, 'fixtures/qaPaymentRequests.ts');
+const accountDataMock = path.resolve(here, 'fixtures/qaAccountData.ts');
 
 function normalize(id: string) {
   return path.normalize(id.split('?')[0]);
@@ -37,9 +40,11 @@ function authenticatedQaMocks(): Plugin {
       const id = normalize(resolved.id);
       if (id === normalize(authModule)) return authMock;
       if (id === normalize(storageModule)) return storageMock;
+      if (id === normalize(rosterLaunchStorageModule)) return storageMock;
       if (id === normalize(firebaseModule)) return firebaseMock;
       if (id === normalize(sessionStorageModule)) return sessionStorageMock;
       if (id === normalize(paymentRequestsModule)) return paymentRequestsMock;
+      if (id === normalize(accountDataModule)) return accountDataMock;
       return null;
     },
   };

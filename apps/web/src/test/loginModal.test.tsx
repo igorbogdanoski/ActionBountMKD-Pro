@@ -31,14 +31,15 @@ describe('LoginModal', () => {
 
   it('renders the Google sign-in tab by default', () => {
     render(<LoginModal isOpen onClose={vi.fn()} />);
-    expect(screen.getByRole('dialog')).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Влез во Авантура МКД' })).toBeTruthy();
     expect(screen.getByText('Авантура МКД')).toBeTruthy();
   });
 
   it('switches to the email tab and shows the email/password form', () => {
     render(<LoginModal isOpen onClose={vi.fn()} />);
     fireEvent.click(screen.getByText('Е-маил'));
-    expect(screen.getByPlaceholderText('vase@email.com')).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Е-маил' })).toBeTruthy();
+    expect(screen.getByLabelText('Лозинка')).toHaveAttribute('type', 'password');
     const tabs = screen.getAllByRole('button').filter(button => button.hasAttribute('aria-pressed'));
     expect(tabs).toHaveLength(2);
     expect(tabs[0]).toHaveAttribute('aria-pressed', 'false');
@@ -63,16 +64,16 @@ describe('LoginModal', () => {
   it('closes when the close button is clicked', () => {
     const onClose = vi.fn();
     render(<LoginModal isOpen onClose={onClose} />);
-    fireEvent.click(screen.getByLabelText('Close'));
+    fireEvent.click(screen.getByLabelText('Затвори'));
     expect(onClose).toHaveBeenCalledOnce();
   });
 
   it('keeps only the email action as a submit control and submits credentials', async () => {
-    const { container } = render(<LoginModal isOpen onClose={vi.fn()} />);
+    render(<LoginModal isOpen onClose={vi.fn()} />);
     fireEvent.click(screen.getByText('Е-маил'));
 
-    const email = container.querySelector('input[type="email"]')!;
-    const password = container.querySelector('input[type="password"]')!;
+    const email = screen.getByRole('textbox', { name: 'Е-маил' });
+    const password = screen.getByLabelText('Лозинка');
     fireEvent.change(email, { target: { value: 'teacher@example.test' } });
     fireEvent.change(password, { target: { value: 'secret12' } });
 

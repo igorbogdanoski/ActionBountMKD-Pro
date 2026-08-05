@@ -80,6 +80,16 @@ describe('Sidebar', () => {
     expect(onToggleTheme).toHaveBeenCalledOnce();
   });
 
+  it('exposes an accessible mobile drawer close action when requested', () => {
+    const onClose = vi.fn();
+    renderSidebar({ onClose });
+    const close = screen.getByRole('button', { name: 'Затвори мени' });
+    fireEvent.click(close);
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(screen.getByRole('complementary', { name: 'Главна навигација' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Главни секции' })).toBeInTheDocument();
+  });
+
   it('preserves upgrade, explore, admin and logout actions', () => {
     authState.isAdmin = true;
     const { container } = render(

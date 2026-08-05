@@ -1,3 +1,4 @@
+import { appendUniquePendingResult } from 'shared';
 import type { QuestResult } from 'shared';
 
 const QUEUE_KEY = 'ab_offline_results';
@@ -8,15 +9,15 @@ const QUEST_CACHE_PREFIX = 'ab_quest_';
 type PendingResult = Omit<QuestResult, 'id'>;
 
 export function saveOfflineResult(result: PendingResult): void {
-  const queue = getOfflineQueue();
-  queue.push(result);
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  replaceOfflineQueue(appendUniquePendingResult(getOfflineQueue(), result));
 }
 
 export function getOfflineQueue(): PendingResult[] {
   try {
     const raw = localStorage.getItem(QUEUE_KEY);
-    return raw ? (JSON.parse(raw) as PendingResult[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed as PendingResult[] : [];
   } catch {
     return [];
   }

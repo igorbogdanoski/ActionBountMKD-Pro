@@ -8,11 +8,13 @@ import type { RubricGrade, QuestResult } from 'shared';
 const fs = vi.hoisted(() => {
   const store = new Map<string, Record<string, unknown>>();
   const deleteSentinel = { __deleteField: true };
+  const getDocs = vi.fn();
   const clone = <T>(o: T): T => (o === undefined ? o : JSON.parse(JSON.stringify(o)));
 
   return {
     store,
     deleteSentinel,
+    getDocs,
     reset: () => store.clear(),
     collection: (_db: unknown, coll: string) => ({ path: coll }),
     doc: (first: unknown, coll?: string, id?: string) => (
@@ -31,6 +33,15 @@ const fs = vi.hoisted(() => {
       }
       store.set(ref.path, next);
     },
+    writeBatch: () => {
+      const writes: Array<{ ref: { path: string }; value: Record<string, unknown> }> = [];
+      return {
+        set: (ref: { path: string }, value: Record<string, unknown>) => writes.push({ ref, value }),
+        commit: async () => {
+          for (const { ref, value } of writes) store.set(ref.path, clone(value));
+        },
+      };
+    },
   };
 });
 
@@ -38,7 +49,7 @@ vi.mock('../utils/firebase', () => ({ db: {} }));
 vi.mock('firebase/firestore', () => ({
   collection: fs.collection,
   doc: fs.doc,
-  getDocs: vi.fn(),
+  getDocs: fs.getDocs,
   getDoc: vi.fn(),
   setDoc: fs.setDoc,
   updateDoc: fs.updateDoc,
@@ -50,11 +61,15 @@ vi.mock('firebase/firestore', () => ({
   startAfter: vi.fn(),
   increment: vi.fn(),
   deleteField: () => fs.deleteSentinel,
+  writeBatch: fs.writeBatch,
 }));
 
-import { gradeSubmission, saveQuestResult, setResultApproval } from '../utils/storage';
+import { getQuestResults, gradeSubmission, saveQuestResult, setResultApproval } from '../utils/storage';
 
-beforeEach(() => fs.reset());
+beforeEach(() => {
+  fs.reset();
+  fs.getDocs.mockReset();
+});
 
 function makeResult(overrides: Partial<QuestResult> = {}): QuestResult {
   return {
@@ -115,6 +130,16 @@ describe('gradeSubmission', () => {
 });
 
 describe('saveQuestResult attempt identity', () => {
+  it('rejects a result without an idempotent attemptId before writing', async () => {
+    await expect(saveQuestResult({
+      questId: 'q1',
+      playerName: 'Ана',
+      points: 50,
+      completedAt: '2026-01-01T00:00:00.000Z',
+    })).rejects.toThrow(/attemptId is required/);
+    expect(fs.store.size).toBe(0);
+  });
+
   it('uses attemptId as the deterministic Firestore document id', async () => {
     const id = await saveQuestResult({
       questId: 'q1',
@@ -128,7 +153,57 @@ describe('saveQuestResult attempt identity', () => {
     expect(fs.store.get('quest_results/attempt-123')).toMatchObject({
       id: 'attempt-123',
       attemptId: 'attempt-123',
+      schemaVersion: 2,
+      stageDurationCount: 0,
+      submissionCount: 0,
+      quizAnswerCount: 0,
     });
+  });
+
+  it('writes parent and telemetry through the bounded deterministic protocol', async () => {
+    await saveQuestResult({
+      questId: 'q1',
+      attemptId: 'attempt-telemetry',
+      playerName: 'Ана',
+      points: 50,
+      completedAt: '2026-01-01T00:00:00.000Z',
+      stageDurations: [{ stageId: 'stage-1', durationSec: 12 }],
+      quizAnswers: [{ stageId: 'stage-1', selectedAnswer: 'A', correct: true }],
+    });
+
+    expect(fs.store.get('quest_results/attempt-telemetry')).not.toHaveProperty('stageDurations');
+    expect(fs.store.get('quest_result_telemetry/attempt-telemetry__progress__0')).toMatchObject({
+      resultId: 'attempt-telemetry',
+      kind: 'progress',
+      chunkIndex: 0,
+      stageDurations: [{ stageId: 'stage-1', durationSec: 12 }],
+      quizAnswers: [{ stageId: 'stage-1', selectedAnswer: 'A', correct: true }],
+    });
+  });
+});
+
+describe('getQuestResults v2 completeness', () => {
+  it('hides a partial v2 result until all declared telemetry is readable', async () => {
+    fs.getDocs
+      .mockResolvedValueOnce({
+        docs: [{
+          data: () => ({
+            id: 'partial-result',
+            attemptId: 'partial-result',
+            questId: 'q1',
+            playerName: 'Ана',
+            points: 10,
+            completedAt: '2026-01-01T00:00:00.000Z',
+            schemaVersion: 2,
+            stageDurationCount: 1,
+            submissionCount: 0,
+            quizAnswerCount: 0,
+          }),
+        }],
+      })
+      .mockResolvedValueOnce({ docs: [] });
+
+    await expect(getQuestResults('q1')).resolves.toEqual([]);
   });
 });
 

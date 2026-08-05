@@ -1,4 +1,4 @@
-import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield, GraduationCap, Compass } from 'lucide-react';
+import { Map, PlusCircle, Settings, BarChart3, HelpCircle, LogOut, BookOpen, Zap, Crown, Sun, Moon, Shield, GraduationCap, Compass, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../utils/AuthContext';
@@ -13,6 +13,7 @@ interface SidebarProps {
   onNavigate: (view: CurrentView) => void;
   isDarkTheme?: boolean;
   onToggleTheme?: () => void;
+  onClose?: () => void;
 }
 
 const NAV_ITEM_IDS = ['dashboard', 'creator', 'templates', 'groups', 'results', 'settings'] as const;
@@ -20,7 +21,7 @@ const NAV_ICONS: Record<string, React.ElementType> = {
   dashboard: Map, creator: PlusCircle, templates: BookOpen, groups: GraduationCap, results: BarChart3, settings: Settings,
 };
 
-export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleTheme }: SidebarProps) {
+export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleTheme, onClose }: SidebarProps) {
   const { user, isAdmin, logout } = useAuth();
   const { planId, limits } = usePlan();
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
   const isEnterprise = planId === 'enterprise';
 
   return (
-    <aside className="w-64 bg-indigo-950 flex flex-col shrink-0 h-full">
+    <aside aria-label="Главна навигација" className="w-64 bg-indigo-950 flex flex-col shrink-0 h-full">
       {/* Logo */}
       <div className="p-6 flex items-center gap-3 border-b border-indigo-900/60">
         <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 shrink-0">
@@ -40,6 +41,19 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
           </svg>
         </div>
         <span className="font-bold text-xl tracking-tight text-white">АВАНТУРА</span>
+        {onClose && (
+          <Button
+            type="button"
+            onClick={onClose}
+            variant="ghost"
+            size="icon"
+            aria-label="Затвори мени"
+            colorClassName="ml-auto text-indigo-200 hover:bg-indigo-900/70 hover:text-white focus-visible:ring-indigo-400"
+            className="md:hidden"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+          </Button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -47,7 +61,7 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
         <p className="text-[11px] font-semibold text-indigo-400 uppercase tracking-widest px-3 mb-3">
           {t('nav.myAdventures').split(' ')[0]}
         </p>
-        <nav className="space-y-1">
+        <nav aria-label="Главни секции" className="space-y-1">
           {NAV_ITEM_IDS.map((id) => {
             const Icon = NAV_ICONS[id];
             const active = currentView === id;
@@ -171,7 +185,7 @@ export function Sidebar({ currentView, onNavigate, isDarkTheme = true, onToggleT
           </Button>
           <a
             href="mailto:igor.bogdanoski@mismath.net"
-            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors"
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-900/60 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <HelpCircle className="h-4 w-4 shrink-0" />
             {t('nav.help')}

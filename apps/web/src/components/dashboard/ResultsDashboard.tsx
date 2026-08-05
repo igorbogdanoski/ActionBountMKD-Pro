@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { getQuests, getQuestResults, setResultApproval } from '../../utils/storage';
 import { useAuth } from '../../utils/AuthContext';
 import { usePlan } from '../../hooks/usePlan';
-import { normalizePlayerName, numberQuestAttempts, Quest, QuestResult } from 'shared';
+import { normalizePlayerName, numberQuestAttempts, Quest, QuestResult, type QuizStage } from 'shared';
 import { computeStageCompletion, computeQuizAccuracy } from '../../utils/completion';
 import { downloadWorkbook, type SheetData } from '../../utils/excelExport';
 import { Trophy, Clock, User, Download, FileSpreadsheet, Filter, TrendingDown, AlertTriangle, Lock, ClipboardCheck, CheckCircle2 } from 'lucide-react';
@@ -18,7 +18,7 @@ export function ResultsDashboard() {
   const isPro = planId === 'pro' || planId === 'enterprise';
   const [quests, setQuests] = useState<Quest[]>([]);
   const [selectedQuestId, setSelectedQuestId] = useState<string>('');
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<QuestResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortByStageId, setSortByStageId] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'funnel' | 'weakspots' | 'grade'>('leaderboard');
@@ -158,10 +158,12 @@ export function ResultsDashboard() {
   // Per-question accuracy + distractor breakdown for QUIZ stages — which
   // wrong options students actually pick, not just that a stage was slow.
   const quizStats = useMemo(() => {
-    const quizStages = (selectedQuest?.stages ?? []).filter((s: any) => s.type === 'QUIZ');
+    const quizStages = (selectedQuest?.stages ?? []).filter(
+      (stage): stage is QuizStage => stage.type === 'QUIZ',
+    );
     if (quizStages.length === 0) return [];
     const accuracyById = new Map(computeQuizAccuracy(quizStages, results as QuestResult[]).map(a => [a.id, a]));
-    return quizStages.map((stage: any, idx: number) => {
+    return quizStages.map((stage, idx) => {
       const answers = (results as QuestResult[]).flatMap(r => (r.quizAnswers ?? []).filter(a => a.stageId === stage.id));
       const { accuracy } = accuracyById.get(stage.id)!;
 
@@ -478,8 +480,8 @@ export function ResultsDashboard() {
                         <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} domain={[0, 100]} unit="%" />
                         <RechartsTooltip
                           contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: '#f8fafc' }}
-                          formatter={(v: number, _n: string, props: { payload?: { bigDrop?: boolean } }) => [
-                            `${v}%${props.payload?.bigDrop ? ' ⚠ Голем пад' : ''}`,
+                          formatter={(value, _name, props) => [
+                            `${Number(value)}%${props.payload?.bigDrop ? ' ⚠ Голем пад' : ''}`,
                             'Завршиле'
                           ]}
                         />

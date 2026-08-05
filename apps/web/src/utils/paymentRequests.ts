@@ -63,14 +63,17 @@ export async function getUserPaymentRequests(userId: string): Promise<PaymentReq
  * double-click or retried request can't be processed twice.
  */
 export async function approvePaymentRequest(requestId: string, userId: string, planId: PlanId): Promise<void> {
-  let approved: PaymentRequest | null = null;
+  let approvedMethod: PaymentRequest['method'] | undefined;
+  let approvedAmountMkd: PaymentRequest['amountMkd'] | undefined;
   await runTransaction(db, async (tx) => {
     const reqRef = doc(db, COL, requestId);
     const reqSnap = await tx.get(reqRef);
     if (!reqSnap.exists() || (reqSnap.data() as PaymentRequest).status !== 'pending') {
       throw new Error('Барањето веќе е обработено или не постои.');
     }
-    approved = reqSnap.data() as PaymentRequest;
+    const approved = reqSnap.data() as PaymentRequest;
+    approvedMethod = approved.method;
+    approvedAmountMkd = approved.amountMkd;
     tx.update(reqRef, {
       status: 'approved',
       processedAt: new Date().toISOString(),
@@ -84,8 +87,8 @@ export async function approvePaymentRequest(requestId: string, userId: string, p
   // only once the transaction actually commits.
   trackEvent('payment_completed', {
     plan_id: planId,
-    method: approved?.method,
-    amount_mkd: approved?.amountMkd,
+    method: approvedMethod,
+    amount_mkd: approvedAmountMkd,
   });
 }
 
@@ -95,4 +98,3 @@ export async function rejectPaymentRequest(requestId: string): Promise<void> {
     processedAt: new Date().toISOString(),
   });
 }
-

@@ -2,7 +2,9 @@ import { forwardRef } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 
-// `primary` (brand-500 coral) is the marketing-surface color — Landing,
+// `primary` uses brand-700 so white action text meets AA contrast; brand-500
+// remains the lighter marketing accent used for decorative/large elements.
+// Landing,
 // LoginModal, InstallPrompt already use it correctly. But the app's actual
 // dominant "primary action" color in dashboard/creator/settings/session
 // screens is indigo-600, applied ad hoc in ~50+ places outside this
@@ -31,10 +33,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // the same semantic meaning (e.g. AdminPanel's green-500 vs emerald
 // elsewhere) — matching the palette Badge.tsx already established.
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary:     'bg-brand-500 text-white hover:bg-brand-600 shadow-soft focus-visible:ring-brand-500',
+  primary:     'bg-brand-700 text-white hover:bg-brand-800 shadow-soft focus-visible:ring-brand-700',
   'app-primary': 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-soft focus-visible:ring-indigo-500',
   secondary:   'bg-slate-100 text-slate-800 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 focus-visible:ring-slate-400',
-  outline:     'border border-brand-500 text-brand-600 hover:bg-brand-500 hover:text-white dark:text-brand-400 focus-visible:ring-brand-500',
+  outline:     'border border-brand-700 text-brand-700 hover:bg-brand-700 hover:text-white dark:border-brand-400 dark:text-brand-300 focus-visible:ring-brand-700',
   ghost:       'text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700/60 focus-visible:ring-slate-400',
   success:     'bg-emerald-600 text-white hover:bg-emerald-500 shadow-soft focus-visible:ring-emerald-500',
   danger:      'bg-rose-600 text-white hover:bg-rose-500 shadow-soft focus-visible:ring-rose-500',

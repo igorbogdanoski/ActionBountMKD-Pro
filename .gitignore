@@ -26,3 +26,6 @@ metadata.json
 test-results/
 playwright-report/
 e2e/.cache/
+
+# Repo-local Firebase CLI config and emulator binaries used by test:rules
+.firebase-local/

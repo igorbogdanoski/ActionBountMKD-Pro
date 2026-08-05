@@ -11,8 +11,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
 } from 'firebase/auth';
-import { auth, provider } from './firebase';
-import { upsertUserProfile, getUserProfile } from './storage';
+import { auth, provider } from './firebaseAuth';
 import { identifyAnalyticsUser, trackEvent } from './analytics';
 import type { UserProfile } from 'shared';
 
@@ -83,6 +82,7 @@ function describeAuthError(code?: string): string {
 
 async function ensureProfile(firebaseUser: User): Promise<{ profile: UserProfile | null }> {
   try {
+    const { getUserProfile, upsertUserProfile } = await import('./profileStorage');
     let p = await getUserProfile(firebaseUser.uid);
     if (!p) {
       p = {
@@ -258,4 +258,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
-

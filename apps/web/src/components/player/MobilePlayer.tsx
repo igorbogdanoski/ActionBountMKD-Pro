@@ -45,6 +45,7 @@ interface MobilePlayerProps {
   isPreview?: boolean;
   rosterStudentId?: string;
   rosterStudentName?: string;
+  rosterLaunchId?: string;
   // ─── Real-time session (Phase 5A) ───
   sessionCode?: string;       // when set, progress is reported to the live session
   sessionPlayerId?: string;   // anonymous player id within the session
@@ -67,7 +68,7 @@ function getDistance(coord1: Coordinates, coord2: Coordinates): number {
   return R * c;
 }
 
-export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, rosterStudentName, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
+export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, rosterStudentName, rosterLaunchId, sessionCode, sessionPlayerId, sessionPlayerName }: MobilePlayerProps) {
   const [quest, setQuest] = useState<Quest | null>(questProp || null);
   const [hasStarted, setHasStarted] = useState(!!sessionCode);
   const [showOnboarding, setShowOnboarding] = useState(() => !sessionCode && shouldShowOnboarding(typeof window !== 'undefined' ? window.localStorage : null));
@@ -133,6 +134,7 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
   // students actually pick). A ref, not state — read once at submitResult
   // time, and doesn't need to trigger re-renders as it accumulates.
   const quizAnswerRecordsRef = useRef<QuizAnswerRecord[]>([]);
+  const resultSubmissionStartedRef = useRef(false);
 
   const [teamCode, setTeamCode] = useState('');
   const [toasts, setToasts] = useState<{id: string, text: string, tone?: 'success' | 'error'}[]>([]);
@@ -162,6 +164,10 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
   const [timeExpired, setTimeExpired] = useState(false);
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    resultSubmissionStartedRef.current = false;
+  }, [questId]);
   
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -631,6 +637,9 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
     finalDurations: typeof stageDurations,
     finalSubmissions: StageSubmission[] = stageSubmissions,
   ) => {
+    if (resultSubmissionStartedRef.current) return;
+    resultSubmissionStartedRef.current = true;
+
     trackEvent('quest_finish', {
       quest_id: questId,
       points: finalPoints,
@@ -646,6 +655,7 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
       questId,
       attemptId: createAttemptId(),
       ...(rosterStudentId ? { studentId: rosterStudentId } : {}),
+      ...(rosterStudentId && rosterLaunchId ? { launchId: rosterLaunchId } : {}),
       playerName,
       points: finalPoints,
       completedAt: new Date().toISOString(),

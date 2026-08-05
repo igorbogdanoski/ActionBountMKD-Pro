@@ -13,11 +13,33 @@ import {
   startAfter,
   increment,
   deleteField,
+  writeBatch,
   QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { cacheQuestLocally } from './offlineQueue';
-import type { Quest, QuestResult, QuestFeedback, UserSettings, UserProfile, Template, ClassGroup, RubricGrade } from 'shared';
+import {
+  hydrateQuestResult,
+  hydrateQuestFromStageStorage,
+  questStageDocumentId,
+  questSummaryFromStorage,
+  QUEST_STAGE_SCHEMA_VERSION,
+  QUEST_STAGES_COLLECTION,
+  RESULT_TELEMETRY_COLLECTION,
+  RESULT_TELEMETRY_WRITES_PER_BATCH,
+  splitQuestResultForStorage,
+  type ClassGroup,
+  type Quest,
+  type QuestStageDocument,
+  type QuestSummary,
+  type QuestFeedback,
+  type QuestResult,
+  type ResultTelemetryChunk,
+  type RubricGrade,
+  type Template,
+  type UserSettings,
+  splitQuestForStageStorage,
+} from 'shared';
 
 // ─── QUESTS ──────────────────────────────────────────────────────────────────
 
@@ -25,7 +47,6 @@ const QUESTS = 'quests';
 const RESULTS = 'quest_results';
 const FEEDBACK = 'quest_feedback';
 const USER_SETTINGS = 'user_settings';
-const USER_PROFILES = 'user_profiles';
 const TEMPLATES = 'templates';
 const CLASS_GROUPS = 'class_groups';
 
@@ -35,13 +56,46 @@ const CLASS_GROUPS = 'class_groups';
 // below for templates (getPublicTemplates/getPendingTemplates).
 const MAX_OWN_QUESTS = 500;
 
-export async function getQuests(creatorId: string): Promise<Quest[]> {
-  const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId), limit(MAX_OWN_QUESTS));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as Quest);
+function makeStageRevision(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random().toString(36).slice(2)}`;
+  }
 }
 
-export async function getPublicQuests(pageSize = 20, after?: QueryDocumentSnapshot): Promise<Quest[]> {
+function stageQueryForQuest(questId: string) {
+  return query(collection(db, QUEST_STAGES_COLLECTION), where('questId', '==', questId));
+}
+
+function hydrateQuestSafely(
+  document: Record<string, unknown>,
+  stageDocuments: QuestStageDocument[],
+): Quest | null {
+  try {
+    return hydrateQuestFromStageStorage(document, stageDocuments);
+  } catch (error) {
+    console.error(`[QuestStorage] Invalid or incomplete quest ${String(document.id ?? 'unknown')}`, error);
+    return null;
+  }
+}
+
+export async function getQuests(creatorId: string): Promise<Quest[]> {
+  const q = query(collection(db, QUESTS), where('creatorId', '==', creatorId), limit(MAX_OWN_QUESTS));
+  const stagesQuery = query(collection(db, QUEST_STAGES_COLLECTION), where('creatorId', '==', creatorId));
+  const [snap, stageSnap] = await Promise.all([getDocs(q), getDocs(stagesQuery)]);
+  const allStages = stageSnap.docs.map(stageDoc => stageDoc.data() as QuestStageDocument);
+  return snap.docs.flatMap(questDoc => {
+    const data = questDoc.data() as Record<string, unknown>;
+    const questStages = data.stageSchemaVersion === QUEST_STAGE_SCHEMA_VERSION
+      ? allStages.filter(stage => stage.questId === data.id)
+      : [];
+    const hydrated = hydrateQuestSafely(data, questStages);
+    return hydrated ? [hydrated] : [];
+  });
+}
+
+export async function getPublicQuests(pageSize = 20, after?: QueryDocumentSnapshot): Promise<QuestSummary[]> {
   const constraints = [
     where('visibility', '==', 'public'),
     orderBy('createdAt', 'desc'),
@@ -50,45 +104,96 @@ export async function getPublicQuests(pageSize = 20, after?: QueryDocumentSnapsh
   ];
   const q = query(collection(db, QUESTS), ...constraints);
   const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as Quest);
+  return snap.docs.flatMap(questDoc => {
+    try {
+      return [questSummaryFromStorage(questDoc.data() as Record<string, unknown>)];
+    } catch (error) {
+      console.error(`[QuestStorage] Invalid public quest summary ${questDoc.id}`, error);
+      return [];
+    }
+  });
 }
 
 export async function getQuestById(id: string): Promise<Quest | null> {
   const snap = await getDoc(doc(db, QUESTS, id));
   if (!snap.exists()) return null;
-  return snap.data() as Quest;
+  const data = snap.data() as Record<string, unknown>;
+  const stageDocuments = data.stageSchemaVersion === QUEST_STAGE_SCHEMA_VERSION
+    ? (await getDocs(stageQueryForQuest(id))).docs.map(stageDoc => stageDoc.data() as QuestStageDocument)
+    : [];
+  return hydrateQuestSafely(data, stageDocuments);
 }
 
 export async function saveQuest(quest: Quest): Promise<void> {
-  await setDoc(doc(db, QUESTS, quest.id), {
+  const now = new Date().toISOString();
+  const persistedQuest = {
     ...quest,
-    isPublic: quest.visibility === 'public',
-    updatedAt: new Date().toISOString(),
-    createdAt: quest.createdAt ?? new Date().toISOString(),
-  }, { merge: true });
+    updatedAt: now,
+    createdAt: quest.createdAt ?? now,
+  };
+  const split = splitQuestForStageStorage(persistedQuest, makeStageRevision());
+  const existing = await getDocs(stageQueryForQuest(quest.id));
+  const nextIds = new Set(split.stages.map(stage => questStageDocumentId(quest.id, stage.id)));
+  const batch = writeBatch(db);
+  batch.set(doc(db, QUESTS, quest.id), split.document);
+  for (const stage of split.stages) {
+    batch.set(doc(db, QUEST_STAGES_COLLECTION, questStageDocumentId(quest.id, stage.id)), stage);
+  }
+  for (const existingStage of existing.docs) {
+    if (!nextIds.has(existingStage.id)) batch.delete(existingStage.ref);
+  }
+  await batch.commit();
 }
 
 export async function deleteQuest(id: string): Promise<void> {
-  await deleteDoc(doc(db, QUESTS, id));
+  const existing = await getDocs(stageQueryForQuest(id));
+  const batch = writeBatch(db);
+  for (const stage of existing.docs) batch.delete(stage.ref);
+  batch.delete(doc(db, QUESTS, id));
+  await batch.commit();
 }
 
 // ─── QUEST RESULTS ────────────────────────────────────────────────────────────
 
 export async function saveQuestResult(result: Omit<QuestResult, 'id'>): Promise<string> {
-  const ref = result.attemptId
-    ? doc(db, RESULTS, result.attemptId)
-    : doc(collection(db, RESULTS));
+  if (!result.attemptId) throw new TypeError('attemptId is required for an idempotent result write');
+  const ref = doc(db, RESULTS, result.attemptId);
   const full: QuestResult = { ...result, id: ref.id };
-  await setDoc(ref, full);
+  const split = splitQuestResultForStorage(full);
+  const parentBatch = writeBatch(db);
+  parentBatch.set(ref, split.document);
+  await parentBatch.commit();
+  for (let offset = 0; offset < split.telemetry.length; offset += RESULT_TELEMETRY_WRITES_PER_BATCH) {
+    const batch = writeBatch(db);
+    for (const telemetry of split.telemetry.slice(offset, offset + RESULT_TELEMETRY_WRITES_PER_BATCH)) {
+      batch.set(doc(db, RESULT_TELEMETRY_COLLECTION, telemetry.id), telemetry.data);
+    }
+    await batch.commit();
+  }
   return ref.id;
 }
 
-export async function getQuestResults(questId?: string): Promise<QuestResult[]> {
-  const q = questId
-    ? query(collection(db, RESULTS), where('questId', '==', questId))
-    : query(collection(db, RESULTS), orderBy('completedAt', 'desc'), limit(200));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => d.data() as QuestResult);
+export async function getQuestResults(questId: string): Promise<QuestResult[]> {
+  const [resultSnap, telemetrySnap] = await Promise.all([
+    getDocs(query(collection(db, RESULTS), where('questId', '==', questId))),
+    getDocs(query(collection(db, RESULT_TELEMETRY_COLLECTION), where('questId', '==', questId))),
+  ]);
+  const chunksByResult = new Map<string, ResultTelemetryChunk[]>();
+  for (const telemetryDoc of telemetrySnap.docs) {
+    const chunk = telemetryDoc.data() as ResultTelemetryChunk;
+    const current = chunksByResult.get(chunk.resultId) ?? [];
+    current.push(chunk);
+    chunksByResult.set(chunk.resultId, current);
+  }
+  return resultSnap.docs.flatMap(resultDoc => {
+    const result = resultDoc.data() as QuestResult;
+    try {
+      return [hydrateQuestResult(result, chunksByResult.get(result.id) ?? [])];
+    } catch (error) {
+      console.error(`[ResultStorage] Incomplete telemetry for ${result.id}`, error);
+      return [];
+    }
+  });
 }
 
 /**
@@ -241,21 +346,6 @@ export async function getUserSettings(uid: string): Promise<UserSettings | null>
   const snap = await getDoc(doc(db, USER_SETTINGS, uid));
   if (!snap.exists()) return null;
   return snap.data() as UserSettings;
-}
-
-// ─── USER PROFILES ────────────────────────────────────────────────────────────
-
-export async function getUserProfile(uid: string): Promise<UserProfile | null> {
-  const snap = await getDoc(doc(db, USER_PROFILES, uid));
-  if (!snap.exists()) return null;
-  return snap.data() as UserProfile;
-}
-
-export async function upsertUserProfile(profile: UserProfile): Promise<void> {
-  await setDoc(doc(db, USER_PROFILES, profile.uid), {
-    ...profile,
-    updatedAt: new Date().toISOString(),
-  }, { merge: true });
 }
 
 // ─── CLASS GROUPS (Phase 7D-3) ────────────────────────────────────────────────

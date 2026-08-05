@@ -18,7 +18,7 @@ vi.mock('../utils/analytics', () => ({
 
 const getUserProfileMock = vi.fn().mockResolvedValue(null);
 const upsertUserProfileMock = vi.fn().mockResolvedValue(undefined);
-vi.mock('../utils/storage', () => ({
+vi.mock('../utils/profileStorage', () => ({
   getUserProfile: (...args: unknown[]) => getUserProfileMock(...args),
   upsertUserProfile: (...args: unknown[]) => upsertUserProfileMock(...args),
 }));
@@ -32,7 +32,7 @@ const mockAuth = vi.hoisted(() => ({
     return () => { authState.callback = null; };
   },
 }));
-vi.mock('../utils/firebase', () => ({ auth: mockAuth, provider: {} }));
+vi.mock('../utils/firebaseAuth', () => ({ auth: mockAuth, provider: {} }));
 
 const signInWithPopupMock = vi.fn();
 const createUserWithEmailAndPasswordMock = vi.fn();

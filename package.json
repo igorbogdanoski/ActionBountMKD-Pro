@@ -3,6 +3,9 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -12,6 +15,18 @@
     "dev:public-qa": "vite --config e2e/vite.public.config.ts",
     "dev:qa": "vite --config e2e/vite.auth.config.ts",
     "build": "npm run build --workspaces --if-present",
+    "npm:secure": "node scripts/run-secure-npm.mjs",
+    "audit:secure": "node scripts/run-secure-npm.mjs audit",
+    "test:security-env": "node --test scripts/secure-tls-env.test.mjs",
+    "test:dependency-policy": "node scripts/check-dependency-policy.mjs",
+    "test:bundle-budget": "node --test scripts/check-web-bundle-budget.test.mjs",
+    "check:bundle": "node scripts/check-web-bundle-budget.mjs",
+    "test:rules": "node scripts/run-firestore-rules-tests.mjs",
+    "test:backup-restore": "node scripts/run-backup-restore-drill.mjs",
+    "test:quest-migration": "node scripts/run-quest-stage-migration-drill.mjs",
+    "migrate:quest-stages": "node scripts/migrate-quest-stages.mjs",
+    "test:ops-readiness": "node --test scripts/operational-readiness.test.mjs",
+    "check:ops-readiness": "node scripts/check-operational-readiness.mjs",
     "test:e2e": "playwright test --config e2e/playwright.config.ts",
     "test:e2e:auth": "playwright test --config e2e/playwright.auth.config.ts"
   },
@@ -19,6 +34,7 @@
     "is-arrayish": "^0.3.4"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.61.1"
   }
 }

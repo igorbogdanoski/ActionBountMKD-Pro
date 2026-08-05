@@ -5,19 +5,19 @@ import {
   KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 import * as Location from 'expo-location';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { Quest } from 'shared';
 import { canAccessStage, collectGrantedItem, evaluateSwitchTarget, createAttemptId } from 'shared';
-import { db } from '../../utils/firebase';
 import { useAuth } from '../../utils/AuthContext';
 import { completedKey, progressKey } from '../../utils/adventureProgress';
 import { cacheQuestLocally, getCachedQuest } from '../../utils/questCache';
 import { getSessionPlayerId, joinSession, updateSessionProgress } from '../../utils/sessionStorage';
 import { saveOfflineResult } from '../../utils/offlineQueue';
+import { saveQuestResultV2 } from '../../utils/resultStorage';
+import { getQuestById } from '../../utils/questStorage';
 
 const { width: SW } = Dimensions.get('window');
 
@@ -51,6 +51,7 @@ export default function QuestPlayerScreen() {
   const [collectedItemIds, setCollectedItemIds] = useState<string[]>([]);
   const [isFinished, setIsFinished] = useState(false);
   const sessionPlayerIdRef = useRef<string | null>(null);
+  const finishStartedRef = useRef(false);
 
   // Quiz
   const [quizAnswer, setQuizAnswer] = useState('');
@@ -88,13 +89,13 @@ export default function QuestPlayerScreen() {
   // ─── Load quest + resume progress ────────────────────────────────────────────
   useEffect(() => {
     if (!id) return;
+    finishStartedRef.current = false;
     let cancelled = false;
 
     const loadQuest = async () => {
       try {
-        const snap = await getDoc(doc(db, 'quests', id as string));
-        if (snap.exists()) {
-          const liveQuest = { id: snap.id, ...snap.data() } as Quest;
+        const liveQuest = await getQuestById(id as string);
+        if (liveQuest) {
           if (!cancelled) setQuest(liveQuest);
           await cacheQuestLocally(liveQuest);
         } else {
@@ -247,6 +248,8 @@ export default function QuestPlayerScreen() {
   };
 
   const finish = async (finalPoints: number, finalCompleted: string[]) => {
+    if (finishStartedRef.current) return;
+    finishStartedRef.current = true;
     setIsFinished(true);
     await AsyncStorage.removeItem(progressKey(id as string));
     await AsyncStorage.setItem(completedKey(id as string), new Date().toISOString());
@@ -262,7 +265,7 @@ export default function QuestPlayerScreen() {
       completedAt: new Date().toISOString(),
     };
     try {
-      await setDoc(doc(db, 'quest_results', attemptId), result);
+      await saveQuestResultV2(result);
     } catch (e) {
       console.warn('Save result failed, queueing for retry:', e);
       await saveOfflineResult(result);

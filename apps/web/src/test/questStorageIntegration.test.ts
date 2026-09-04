@@ -48,6 +48,10 @@ describe('quest Firestore schema-v2 integration', () => {
   it('atomically writes a stage-free parent, validated stage documents and removes stale stages', async () => {
     mocks.getDocs.mockResolvedValue({ docs: [{ id: 'quest-1__stale', ref: { id: 'quest-1__stale' } }] });
     await saveQuest(quest());
+    expect(mocks.getDocs).toHaveBeenCalledWith({ collectionName: 'quest_stages', constraints: [
+      { field: 'questId', operator: '==', value: 'quest-1' },
+      { field: 'creatorId', operator: '==', value: 'teacher-1' },
+    ] });
 
     expect(mocks.batchSet).toHaveBeenCalledTimes(2);
     expect(mocks.batchSet.mock.calls[0][1]).toMatchObject({

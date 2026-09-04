@@ -1,6 +1,23 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('authenticated QA harness', () => {
+  test('saves creator edits before dashboard navigation and restores them after reload', async ({ page }) => {
+    await page.goto('/creator?qaPlan=pro');
+    await page.getByPlaceholder('Наслов на авантурата...').fill('Save regression adventure');
+    await page.getByRole('button', { name: 'Назад кон Dashboard' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText('Save regression adventure', { exact: true })).toBeVisible();
+    const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('qa-saved-quests')!)[0]);
+    await page.goto(`/creator/${saved.id}`);
+    await expect(page.getByPlaceholder('Наслов на авантурата...')).toHaveValue('Save regression adventure');
+    await page.getByPlaceholder('Наслов на авантурата...').fill('Updated adventure');
+    await page.getByRole('button', { name: 'Зачувај', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'Зачувај', exact: true })).toBeDisabled();
+    await expect(page.getByText('Зачувување...', { exact: true })).toBeHidden();
+    await page.reload();
+    await expect(page.getByPlaceholder('Наслов на авантурата...')).toHaveValue('Updated adventure');
+  });
+
   test('renders Settings with QA identity and supports all tabs', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', message => {

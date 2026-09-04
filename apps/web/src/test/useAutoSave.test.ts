@@ -80,7 +80,7 @@ describe('useAutoSave', () => {
     saveQuest.mockImplementation(() => new Promise<void>(resolve => { resolveSave = resolve; }));
     const { result } = renderHook(() => useAutoSave(makeQuest(), false, vi.fn()));
 
-    let retryPromise!: Promise<void>;
+    let retryPromise!: Promise<boolean>;
     act(() => { retryPromise = result.current.retry(); });
     expect(saveQuest).toHaveBeenCalledOnce();
 
@@ -107,7 +107,7 @@ describe('useAutoSave', () => {
       { initialProps: { quest: firstQuest } },
     );
 
-    let savePromise!: Promise<void>;
+    let savePromise!: Promise<boolean>;
     act(() => { savePromise = result.current.retry(); });
     rerender({ quest: makeQuest({ title: 'Понова верзија', updatedAt: '2026-07-18T10:00:01.000Z' }) });
     resolveSave();
@@ -137,4 +137,24 @@ describe('useAutoSave', () => {
     expect(saveQuest).toHaveBeenCalledWith(secondQuest);
     expect(onSaved).toHaveBeenCalledOnce();
   });
+  it('saves the latest edit after its debounce expires during an older write', async () => {
+    let finish!: () => void;
+    saveQuest.mockImplementationOnce(() => new Promise<void>(resolve => { finish = resolve; }));
+    saveQuest.mockResolvedValueOnce(undefined);
+    const onSaved = vi.fn();
+    const first = makeQuest({ title: 'First' });
+    const latest = makeQuest({ title: 'Latest' });
+    const { rerender } = renderHook(({ quest }) => useAutoSave(quest, true, onSaved), {
+      initialProps: { quest: first },
+    });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    rerender({ quest: latest });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+    expect(saveQuest).toHaveBeenCalledTimes(1);
+    await act(async () => { finish(); });
+    expect(saveQuest).toHaveBeenCalledTimes(2);
+    expect(saveQuest).toHaveBeenLastCalledWith(latest);
+    expect(onSaved).toHaveBeenCalledOnce();
+  });
+
 });

@@ -1,6 +1,10 @@
-import type { UserProfile, UserSettings } from 'shared';
+import type { Quest, UserProfile, UserSettings } from 'shared';
 
 const THEME_KEY = 'qa-auth-theme';
+const QUEST_KEY = 'qa-saved-quests';
+function savedQuests(): Quest[] {
+  return JSON.parse(localStorage.getItem(QUEST_KEY) ?? '[]');
+}
 
 let adminTemplates = [{
   id: 'qa-template-pending', title: 'QA шаблон за проверка', authorName: 'QA Автор', subject: 'Математика', grade: 'VI',
@@ -36,6 +40,7 @@ export async function upsertUserProfile(_profile: UserProfile) {}
 // mock module export-compatible with storage.ts while returning inert data for
 // routes that authenticated.spec.ts does not exercise.
 export async function getQuests() {
+  if (savedQuests().length) return savedQuests();
   const params = new URLSearchParams(window.location.search);
   if (!params.has('qaQuest') && !params.has('qaResults') && !params.has('qaRoster')) return [];
   return [{
@@ -58,6 +63,8 @@ export async function getQuests() {
 }
 export async function getPublicQuests() { return []; }
 export async function getQuestById(id?: string) {
+  const saved = savedQuests().find(quest => quest.id === id);
+  if (saved) return saved;
   if (id === 'qa-player-quest') {
     return {
       id,
@@ -90,7 +97,9 @@ export async function getQuestById(id?: string) {
     updatedAt: Date.now(),
   };
 }
-export async function saveQuest() {}
+export async function saveQuest(quest: Quest) {
+  localStorage.setItem(QUEST_KEY, JSON.stringify([...savedQuests().filter(saved => saved.id !== quest.id), quest]));
+}
 export async function deleteQuest() {}
 export async function saveQuestResult() { return 'qa-result-001'; }
 let qaResults = [

@@ -66,6 +66,27 @@ beforeEach(() => {
 });
 
 describe('BoundCreator', () => {
+  it('shows manual save errors and stays in the editor when saving before back fails', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    saveQuest.mockRejectedValue(new Error('permission-denied'));
+    render(<BoundCreator />);
+    fireEvent.change(screen.getByPlaceholderText('Наслов на авантурата...'), { target: { value: 'Draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Зачувај' }));
+    expect(await screen.findByText('Грешка при зачувување — обиди се')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Назад кон Dashboard' }));
+    await waitFor(() => expect(saveQuest).toHaveBeenCalledTimes(2));
+    expect(navigateSpy).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+
+  it('saves edits before returning to the dashboard', async () => {
+    render(<BoundCreator />);
+    fireEvent.change(screen.getByPlaceholderText('Наслов на авантурата...'), { target: { value: 'Draft' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Назад кон Dashboard' }));
+    await waitFor(() => expect(navigateSpy).toHaveBeenCalledWith('/dashboard'));
+    expect(saveQuest).toHaveBeenCalledWith(expect.objectContaining({ title: 'Draft' }));
+  });
+
   it('routes back to the dashboard from the labelled shell action', () => {
     render(<BoundCreator />);
     fireEvent.click(screen.getByRole('button', { name: 'Назад кон Dashboard' }));

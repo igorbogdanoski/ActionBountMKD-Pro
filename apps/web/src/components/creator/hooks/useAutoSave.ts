@@ -7,32 +7,47 @@ export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void)
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inFlightRef = useRef<Promise<void> | null>(null);
+  const inFlightRef = useRef<Promise<boolean> | null>(null);
   const suspendedRef = useRef(false);
   const questRef = useRef(quest);
+  const savedQuestRef = useRef<Quest | null>(null);
   questRef.current = quest;
 
-  const doSave = useCallback(async () => {
-    if (suspendedRef.current) return;
-    if (inFlightRef.current) return inFlightRef.current;
+  const doSave = useCallback(async (): Promise<boolean> => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (suspendedRef.current || !questRef.current.creatorId) return false;
+    if (inFlightRef.current) {
+      const pendingSnapshot = questRef.current;
+      const succeeded = await inFlightRef.current;
+      if (!succeeded || suspendedRef.current) return false;
+      if (pendingSnapshot === savedQuestRef.current && questRef.current === pendingSnapshot) return true;
+      return doSave();
+    }
     setSaving(true);
     const questToSave = questRef.current;
     const operation = (async () => {
       try {
         await saveQuest(questToSave);
+        savedQuestRef.current = questToSave;
         setLastSaved(new Date());
         setError(null);
         if (questRef.current === questToSave) onSaved();
+        return true;
       } catch (err) {
         console.error('[AutoSave]', err);
         setError('Не успеа зачувувањето. Провери ја интернет врската и обиди се повторно.');
+        return false;
       } finally {
         setSaving(false);
       }
     })();
     inFlightRef.current = operation;
-    await operation;
+    const succeeded = await operation;
     if (inFlightRef.current === operation) inFlightRef.current = null;
+    return succeeded && questRef.current === questToSave;
   }, [onSaved]);
 
   const suspend = useCallback(async () => {

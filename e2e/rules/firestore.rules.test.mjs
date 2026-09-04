@@ -414,6 +414,19 @@ describe('quest nested bounds', () => {
 });
 
 describe('quest stage schema v2', () => {
+  test('owner can query stages before creation and reopen a private quest using both constraints', async () => {
+    const db = ownerFirestore();
+    const stages = query(collection(db, 'quest_stages'),
+      where('questId', '==', QUEST_ID), where('creatorId', '==', OWNER_ID));
+    assert.equal((await assertSucceeds(getDocs(stages))).size, 0);
+    await assertSucceeds(questStageBatch([validStage()], {}, db).commit());
+    assert.equal((await assertSucceeds(getDocs(stages))).size, 1);
+    await assertFails(getDocs(query(collection(db, 'quest_stages'), where('questId', '==', QUEST_ID))));
+    const other = testEnv.authenticatedContext('teacher-2').firestore();
+    await assertFails(getDocs(query(collection(other, 'quest_stages'),
+      where('questId', '==', QUEST_ID), where('creatorId', '==', OWNER_ID))));
+  });
+
   test('accepts all nine stage types in one atomic quest revision', async () => {
     const stages = [
       validStage({ id: 'info', order: 0 }),

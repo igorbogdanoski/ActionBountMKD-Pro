@@ -64,8 +64,9 @@ function makeStageRevision(): string {
   }
 }
 
-function stageQueryForQuest(questId: string) {
-  return query(collection(db, QUEST_STAGES_COLLECTION), where('questId', '==', questId));
+function stageQueryForQuest(questId: string, creatorId: string) {
+  // Rules must prove ownership from the query, including before a new parent exists.
+  return query(collection(db, QUEST_STAGES_COLLECTION), where('questId', '==', questId), where('creatorId', '==', creatorId));
 }
 
 function hydrateQuestSafely(
@@ -119,7 +120,7 @@ export async function getQuestById(id: string): Promise<Quest | null> {
   if (!snap.exists()) return null;
   const data = snap.data() as Record<string, unknown>;
   const stageDocuments = data.stageSchemaVersion === QUEST_STAGE_SCHEMA_VERSION
-    ? (await getDocs(stageQueryForQuest(id))).docs.map(stageDoc => stageDoc.data() as QuestStageDocument)
+    ? (await getDocs(stageQueryForQuest(id, data.creatorId as string))).docs.map(stageDoc => stageDoc.data() as QuestStageDocument)
     : [];
   return hydrateQuestSafely(data, stageDocuments);
 }
@@ -132,7 +133,7 @@ export async function saveQuest(quest: Quest): Promise<void> {
     createdAt: quest.createdAt ?? now,
   };
   const split = splitQuestForStageStorage(persistedQuest, makeStageRevision());
-  const existing = await getDocs(stageQueryForQuest(quest.id));
+  const existing = await getDocs(stageQueryForQuest(quest.id, quest.creatorId));
   const nextIds = new Set(split.stages.map(stage => questStageDocumentId(quest.id, stage.id)));
   const batch = writeBatch(db);
   batch.set(doc(db, QUESTS, quest.id), split.document);
@@ -146,7 +147,9 @@ export async function saveQuest(quest: Quest): Promise<void> {
 }
 
 export async function deleteQuest(id: string): Promise<void> {
-  const existing = await getDocs(stageQueryForQuest(id));
+  const parent = await getDoc(doc(db, QUESTS, id));
+  if (!parent.exists()) return;
+  const existing = await getDocs(stageQueryForQuest(id, parent.data().creatorId));
   const batch = writeBatch(db);
   for (const stage of existing.docs) batch.delete(stage.ref);
   batch.delete(doc(db, QUESTS, id));

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Save, Share2, Settings2, Eye, EyeOff, Loader2, ChevronLeft, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../utils/AuthContext';
-import { deleteQuest, getQuestById, saveQuest } from '../../utils/storage';
+import { deleteQuest, getQuestById } from '../../utils/storage';
 import { trackEvent } from '../../utils/analytics';
 import { useQuestEditor } from './hooks/useQuestEditor';
 import { useAutoSave }    from './hooks/useAutoSave';
@@ -103,9 +103,22 @@ export function BoundCreator() {
 
   // Manual save
   const handleSave = async () => {
-    await saveQuest(quest);
-    setClean();
+    await retrySave();
   };
+
+  const handleBack = async () => {
+    if (!isDirty || await retrySave()) navigate('/dashboard');
+  };
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warnUnsaved = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warnUnsaved);
+    return () => window.removeEventListener('beforeunload', warnUnsaved);
+  }, [isDirty]);
 
   // Activation/publish signals — fired once a save actually persists, not
   // on every keystroke. quest_created: the first successful save of a
@@ -153,7 +166,7 @@ export function BoundCreator() {
     <div className="flex flex-col h-full bg-slate-950 text-slate-200">
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-slate-800 bg-slate-900 shrink-0">
-        <Button type="button" aria-label="Назад кон Dashboard" onClick={() => navigate('/dashboard')}
+        <Button type="button" aria-label="Назад кон Dashboard" onClick={handleBack} disabled={saving}
           size="icon"
           colorClassName="text-slate-400 hover:text-white hover:bg-slate-800 focus-visible:ring-slate-400"
           className="!p-1.5">
@@ -181,8 +194,8 @@ export function BoundCreator() {
               <AlertTriangle className="w-3 h-3" /> Грешка при зачувување — обиди се
             </Button>
           )}
-          {!saving && !saveError && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
-          {!saving && !saveError && !lastSaved && isDirty && <span className="text-amber-400">● Незачувано</span>}
+          {!saving && !saveError && !isDirty && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
+          {!saving && !saveError && isDirty && <span className="text-amber-400">● Незачувано</span>}
         </div>
 
         {/* Actions */}
@@ -202,7 +215,7 @@ export function BoundCreator() {
             colorClassName="text-slate-400 hover:bg-slate-800 hover:text-white focus-visible:ring-slate-400">
             <Share2 className="w-4.5 h-4.5" />
           </Button>
-          <Button type="button" onClick={handleSave} disabled={!isDirty}
+          <Button type="button" onClick={handleSave} disabled={!isDirty || saving}
             variant="success"
             className="!py-2 !rounded-lg">
             <Save className="w-4 h-4" />

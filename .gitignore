@@ -29,3 +29,7 @@ e2e/.cache/
 
 # Repo-local Firebase CLI config and emulator binaries used by test:rules
 .firebase-local/
+
+# Coding-agent scratch space — release staging copies of the tree, MCP traces
+.codex/
+.playwright-mcp/

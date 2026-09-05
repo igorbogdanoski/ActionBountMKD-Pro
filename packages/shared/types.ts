@@ -300,6 +300,30 @@ export interface Quest {
   updatedAt: string;
 }
 
+/** Why a quest cannot be written yet. Mirrors the /quests Firestore rule. */
+export type QuestSaveBlocker = 'missing-title' | 'title-too-long';
+
+export const MAX_QUEST_TITLE_LENGTH = 200;
+
+/**
+ * Whether the quest can be persisted, and if not, what is missing.
+ *
+ * The security rule for /quests requires a title of 1–200 characters, and a
+ * newly created adventure starts with an empty one. Sending it anyway is
+ * refused by the rule, which surfaces to the editor as a bare
+ * "Missing or insufficient permissions" — accurate for Firestore, useless to a
+ * teacher. Asking here lets the editor say what it needs instead. A title of
+ * only spaces is treated as missing: the rule would accept it, but it is not a
+ * title anyone can find an adventure by.
+ *
+ * Pure & side-effect free.
+ */
+export function questSaveBlocker(quest: Pick<Quest, 'title'>): QuestSaveBlocker | null {
+  if (quest.title.trim().length === 0) return 'missing-title';
+  if (quest.title.length > MAX_QUEST_TITLE_LENGTH) return 'title-too-long';
+  return null;
+}
+
 // ─── STAGES ───────────────────────────────────────────────────────────────────
 
 export type StageType =

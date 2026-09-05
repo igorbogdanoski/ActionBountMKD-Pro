@@ -93,7 +93,22 @@ export function BoundCreator() {
   }, [questId]);
 
   // Auto-save with 2s debounce
-  const { lastSaved, saving, error: saveError, retry: retrySave, suspend: suspendAutoSave } = useAutoSave(quest, isDirty, setClean);
+  const { lastSaved, saving, error: saveError, blocker: saveBlocker, retry: retrySave, suspend: suspendAutoSave } = useAutoSave(quest, isDirty, setClean);
+  const titleRef = useRef<HTMLInputElement>(null);
+
+  // Two forms on purpose. The header packs the back button, the title field,
+  // this status and three actions into one row, and the title field is the one
+  // that gives way — a sentence here shrinks it to nothing on a phone. The
+  // short label is what is drawn; the sentence is the tooltip and the label
+  // screen readers announce.
+  const SAVE_BLOCKER_LABEL = {
+    'missing-title': 'Внеси наслов',
+    'title-too-long': 'Предолг наслов',
+  } as const;
+  const SAVE_BLOCKER_HINT = {
+    'missing-title': 'Внеси наслов за да се зачува авантурата',
+    'title-too-long': 'Насловот е предолг — најмногу 200 знаци',
+  } as const;
 
   const handleDeleteQuest = async () => {
     await suspendAutoSave();
@@ -101,13 +116,20 @@ export function BoundCreator() {
     navigate('/dashboard');
   };
 
-  // Manual save
+  // Manual save. Nothing can persist while the quest is short of what the rule
+  // requires, so send the teacher to the field that is missing rather than
+  // letting the button appear to do nothing.
   const handleSave = async () => {
+    if (saveBlocker) { titleRef.current?.focus(); return; }
     await retrySave();
   };
 
+  // Leaving with nothing to save is always allowed — it is only worth insisting
+  // on a title when there are edits that would otherwise be lost.
   const handleBack = async () => {
-    if (!isDirty || await retrySave()) navigate('/dashboard');
+    if (!isDirty) { navigate('/dashboard'); return; }
+    if (saveBlocker) { titleRef.current?.focus(); return; }
+    if (await retrySave()) navigate('/dashboard');
   };
 
   useEffect(() => {
@@ -175,11 +197,14 @@ export function BoundCreator() {
 
         {/* Title inline edit */}
         <input
+          ref={titleRef}
           type="text"
           placeholder="Наслов на авантурата..."
           value={quest.title}
           onChange={e => setField('title', e.target.value)}
           maxLength={200}
+          aria-label="Наслов на авантурата"
+          aria-invalid={saveBlocker ? true : undefined}
           className="flex-1 bg-transparent text-base font-bold text-white placeholder:text-slate-600 focus:outline-none min-w-0"
         />
 
@@ -194,8 +219,16 @@ export function BoundCreator() {
               <AlertTriangle className="w-3 h-3" /> Грешка при зачувување — обиди се
             </Button>
           )}
+          {/* Occupies the same slot as "Незачувано" and only while there are
+              edits at stake: an untouched creator shows nothing here, which is
+              what leaves the title field its width on a narrow screen. */}
+          {!saving && !saveError && isDirty && saveBlocker && (
+            <span className="text-amber-400 whitespace-nowrap" title={SAVE_BLOCKER_HINT[saveBlocker]}>
+              ● {SAVE_BLOCKER_LABEL[saveBlocker]}
+            </span>
+          )}
           {!saving && !saveError && !isDirty && lastSaved && <>✓ {lastSaved.toLocaleTimeString('mk-MK', { hour: '2-digit', minute: '2-digit' })}</>}
-          {!saving && !saveError && isDirty && <span className="text-amber-400">● Незачувано</span>}
+          {!saving && !saveError && isDirty && !saveBlocker && <span className="text-amber-400">● Незачувано</span>}
         </div>
 
         {/* Actions */}
@@ -216,6 +249,7 @@ export function BoundCreator() {
             <Share2 className="w-4.5 h-4.5" />
           </Button>
           <Button type="button" onClick={handleSave} disabled={!isDirty || saving}
+            title={saveBlocker ? SAVE_BLOCKER_HINT[saveBlocker] : undefined}
             variant="success"
             className="!py-2 !rounded-lg">
             <Save className="w-4 h-4" />

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { saveQuest } from '../../../utils/storage';
+import { questSaveBlocker } from 'shared';
 import type { Quest } from 'shared';
 
 export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void) {
@@ -18,7 +19,10 @@ export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void)
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    // A quest the rule will refuse is never sent: the rejection comes back as a
+    // permission error that says nothing a teacher can act on.
     if (suspendedRef.current || !questRef.current.creatorId) return false;
+    if (questSaveBlocker(questRef.current)) return false;
     if (inFlightRef.current) {
       const pendingSnapshot = questRef.current;
       const succeeded = await inFlightRef.current;
@@ -59,15 +63,18 @@ export function useAutoSave(quest: Quest, isDirty: boolean, onSaved: () => void)
     await inFlightRef.current;
   }, []);
 
+  const blocker = questSaveBlocker(quest);
+
   useEffect(() => {
-    // Never save if creatorId is missing — Firestore will reject with permissions error
-    if (suspendedRef.current || !isDirty || !questRef.current.creatorId) return;
+    // Never save if creatorId is missing, or while the quest is still short of
+    // what the rule requires — Firestore rejects both as a permissions error.
+    if (suspendedRef.current || !isDirty || !questRef.current.creatorId || blocker) return;
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(doSave, 2000); // 2s debounce
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
-  }, [isDirty, quest, doSave]); // restart the debounce for every editor snapshot
+  }, [isDirty, quest, doSave, blocker]); // restart the debounce for every editor snapshot
 
-  return { lastSaved, saving, error, retry: doSave, suspend };
+  return { lastSaved, saving, error, blocker, retry: doSave, suspend };
 }

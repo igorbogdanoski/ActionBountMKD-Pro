@@ -378,6 +378,12 @@ describe('quest nested bounds', () => {
     })));
   });
 
+  test('rejects an untitled quest, which is the state every new adventure starts in', async () => {
+    await assertFails(writeQuest('no-title', validQuest({ id: 'no-title', title: '' })));
+    await assertFails(writeQuest('long-title', validQuest({ id: 'long-title', title: 'x'.repeat(201) })));
+    await assertSucceeds(writeQuest('one-char-title', validQuest({ id: 'one-char-title', title: 'A' })));
+  });
+
   test('rejects malformed pedagogy maps and overlong curriculum references', async () => {
     await assertFails(writeQuest('bad-pedagogy', validQuest({
       id: 'bad-pedagogy',

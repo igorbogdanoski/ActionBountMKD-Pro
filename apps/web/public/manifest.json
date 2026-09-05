@@ -36,17 +36,17 @@
   "screenshots": [
     {
       "src": "/screenshot-mobile.png",
-      "sizes": "768x1376",
+      "sizes": "1236x2196",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Играње авантура на телефон — GPS мапа и загатки"
+      "label": "Играње авантура на телефон — GPS мапа и растојание до точката"
     },
     {
       "src": "/screenshot-desktop.png",
-      "sizes": "1376x768",
+      "sizes": "2752x1536",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Креатор на авантури — етапи, мапа и резултати"
+      "label": "Креатор на авантури — етапи, мапа на точки и уредник на квиз"
     }
   ],
   "description": "Создавај и играј интерактивни GPS авантури и едукативни квестови. Македонска SaaS платформа."

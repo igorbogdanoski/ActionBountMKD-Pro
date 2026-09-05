@@ -1404,7 +1404,9 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
     <div className={`flex flex-col h-screen max-w-md mx-auto ${isNightMode ? 'bg-slate-900 text-slate-200' : 'bg-slate-50 text-slate-800'} font-sans shadow-2xl border-x ${isNightMode ? 'border-slate-800' : 'border-slate-200'} transition-colors`}>
       <SEO title={quest.title} description={quest.description} noIndex />
       {/* Top HUD */}
-      <header className={`h-16 ${isNightMode ? 'bg-slate-950' : 'bg-indigo-950'} text-white px-6 flex items-center shrink-0 shadow-md relative z-20 transition-colors gap-4`}>
+      {/* px-4/gap-3 rather than px-6/gap-4: the status icons on the right do not
+          shrink, and the wider spacing pushed the HUD past a 412 px phone. */}
+      <header className={`h-16 ${isNightMode ? 'bg-slate-950' : 'bg-indigo-950'} text-white px-4 flex items-center shrink-0 shadow-md relative z-20 transition-colors gap-3`}>
         <div className="flex-1 flex flex-col">
           <div className="flex items-center gap-2">
             {quest?.sequence === 'fixed' && completedStageIds.includes(stages[currentStageIndex - 1]?.id) && (
@@ -1420,9 +1422,12 @@ export function MobilePlayer({ questId, questProp, isPreview, rosterStudentId, r
           </div>
           <span className="text-sm font-bold">{points} ПОЕНИ</span>
         </div>
-        <div className="flex flex-col items-center">
+        {/* shrink-0: the icon group to the right does not shrink, so without this
+            the counter is squeezed to a couple of characters and "2 / 5" wraps
+            onto three lines, spilling out of the h-16 header on a phone. */}
+        <div className="flex flex-col items-center shrink-0">
           <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider">Етапа</span>
-          <span className="text-sm font-bold bg-indigo-900 px-2 py-0.5 rounded text-emerald-400 flex items-center gap-1">
+          <span className="text-sm font-bold bg-indigo-900 px-2 py-0.5 rounded text-emerald-400 flex items-center gap-1 whitespace-nowrap">
              {completedStageIds.length + 1} / {stages.length}
              {stage && cachedStages[stage.id] && <Cloud className="w-3 h-3 text-emerald-300 ml-0.5" aria-label="Офлајн достапно" />}
           </span>

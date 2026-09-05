@@ -117,6 +117,55 @@ describe('BoundCreator', () => {
     expect(screen.getByRole('button', { name: /Зачувај/ })).toBeDisabled();
   });
 
+  // The original report: editing a brand-new adventure produced an error toast
+  // and nothing persisted, because the /quests rule refuses an empty title and
+  // the editor sent the write regardless.
+  it('asks for a title instead of attempting a save the rule would refuse', async () => {
+    render(<BoundCreator />);
+    const title = screen.getByPlaceholderText('Наслов на авантурата...');
+
+    fireEvent.change(title, { target: { value: 'Нацрт' } });
+    fireEvent.change(title, { target: { value: '' } });
+
+    expect(screen.getByText('● Внеси наслов')).toBeInTheDocument();
+    expect(screen.queryByText('Грешка при зачувување — обиди се')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Зачувај/ }));
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(saveQuest).not.toHaveBeenCalled();
+  });
+
+  it('keeps the teacher in the editor and focuses the title when Back cannot save', async () => {
+    render(<BoundCreator />);
+    const title = screen.getByPlaceholderText('Наслов на авантурата...');
+    fireEvent.change(title, { target: { value: 'Нацрт' } });
+    fireEvent.change(title, { target: { value: '  ' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Назад кон Dashboard' }));
+
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(saveQuest).not.toHaveBeenCalled();
+  });
+
+  it('saves normally once the title is filled in', async () => {
+    render(<BoundCreator />);
+    const title = screen.getByPlaceholderText('Наслов на авантурата...');
+    // Type then clear: React drops a change event whose value is unchanged, so
+    // setting '' on an already empty field would never mark the quest dirty.
+    fireEvent.change(title, { target: { value: 'Нацрт' } });
+    fireEvent.change(title, { target: { value: '' } });
+    expect(screen.getByText('● Внеси наслов')).toBeInTheDocument();
+
+    fireEvent.change(title, { target: { value: 'Прошетка низ чаршија' } });
+    expect(screen.getByText('● Незачувано')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Зачувај/ }));
+    await waitFor(() => expect(saveQuest).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Прошетка низ чаршија' })
+    ));
+  });
+
   it('marks the quest dirty when the title is edited, and saves on manual Save click', async () => {
     render(<BoundCreator />);
 
@@ -164,14 +213,25 @@ describe('BoundCreator', () => {
     ));
   });
 
-  it('adding a stage from the empty state selects it and opens the stage editor', () => {
+  // This is the reported path verbatim: open the creator, add a stage, and the
+  // adventure is still untitled. It used to autosave, be refused by the rule and
+  // show a bare error; now it says what it needs and writes nothing until then.
+  it('adding a stage from the empty state selects it and asks for a title', async () => {
     render(<BoundCreator />);
 
     expect(screen.getByText('Етапи (0)')).toBeTruthy();
     fireEvent.click(screen.getByText('Информација'));
 
     expect(screen.getByText('Етапи (1)')).toBeTruthy();
-    expect(screen.getByText('● Незачувано')).toBeTruthy();
+    expect(screen.getByText('● Внеси наслов')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Наслов на авантурата...'), {
+      target: { value: 'Прошетка низ чаршија' },
+    });
+    expect(screen.getByText('● Незачувано')).toBeInTheDocument();
+    await waitFor(() => expect(saveQuest).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Прошетка низ чаршија' }),
+    ), { timeout: 4000 });
   });
 
   it('deletes a stage through the confirmation Modal', async () => {

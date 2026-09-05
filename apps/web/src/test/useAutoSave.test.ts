@@ -75,6 +75,59 @@ describe('useAutoSave', () => {
     expect(saveQuest).not.toHaveBeenCalled();
   });
 
+  // A new adventure starts untitled, and the /quests rule requires 1–200
+  // characters. Sending it anyway comes back as a permission error the teacher
+  // cannot act on, so the hook reports what is missing and writes nothing.
+  it('reports a missing title instead of attempting a write the rule refuses', async () => {
+    const { result } = renderHook(() => useAutoSave(makeQuest({ title: '' }), true, vi.fn()));
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+
+    expect(saveQuest).not.toHaveBeenCalled();
+    expect(result.current.blocker).toBe('missing-title');
+    expect(result.current.error).toBeNull();
+  });
+
+  it('treats a whitespace-only title as missing', async () => {
+    const { result } = renderHook(() => useAutoSave(makeQuest({ title: '   ' }), true, vi.fn()));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(saveQuest).not.toHaveBeenCalled();
+    expect(result.current.blocker).toBe('missing-title');
+  });
+
+  it('reports an overlong title and refuses the write', async () => {
+    const { result } = renderHook(() => useAutoSave(makeQuest({ title: 'x'.repeat(201) }), true, vi.fn()));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(saveQuest).not.toHaveBeenCalled();
+    expect(result.current.blocker).toBe('title-too-long');
+  });
+
+  it('retry() writes nothing while the title is missing', async () => {
+    const { result } = renderHook(() => useAutoSave(makeQuest({ title: '' }), true, vi.fn()));
+    let saved!: boolean;
+    await act(async () => { saved = await result.current.retry(); });
+    expect(saved).toBe(false);
+    expect(saveQuest).not.toHaveBeenCalled();
+  });
+
+  it('saves as soon as a title is typed into a previously blocked quest', async () => {
+    saveQuest.mockResolvedValue(undefined);
+    const titled = makeQuest({ title: 'Прошетка низ чаршија' });
+    const { result, rerender } = renderHook(({ quest }) => useAutoSave(quest, true, vi.fn()), {
+      initialProps: { quest: makeQuest({ title: '' }) },
+    });
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    expect(saveQuest).not.toHaveBeenCalled();
+
+    rerender({ quest: titled });
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+
+    expect(saveQuest).toHaveBeenCalledOnce();
+    expect(saveQuest).toHaveBeenCalledWith(titled);
+    expect(result.current.blocker).toBeNull();
+  });
+
   it('suspends pending saves and waits for an in-flight save before destructive work continues', async () => {
     let resolveSave!: () => void;
     saveQuest.mockImplementation(() => new Promise<void>(resolve => { resolveSave = resolve; }));
